@@ -9,16 +9,22 @@
     "baseline": "bun src/commands/baseline.ts",
     "check": "bun src/commands/check.ts",
     "approve": "bun src/commands/approve.ts",
-    "visual:selftest": "bun --env-file=.env scripts/visual-selftest.ts"
+    "visual:selftest": "bun --env-file=.env scripts/visual-selftest.ts",
+    "build:plugin": "bun scripts/build-plugin.ts",
+    "test:plugin": "bun test test/plugin --timeout 600000"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
     "@types/pngjs": "^6.0.5",
     "@wp-playground/blueprints": "3.1.55",
     "@wp-playground/cli": "3.1.55",
+    "node-gyp": "13.0.2",
     "pixelmatch": "^7.2.0",
-    "playwright": "^1.63.0",
+    "playwright": "1.63.0",
     "pngjs": "^7.0.0",
     "typescript": "^7.0.2"
-  }
+  },
+  "trustedDependencies": [
+    "fs-ext-extra-prebuilt"
+  ]
 }

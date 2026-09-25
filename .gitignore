@@ -4,3 +4,6 @@ issues/seeds/
 .env
 node_modules/
 runs/
+artifacts/
+dist/
+.cache/

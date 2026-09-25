@@ -4,6 +4,23 @@ Visual and health checks for a hand-maintained list of WordPress sites, run from
 
 The checker captures full-page desktop/mobile screenshots, compares them with accepted R2 baselines, and reports visual changes and browser health findings. Baseline creation and approval are explicit operator actions. It does not discover pages, update WordPress, submit forms or schedule runs.
 
+## Pirax Form Test plugin
+
+**Pirax Form Test** is a small WordPress plugin that lets an operator submit real test entries through a client's Gravity Forms or Fluent Forms forms. The notifications from those entries go to the operator's test mailbox, never to the client.
+
+- Plugin behaviour, settings, supported versions and rollout: [`plugin/pirax-form-test/README.md`](plugin/pirax-form-test/README.md)
+- Local test harness, credentials and evidence: [`test/plugin/README.md`](test/plugin/README.md)
+
+Building and testing it additionally requires Node, `zip`/`unzip`, and a C++ toolchain for one native dev dependency (see the test README).
+
+```sh
+bun run build:plugin           # → dist/pirax-form-test.zip, the uploadable plugin (allowlisted files only)
+bunx playwright install chromium
+bun run test:plugin            # real WordPress + Gravity Forms + Fluent Forms suites; needs credentials
+```
+
+The plugin suites need `GRAVITY_FORMS_ZIP` and `FORM_TEST_TOKEN`. From a worktree, pass the registered repository's environment file with `bun --env-file=<registered-repo>/.env run test:plugin`. `dist/`, `artifacts/` and `.cache/` are generated and ignored by git.
+
 ## Setup
 
 Production commands require [Bun](https://bun.sh) 1.4 or newer, Playwright Chromium with its system libraries, and private Cloudflare R2 access. Node 24, OpenSSL and WordPress downloads are additional integration-selftest requirements only; see [Visual selftest](#visual-selftest).
@@ -32,7 +49,8 @@ Create `.env` in the repository root with the four names from `.env.example`:
 | `bun run baseline <slug\|all> [--sites file]` | Capture and replace PNG/raw-health baseline pairs at both widths. | Yes |
 | `bun run check <slug\|all> [--sites file]` | Compare with baselines and publish a private report, including expected failures. Never changes baselines. | Yes |
 | `bun run approve <slug> [pagePath] [--sites file]` | Promote exact actual PNG/health bytes from the latest completed remote check containing that site. | Yes |
-| `bun --no-env-file test` | Credential-free unit/helper, CLI and local browser tests; browser cases require installed Chromium. `bunfig.toml` excludes `issues/**` worktrees from discovery. | No |
+| `bun --no-env-file test tests` | Credential-free unit/helper, CLI and local browser tests; browser cases require installed Chromium. `bunfig.toml` excludes `issues/**` worktrees from discovery. | No |
+| `bun test` | Everything above plus the Playground-backed [plugin suites](#pirax-form-test-plugin) under `test/plugin/` (about 10 minutes). Those need `GRAVITY_FORMS_ZIP` and `FORM_TEST_TOKEN`, which Bun loads from `.env`, and fail by name when they are missing. | No |
 | `bun run typecheck` | `tsc --noEmit` over `src`, `scripts`, `tests` and `test` fixtures. | No |
 | `bun run store:selftest` | Real-bucket storage test (see [Storage selftest](#storage-selftest)); runs `bun --env-file=.env scripts/store-selftest.ts`. | Yes |
 | `bun run visual:selftest` | Real WordPress/Chromium/R2 integration (see [Visual selftest](#visual-selftest)); runs `bun --env-file=.env scripts/visual-selftest.ts`. | Yes |

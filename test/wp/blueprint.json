@@ -1,0 +1,29 @@
+{
+  "preferredVersions": {
+    "php": "8.3",
+    "wp": "6.8.3"
+  },
+  "constants": {
+    "DISABLE_WP_CRON": true,
+    "WP_DEBUG": false,
+    "WP_HTTP_BLOCK_EXTERNAL": true,
+    "AUTOMATIC_UPDATER_DISABLED": true
+  },
+  "steps": [
+    {
+      "step": "writeFile",
+      "path": "/tmp/wp-cli.phar",
+      "data": {
+        "resource": "url",
+        "url": "https://github.com/wp-cli/wp-cli/releases/download/v2.12.0/wp-cli-2.12.0.phar"
+      }
+    },
+    {
+      "step": "setSiteOptions",
+      "options": {
+        "blogname": "Visual selftest",
+        "permalink_structure": "/%postname%/"
+      }
+    }
+  ]
+}

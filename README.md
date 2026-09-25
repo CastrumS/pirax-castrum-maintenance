@@ -2,21 +2,15 @@
 
 Visual and health checks for a hand-maintained list of WordPress sites, run from the operator's machine.
 
-This repository currently contains the **foundation** only:
-
-- the site list format and its loader (`src/sites.ts`),
-- on-demand R2 configuration (`src/env.ts`),
-- the R2 storage layer with report retention (`src/store.ts`),
-- a selftest that exercises the storage layer against the real bucket.
-
-There are no baseline, check or approve commands yet, and no browser code. Later work builds those on top of these modules.
+The checker captures full-page desktop/mobile screenshots, compares them with accepted R2 baselines, and reports visual changes and browser health findings. Baseline creation and approval are explicit operator actions. It does not discover pages, update WordPress, submit forms or schedule runs.
 
 ## Setup
 
-Requires [Bun](https://bun.sh) 1.4 or newer.
+Production commands require [Bun](https://bun.sh) 1.4 or newer, Playwright Chromium with its system libraries, and private Cloudflare R2 access. Node 24, OpenSSL and WordPress downloads are additional integration-selftest requirements only; see [Visual selftest](#visual-selftest).
 
 ```sh
 bun install
+bunx playwright install chromium
 cp -n sites.example.yaml sites.yaml   # only creates sites.yaml if missing; then list your real sites
 ```
 
@@ -35,9 +29,62 @@ Create `.env` in the repository root with the four names from `.env.example`:
 
 | Command | What it does | Needs R2 |
 | --- | --- | --- |
-| `bun test` | Unit tests for the site loader, env reader, store validation and retention selection, the selftest's missing-configuration path, and test discovery. `bunfig.toml` excludes `issues/**`, so leaf worktrees under `issues/worktrees/` are never picked up (Bun's discovery ignores `.gitignore`). | No |
-| `bun run typecheck` | `tsc --noEmit` over `src`, `scripts` and `tests`. | No |
-| `bun run store:selftest` | Real-bucket storage test (see [Storage selftest](#storage-selftest)). Runs `bun --env-file=.env scripts/store-selftest.ts`. | Yes |
+| `bun run baseline <slug\|all> [--sites file]` | Capture and replace PNG/raw-health baseline pairs at both widths. | Yes |
+| `bun run check <slug\|all> [--sites file]` | Compare with baselines and publish a private report, including expected failures. Never changes baselines. | Yes |
+| `bun run approve <slug> [pagePath] [--sites file]` | Promote exact actual PNG/health bytes from the latest completed remote check containing that site. | Yes |
+| `bun --no-env-file test` | Credential-free unit/helper, CLI and local browser tests; browser cases require installed Chromium. `bunfig.toml` excludes `issues/**` worktrees from discovery. | No |
+| `bun run typecheck` | `tsc --noEmit` over `src`, `scripts`, `tests` and `test` fixtures. | No |
+| `bun run store:selftest` | Real-bucket storage test (see [Storage selftest](#storage-selftest)); runs `bun --env-file=.env scripts/store-selftest.ts`. | Yes |
+| `bun run visual:selftest` | Real WordPress/Chromium/R2 integration (see [Visual selftest](#visual-selftest)); runs `bun --env-file=.env scripts/visual-selftest.ts`. | Yes |
+
+Use a listed slug (for example `acme`) or `all` for baseline/check. `approve all` is unsupported. `--sites path/to/sites.yaml` selects an alternative list and may appear before or after the positional arguments. The default is `sites.yaml`; no command rewrites it. An empty valid list with target `all` returns 0 without accessing R2 or launching a browser.
+
+Exit codes for baseline/check/approve:
+
+- `0`: pass or warnings only, successful approval, or an empty selection.
+- `1`: visual, health, missing/corrupt baseline, blocked capture or operational failure, including report upload/pruning and approval failures.
+- `2`: usage, site-list, CSS-selector or missing/blank credential configuration error.
+
+### Before and after manual updates
+
+For first setup, inspect the site and establish its accepted state:
+
+```sh
+bun run baseline acme
+bun run check acme
+# Alternative list, for example:
+bun run check all --sites path/to/sites.yaml
+```
+
+Before a maintenance session, run `bun run check acme` and resolve existing unexpected findings. Perform WordPress/plugin/theme updates manually, then run `bun run check acme` again. Review its local or private report at both widths. Repair regressions and recheck; accept intended changes explicitly:
+
+```sh
+bun run approve acme /contact/  # only this currently listed page, both widths
+# Or: bun run approve acme     # every currently listed page, both widths
+bun run check acme
+```
+
+`baseline` replaces complete captured pairs directly, including usable captures with health findings; those findings can still make it return 1. Blocked/incomplete captures preserve existing pairs. `check` never creates a baseline: a missing PNG or health object is a `missing-baseline` failure; corrupt PNG/health is an explicit error. Inspect the site, then run `baseline <slug>` to establish or replace those pairs. Storage/authentication failures are operational errors, not evidence that a baseline is absent.
+
+Approval reads R2, without recapture or a local-cache requirement. It scans canonical run IDs newest first, skipping runs without a completion manifest and valid runs for other sites. An invalid manifest encountered during selection is an error. From the newest completed check containing the site, it requires the same configured source URL and complete actual PNG/health evidence for every requested current page at both widths. All selected PNGs, recorded dimensions and health snapshots are validated before any baseline write. A newly listed page absent from that run, blocked/incomplete capture or missing/corrupt evidence fails preflight without writes. It never falls back to an older run or mixes runs; create a fresh check when evidence is unsuitable or pruned.
+
+Baseline and approval writes are **nontransactional**: a write failure can leave partial replacement after successful preflight. Approval stops on that failure. Resolve the cause and rerun the explicit baseline/approve command; recheck afterward. Successful approval returns 0 for byte promotion, even when the promoted capture contains health failures that will still fail the next check.
+
+### Capture, masks and health
+
+Each page gets a fresh browser context at desktop **1440×900** and mobile **390×844**, device scale 1, fixed en-US/UTC/light settings and reduced motion. Mobile means a narrow viewport, not device emulation. Screenshots are full-page, so captured dimensions can exceed the viewport. Animations, transitions, caret and smooth scrolling are disabled for screenshots.
+
+Site and page CSS masks are combined without duplicates. Invalid CSS is configuration exit 2; a valid selector matching nothing produces a warning. Masks hide unstable regions in images, not health findings. With equal dimensions, pixelmatch uses threshold `0.1`; a visual failure occurs only when changed pixels divided by total pixels **exceeds** `max_diff_pixel_ratio` (default `0.01`, equality passes). Any width/height change fails regardless of tolerance; the report shows both dimensions and a diff computed on a padded canvas.
+
+Navigation/load has a 30-second timeout, followed by network idle capped at 15 seconds, lazy-load scrolling down/back up capped at 15 seconds, font/image settling capped at 5 seconds, and a 30-second screenshot timeout. Idle/scroll/settling limits produce readiness warnings; they do not promise a fully settled page. Navigation failure, HTTP 403 or an explicit challenge/interstitial is blocked and fails the run, while later pages/sites continue. A normal CAPTCHA or mention of Cloudflare alone is not classified as a challenge. A 404 is a health failure.
+
+Health is separate from pixel comparison:
+
+- New console errors, uncaught JavaScript errors and failed subresource `{url, status}` pairs fail. Identical findings already in baseline health are warnings; removed findings disappear. Query strings and statuses remain significant; transport failures have `status: null`.
+- Missing main-document response, final HTTP status >=400, the rendered WordPress critical-error phrase, and HTTP resources on a final HTTPS document always fail, even after baseline/approval. HTTP hyperlinks alone are not mixed content.
+- Warnings alone return 0. Raw health snapshots retain all observations, not just new findings.
+
+The browser blocks service workers and page-originated non-GET HTTP requests, including POST/beacon, and records policy aborts as warnings. It does not click forms or admin/update flows. Normal asset GETs are allowed; a remote GET endpoint can itself have side effects, so this policy cannot guarantee an arbitrary site is side-effect-free. Real-site TLS validation stays enabled.
 
 ## Site list
 
@@ -47,7 +94,7 @@ Create `.env` in the repository root with the four names from `.env.example`:
 sites:
   - slug: acme                 # lowercase letters/digits, single internal hyphens, unique
     url: https://acme.example.com  # http(s), absolute, no trailing slash
-    form_helper: false         # required; true once pirax-form-test is installed and configured on this site
+    form_helper: false         # required metadata; visual checks do not execute forms
     mask: ['#hero-slider']     # optional, CSS selectors masked on every page (default [])
     max_diff_pixel_ratio: 0.01 # optional, 0–1 (default 0.01)
     pages:                     # required, nonempty; order preserved
@@ -66,7 +113,7 @@ type Page = { path: string; mask: string[] };
 type Site = { slug: string; url: string; form_helper: boolean; mask: string[]; max_diff_pixel_ratio: number; pages: Page[] };
 ```
 
-Site and page masks stay separate; consumers combine them.
+Site and page masks stay separate in the loader; capture combines them. The loader checks nonblank strings; browser preflight checks CSS syntax.
 
 ### Errors
 
@@ -100,10 +147,34 @@ Baselines and reports live in Cloudflare R2, accessed through Bun's built-in `S3
 ```text
 baselines/<slug>/<viewport>/<pageKey>.png
 baselines/<slug>/<viewport>/<pageKey>.health.json
-reports/<runId>/...
+reports/<runId>/index.html
+reports/<runId>/manifest.json
+reports/<runId>/actual/<slug>/<viewport>/<pageKey>.png
+reports/<runId>/actual/<slug>/<viewport>/<pageKey>.health.json
+reports/<runId>/baseline/<slug>/<viewport>/<pageKey>.png          # when available
+reports/<runId>/baseline/<slug>/<viewport>/<pageKey>.health.json  # when available
+reports/<runId>/diff/<slug>/<viewport>/<pageKey>.png              # when available
 ```
 
 `runId` is `new Date().toISOString().replaceAll(":", "-")`, for example `2026-09-25T13-45-07.123Z`, so names sort chronologically.
+
+### Private reports and local evidence
+
+Each check saves `runs/<runId>/index.html`, `manifest.json` and the same relative actual/baseline/diff paths shown above. The HTML contains inline CSS and embedded PNGs, so a single private signed GET renders all available panels without public or unsigned asset requests. Site-derived text is escaped and scripts/external assets are disallowed. HTML uploads use `text/html; charset=utf-8`, JSON `application/json`, and PNGs `image/png`.
+
+The manifest is `{schemaVersion: 1, command: "check", report: RunReport}` from `src/report/model.ts`, recording site URL, page identity, capture/visual/health results and artifact paths. It uploads **last** as the completion marker. Publication then prunes to ten run directories and prints a signed report link valid for up to **604800 seconds (seven days)**. Expected failed checks also publish reports. Upload/prune/presign errors return 1; an already-written local report survives. A local filesystem failure can prevent HTML creation in the first place.
+
+The printed URL is a **bearer capability**: anyone holding it can read the report. Do not paste it into issues, committed files or retained implementation logs. Seven days is signature expiry, not guaranteed retention: global last-ten pruning across all sites can remove it sooner, including a quiet site's latest approval source. Run a fresh check if that source has gone.
+
+Capture traces are local only: `runs/<runId>/traces/<slug>/<viewport>/<pageKey>.trace.zip` when saving succeeds. They include screenshots, snapshots and sources, without video; publication explicitly excludes traces even though manifest metadata may name their paths. Baseline commands retain raw `actual/` files and traces, but do not publish a check report. `runs/` is gitignored and has no automatic local pruning. Reports and traces can contain private site content; review before sharing and remove locally when no longer needed.
+
+Open `runs/<runId>/index.html` in a browser. View a retained trace with the installed Playwright CLI (replace the placeholders):
+
+```sh
+bunx playwright show-trace runs/<runId>/traces/<slug>/desktop/<pageKey>.trace.zip
+```
+
+The shared `PageResult` supports optional `forms?: FormResult[]`; a supplied value enables a Forms column with plugin, outcome and detail. Outcomes are `delivered`, `delivered-spam`, `not-verified`, `rejected`, `unsupported`, or `failed`. Ordinary visual runs supply no forms. Rendering this data introduces no form submission, email check or form-health gating.
 
 ### API
 
@@ -174,9 +245,34 @@ Artifact: each run that reaches R2 writes `runs/store-selftest-<timestamp>.json`
 
 Output and artifacts never contain credentials, the endpoint, the bucket name, signed URLs or raw error messages. Errors the selftest does not author are reduced to their class and code, for example `S3Error (NoSuchKey)`.
 
+## Visual selftest
+
+`bun run visual:selftest` exercises production commands with real Chromium, disposable WordPress and real R2 authentication/storage. No storage or authentication mocks, paid plugins, Docker, host PHP or host `wp` executable are required. WordPress mutations use WP-CLI against the same live Playground instance over a local stdin/stdout bridge.
+
+Install a compatible **Node 24** for the integration bridge and **OpenSSL** for its disposable HTTPS certificate. Both Playground packages (`@wp-playground/cli` and `@wp-playground/blueprints`) are pinned to **3.1.55**; the fixture pins WordPress **6.8.3**, PHP **8.3** and official WP-CLI **2.12.0**. Network access is required for fixture downloads, including dependency-provided PHP/SQLite assets. The observed working runtime was Node **24.21.0**; Node 26.8.2 on this machine could not load Playground's native dependency. Do not change the global Node selection just for this test:
+
+```sh
+mise install node@24
+mise exec node@24 -- bun run visual:selftest
+# Or use an already installed compatible runtime:
+VISUAL_NODE=/path/to/node24 bun run visual:selftest
+```
+
+Bun dependencies, installed Chromium and the existing four R2 variables from Setup are also required. The script loads configuration through `bun --env-file=.env`; do not print credential values or inspect/copy environment-file contents into evidence. Its Node child receives only PATH, HOME and a disposable TMPDIR, not R2 variables. The bridge verifies installed fixture-plugin text exactly and the harness checks its served HTML marker before accepting a baseline.
+
+Every remote operation is scoped to a fresh `test/visual-<timestamp>-<random>/` root. Production baselines/reports and the operator site list are untouched. The harness checks changed versus stable WordPress pages at both widths, exact baseline/approval byte fidelity, remote-only page/site approval and negative preflight, new/known health findings, masks, dimension changes, blocked continuation, GET-only enforcement, TLS/mixed content, CLI exits, private HTML rendering/MIME and last-ten retention. It renders fetched report bodies without navigating to the signed URL, so bearer links are not written into traces or summaries.
+
+In `finally`, it stops fixtures, deletes only the test root and confirms that root is empty. Cleanup failure fails the run; the summary names the root for manual cleanup. Local evidence is retained at `runs/visual-selftest-<timestamp>/summary.json`, with scenario results, command exit codes, report/trace paths and cleanup counts. Command reports normally live under `commands/<runId>/index.html`; remote-only approval evidence is moved to a sibling `<runId>-retained/` directory and summary paths are updated. Capture traces use the layout above; browser-reviewed remote reports also retain `remote-report.png`, `remote-report.trace.zip` and `remote-render.json`. Use the summary's exact trace path with `bunx playwright show-trace`.
+
+Exit 0 means all assertions and cleanup passed; exit 1 means a scenario, prerequisite other than missing credentials, or cleanup failed; exit 2 means required R2 variables were missing/blank. Missing prerequisites fail with a retained summary rather than silently skipping. The integration harness does not duplicate every helper/browser test: readiness caps, comparison boundaries, malformed evidence variants and Forms/hostile-text rendering also have targeted coverage in `tests/`.
+
 ## Limitations
 
-- Masks are checked only as nonblank strings. Whether a selector is valid CSS or matches the page is not checked, because that needs a browser.
+- Dynamic content, consent overlays, anti-bot challenges and browser/font changes can prevent stable comparison. Masks and consistent environments help; the checker does not bypass protection or prove reliability for all production sites.
+- Mixed-content detection combines observed requests, browser diagnostics and resource attributes. It does not exhaustively scan arbitrary JavaScript or nested CSS/imports.
+- Full-page PNGs, embedded report images and whole-site approval hold data in memory; reports/traces can be large. There is no tiled capture or streaming comparison.
+- Real integration evidence covers normal storage, authentication, cleanup and retention. Deliberate R2 network/list/upload/prune failures and partial replacement caused by a real network failure were not induced; nontransactional failure handling is not a claim of verified fault recovery.
+- Playground 3.1.55 initially binds all interfaces; the fixture bridge closes and rebinds to loopback before readiness, leaving a short upstream startup interval. Download availability and other WordPress/theme/plugin versions remain outside the demonstrated fixture coverage.
 - The readable page-key format can collide. Collisions are rejected, not resolved.
 - Retention is not transactional. Prune only when no report run is in progress.
 - A folder-marker object such as `reports/<runId>/`, created outside this library, makes `pruneReports` reject with `StoreError` once its run expires. Bun's S3 client strips the trailing `/`, so it cannot address that exact key and would hit `reports/<runId>` instead. The marker is neither deleted nor skipped. Remove such markers with the tool that created them; this library never creates them.

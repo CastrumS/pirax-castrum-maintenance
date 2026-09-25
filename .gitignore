@@ -3,3 +3,4 @@ issues/seeds/
 .lock
 .env
 node_modules/
+runs/

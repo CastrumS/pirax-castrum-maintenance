@@ -1,0 +1,14 @@
+{
+  "name": "pirax-castrum-maintenance",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "store:selftest": "bun --env-file=.env scripts/store-selftest.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "typescript": "^7.0.2"
+  }
+}

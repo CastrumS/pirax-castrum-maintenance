@@ -1,0 +1,12 @@
+# Copy to sites.yaml and list your own sites. Committed; never put secrets here.
+sites:
+  - slug: acme                 # lowercase-hyphen, unique
+    url: https://acme.example.com  # no trailing slash
+    form_helper: false         # true once pirax-form-test is installed and configured on this site
+    mask: ['#hero-slider']     # optional, CSS selectors masked on every page
+    max_diff_pixel_ratio: 0.01 # optional, default 0.01
+    pages:                     # operator-listed; order preserved
+      - /
+      - /services/
+      - path: /contact/
+        mask: ['.cookie-banner']   # optional, per page

@@ -1,0 +1,192 @@
+# Sites and pages checked at desktop (1440) and mobile (390).
+# Picked on 2026-09-25 from each site's sitemap: the home page, every hand-built
+# page with its own layout, one example per template (post, product, project,
+# category...), and one page per distinct form. Comments note forms found
+# (GF = Gravity Forms, Fluent = Fluent Forms, id in the plugin).
+# form_helper stays false until the pirax-form-test plugin is installed on that site.
+
+sites:
+  - slug: suntos
+    url: https://suntos.de
+    form_helper: false
+    pages:
+      - /
+      - /shop/
+      - /product/belle/
+      - /journal/
+      - /qualitaets-und-kaufberater-fuer-sonnenbrillen/
+      - /review/tino-m/
+      - /about/
+      - /manufacturing/
+      - /faq/
+      - /agb/
+      - /kontakt/                       # Fluent #4
+
+  - slug: stolarijabanek
+    url: https://stolarijabanek.com
+    form_helper: false
+    pages:
+      - /
+      - /o-nama/
+      - /usluge/
+      - /usluge/kuhinje/
+      - /galerija/
+      - /kontakt/                       # Fluent #1
+
+  - slug: centrum-panda
+    url: https://centrum-panda.pl
+    form_helper: false
+    pages:
+      - /                               # GF #1 and GF #3 appear site-wide
+      - /organizacja/
+      - /organizacja/kadra/
+      - /terapia/
+      - /aktualnosci/
+      - /26-02-2021-zabawy-z-gazetami/
+      - /galeria/
+      - /galeria/integracja-sensoryczna-2/
+      - /kontakt/
+
+  - slug: tara-garden
+    url: https://www.tara.garden
+    form_helper: false
+    pages:
+      - /
+      - /about/
+      - /about-us/                      # GF #1 + reCAPTCHA
+      - /accommodation/
+      - /room/pleso/
+      - /room-category/apartments/
+      - /the-garden/
+      - /event/the-hiking-day/
+      - /event-category/cooking/
+      - /food/blueberries/
+      - /deal/st-valentine-promo/
+      - /the-guest-book/
+      - /guestpost/val/
+
+  - slug: epamalgradnja
+    url: https://epamalgradnja.hr
+    form_helper: false
+    pages:
+      - /                               # GF #1 + reCAPTCHA, site-wide
+      - /o-nama/
+      - /usluge/
+      - /projekti/
+      - /projekt/
+      - /projekt/lidl-pula/
+      - /izjava-o-zastiti-privatnosti/
+      - /kontakt/
+
+  - slug: alu-kon
+    url: https://www.alu-kon.hr
+    form_helper: false
+    pages:
+      - /                               # GF #1, site-wide
+      - /o-nama/
+      - /usluge/
+      - /aluminijska-stolarija/
+      - /projekti/
+      - /projekt/lyra-hotel-plitvice/
+      - /proizvod/
+      - /proizvod/schuco-ase-60/
+      - /kategorija-proizvoda/aluminijska-stolarija/
+      - /katalozi/
+      - /karijera/
+      - /karijera/konstruktor-m-z/      # GF #2 job application
+      - /kontakt/
+
+  - slug: baterije-akumulatori
+    url: https://baterije-akumulatori.com
+    form_helper: false
+    pages:
+      - /                               # GF #2 + reCAPTCHA
+      - /o-nama/
+      - /proizvod/
+      - /proizvod/baterija-litijeva-cr-1-2aa-3v-varta/   # GF #1 product inquiry + reCAPTCHA
+      - /category/akumulatori/akumulatori-6v/yuasa-akumulatori-6v/
+      - /pretraga/
+      - /kontakt/                       # GF #2 + reCAPTCHA
+
+  - slug: downstairs
+    url: https://downstairs.hr
+    form_helper: false
+    pages:
+      - /
+      - /prostor-za-proslave/
+      - /cjenik/
+      - /najcesca-pitanja/
+      - /blog/
+      - /blog/karaoke-party/
+      - /kontakt/                       # no form found
+
+  - slug: bravarskiservis
+    url: https://bravarskiservis.hr
+    form_helper: false
+    pages:
+      - /
+      - /hitne-intervencije/
+      - /hitne-intervencije/hitne-bravarske-intervencije/
+      - /popravci-i-servisi/
+      - /ostale-usluge/montaza-sigurnosnog-lanca-za-vrata/
+      - /cjenik/
+      - /o-meni/
+      - /komentari/
+      - /blog/
+      - /blog/kako-dodatno-osigurati-ulazna-vrata/
+      - /emergency-locksmith-zagreb/
+      - /kontakt/                       # Fluent #5 + reCAPTCHA
+
+  - slug: spok-ing
+    url: https://spok-ing.hr
+    form_helper: false
+    pages:
+      - /                               # Fluent #6
+      - /o-nama/
+      - /rehau/
+      - /blog/
+      - /politika-privatnosti/
+      - /kontakt/                       # Fluent #6
+
+  - slug: laris-tcb
+    url: https://laris-tcb.hr
+    form_helper: false
+    pages:
+      - /                               # GF #2 + reCAPTCHA, site-wide
+      - /o-nama/
+      - /team-building/
+      - /organizacija-evenata/
+      - /organizacija-evenata/tematski-party/
+      - /organizacija-evenata/tematski-party/casino-royale/   # GF #6 party inquiry
+      - /produkcija/
+      - /produkcija/rasvjeta/
+      - /booking-izvodaca/
+      - /speaker-lineup/
+      - /speaker-lineup/petar-graso/
+      - /tip-izvodaca/bend/
+      - /blog/
+      - /latino-party-novi-vinodolski/
+      - /iskustva-klijenata/
+      - /kontakt/                       # GF #4
+
+  - slug: teambuildinghrvatska
+    url: https://teambuildinghrvatska.hr
+    form_helper: false
+    pages:
+      - /                               # GF #1, site-wide
+      - /hvala-vam/
+
+  - slug: instrukcijezasve
+    url: https://instrukcijezasve.hr
+    form_helper: false
+    pages:
+      - /                               # GF #6
+      - /predmeti/
+      - /oglasi/
+      - /cjenik/
+      - /upute-za-ucenike/
+      - /recenzije/
+      - /blog/
+      - /trigonometrija-za-sve-jednostavni-savjeti-za-uspjesno-ucenje/
+      - /kontakt/                       # GF #4 + reCAPTCHA
+      - /prijava-registracija/          # GF #1 + GF #0 login/registration: never submit (creates accounts)

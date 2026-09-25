@@ -1,11 +1,12 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtempSync } from "node:fs";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EnvError, readR2Config } from "../src/env.ts";
 
 // Children run outside the repo with env-file loading off, so a local .env can never leak in.
 const cwd = mkdtempSync(join(tmpdir(), "env-test-"));
+afterAll(() => rmSync(cwd, { recursive: true, force: true }));
 const bun = (script: string, env: Record<string, string>) =>
   Bun.spawnSync([process.execPath, "--no-env-file", "-e", script], { cwd, env });
 

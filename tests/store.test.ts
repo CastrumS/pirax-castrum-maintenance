@@ -1,11 +1,12 @@
-import { describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync } from "node:fs";
+import { afterAll, describe, expect, test } from "bun:test";
+import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createStore, expiredReportKeys, isRunId, StoreError } from "../src/store.ts";
 
 // Children run outside the repo with env-file loading off, so a local .env can never leak in.
 const cwd = mkdtempSync(join(tmpdir(), "store-test-"));
+afterAll(() => rmSync(cwd, { recursive: true, force: true }));
 const bun = (args: string[], env: Record<string, string>) =>
   Bun.spawnSync([process.execPath, "--no-env-file", ...args], { cwd, env });
 
@@ -138,6 +139,17 @@ describe("store validation before any request", () => {
     expect(scoped.presign("a.png", 604800)).toContain("X-Amz-Expires=604800");
   });
 
+  test("external folder marker of an expired run is selected but rejected, never slash-trimmed", async () => {
+    // Bun's S3Client strips a trailing "/", so deleting the marker would address `reports/<runId>` instead.
+    const marker = `reports/${runs[0]}/`;
+    const neighbor = `reports/${runs[0]}`;
+    const keys = [marker, neighbor, ...reportKeys].sort();
+    expect(expiredReportKeys(keys, 11)).toEqual([marker, ...reportKeys.filter((k) => k.includes(runs[0]!))].sort());
+    const e = await rejection(scoped.delete(marker));
+    expect(e).toBeInstanceOf(StoreError);
+    expect((e as Error).message).toContain(JSON.stringify(marker));
+  });
+
   test("invalid keep rejects before listing", async () => {
     for (const keep of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])
       expect(await rejection(scoped.pruneReports(keep))).toBeInstanceOf(StoreError);
@@ -160,12 +172,16 @@ describe("store:selftest missing configuration", () => {
   const blank = { S3_ACCESS_KEY_ID: "", S3_SECRET_ACCESS_KEY: " ", S3_ENDPOINT: "", S3_BUCKET: "" };
 
   test("all blank: nonzero, names all four, no artifact", () => {
+    // The selftest writes artifacts to the repository runs/, whatever its cwd.
+    const runsDir = join(import.meta.dir, "..", "runs");
+    const entries = () => (existsSync(runsDir) ? readdirSync(runsDir).sort() : []);
+    const before = entries();
     const r = bun([script], blank);
     const out = r.stdout.toString() + r.stderr.toString();
     expect(r.exitCode).not.toBe(0);
     for (const name of Object.keys(blank)) expect(out).toContain(name);
     expect(out).not.toContain("runs/");
-    expect(existsSync(join(cwd, "runs"))).toBe(false);
+    expect(entries()).toEqual(before);
   });
 
   test("one blank: names only it and prints no values", () => {

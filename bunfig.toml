@@ -1,0 +1,3 @@
+[test]
+# Leaf worktrees under issues/worktrees/ carry their own copies of tests; Bun ignores .gitignore.
+pathIgnorePatterns = ["issues/**"]

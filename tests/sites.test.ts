@@ -1,10 +1,11 @@
-import { describe, expect, test } from "bun:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { afterAll, describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadSites, pageKey, SitesConfigError } from "../src/sites.ts";
 
 const dir = mkdtempSync(join(tmpdir(), "sites-test-"));
+afterAll(() => rmSync(dir, { recursive: true, force: true }));
 let n = 0;
 function write(yaml: string): string {
   const file = join(dir, `sites-${n++}.yaml`);
@@ -166,6 +167,20 @@ describe("loadSites broader validation", () => {
       expectError(`sites:\n${site("", "acme", `    pages: ['/', '${bad}']`)}`, "acme", "pages[1].path");
     }
   });
+  test("paths that URL resolution would normalize off-site or into traversal", () => {
+    // YAML double-quoted scalars; DEL is escaped because YAML forbids it raw.
+    const q = (s: string) => JSON.stringify(s).replaceAll("\u007f", "\\u007f");
+    const bad = ["/\\elsewhere.example/", "/a/..\\outside/", "/a/\t../outside/", "/a/.. ", "/a/\r\n../b/", "/a\u007f/", "/a\u0000/", "/a b/", "/a/\\"];
+    for (const path of bad) {
+      expectError(`sites:\n${site("", "acme", `    pages: ['/', ${q(path)}]`)}`, "acme", "pages[1].path");
+      expectError(`sites:\n${site("", "acme", `    pages:\n      - path: ${q(path)}`)}`, "acme", "pages[0].path");
+    }
+  });
+  test("percent-encoded non-traversal paths stay valid", () => {
+    const paths = ["/caf%C3%A9/", "/a%20b/", "/100%25/", "/%2e%2e%2e/", "/a.b/..c/"];
+    const [s] = loadSites(write(`sites:\n${site("", "acme", `    pages: ${JSON.stringify(paths)}`)}`));
+    expect(s?.pages.map((p) => p.path)).toEqual(paths);
+  });
   test("duplicate page paths and key collisions", () => {
     expectError(`sites:\n${site("", "acme", "    pages: ['/a/', '/a/']")}`, "acme", "pages[1].path");
     expectError(`sites:\n${site("", "acme", "    pages: ['/', '/home/']")}`, "acme", "pages[1].path");
@@ -191,7 +206,8 @@ describe("loadSites broader validation", () => {
     }
   });
   test("default path is sites.yaml in the working directory", () => {
-    const cwd = mkdtempSync(join(tmpdir(), "sites-cwd-"));
+    const cwd = join(dir, "cwd");
+    mkdirSync(cwd);
     writeFileSync(join(cwd, "sites.yaml"), `sites:\n${site()}`);
     const run = Bun.spawnSync([process.execPath, "--no-env-file", "-e", `const { loadSites } = await import(${JSON.stringify(join(import.meta.dir, "..", "src", "sites.ts"))}); console.log(loadSites()[0].slug)`], { cwd, env: {} });
     expect(run.stdout.toString().trim()).toBe("acme");

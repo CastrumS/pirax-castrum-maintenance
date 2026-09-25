@@ -111,6 +111,8 @@ export function loadSites(path = "sites.yaml"): Site[] {
       if (typeof path !== "string") return err(`${at}.path`, "required string");
       if (!path.startsWith("/") || path.includes("//")) err(`${at}.path`, 'must start with a single "/" and have no empty segments');
       if (/[?#]/.test(path)) err(`${at}.path`, "must not contain query or fragment");
+      // URL parsing reads backslashes as "/" and drops tabs, newlines and edge spaces, which could hide "//" or "..".
+      if (/[\u0000-\u0020\u007f\\]/.test(path)) err(`${at}.path`, "must not contain backslashes, whitespace or control characters");
       if (path.split("/").some((s) => TRAVERSAL.test(s))) err(`${at}.path`, "must not contain . or .. segments");
 
       // Keys are compared case-insensitively so case-insensitive filesystems cannot overwrite either.

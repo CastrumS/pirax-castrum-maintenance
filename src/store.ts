@@ -53,7 +53,9 @@ export function expiredReportKeys(keys: string[], keep = 10): string[] {
   for (const key of keys) {
     const [top, runId, ...rest] = key.split("/");
     if (top !== "reports" || runId === undefined || !rest.length || !isRunId(runId)) continue;
-    byRun.set(runId, [...(byRun.get(runId) ?? []), key]);
+    const run = byRun.get(runId);
+    if (run) run.push(key);
+    else byRun.set(runId, [key]);
   }
   const expired = [...byRun.keys()].sort().reverse().slice(keep);
   return expired.flatMap((runId) => byRun.get(runId)!).sort();

@@ -17,7 +17,7 @@ Requires [Bun](https://bun.sh) 1.4 or newer.
 
 ```sh
 bun install
-cp sites.example.yaml sites.yaml   # then list your real sites
+cp -n sites.example.yaml sites.yaml   # only creates sites.yaml if missing; then list your real sites
 ```
 
 Create `.env` in the repository root with the four names from `.env.example`:
@@ -35,7 +35,7 @@ Create `.env` in the repository root with the four names from `.env.example`:
 
 | Command | What it does | Needs R2 |
 | --- | --- | --- |
-| `bun test` | Unit tests for the site loader, env reader, store validation and retention selection, and the selftest's missing-configuration path. | No |
+| `bun test` | Unit tests for the site loader, env reader, store validation and retention selection, the selftest's missing-configuration path, and test discovery. `bunfig.toml` excludes `issues/**`, so leaf worktrees under `issues/worktrees/` are never picked up (Bun's discovery ignores `.gitignore`). | No |
 | `bun run typecheck` | `tsc --noEmit` over `src`, `scripts` and `tests`. | No |
 | `bun run store:selftest` | Real-bucket storage test (see [Storage selftest](#storage-selftest)). Runs `bun --env-file=.env scripts/store-selftest.ts`. | Yes |
 
@@ -78,7 +78,7 @@ sites.yaml: acme: url: must not end with "/"
 
 `site` is the slug, or `site[<index>]` when the slug is missing or invalid, or `<root>` for file-level problems. `field` is the failing part, such as `url`, `mask[1]`, `pages[2].path` or `pages[0].mask[0]`. Read errors report only the error code, and YAML errors report only the parser message, never file contents.
 
-Page paths must start with a single `/` and must not contain a query, fragment, `.`/`..` segments or empty segments. A trailing slash is kept as written.
+Page paths must start with a single `/` and must not contain a query, fragment, `.`/`..` segments (including `%2e` forms) or empty segments. Backslashes, spaces, tabs, newlines and other ASCII control characters are rejected too, because URL parsing turns `\` into `/` and drops tabs, newlines and trailing spaces, which could hide an off-site `//host` or a `..`. Percent-encode such characters instead, for example `/a%20b/`. A trailing slash is kept as written.
 
 ### Page keys and collisions
 
@@ -179,6 +179,7 @@ Output and artifacts never contain credentials, the endpoint, the bucket name, s
 - Masks are checked only as nonblank strings. Whether a selector is valid CSS or matches the page is not checked, because that needs a browser.
 - The readable page-key format can collide. Collisions are rejected, not resolved.
 - Retention is not transactional. Prune only when no report run is in progress.
+- A folder-marker object such as `reports/<runId>/`, created outside this library, makes `pruneReports` reject with `StoreError` once its run expires. Bun's S3 client strips the trailing `/`, so it cannot address that exact key and would hit `reports/<runId>` instead. The marker is neither deleted nor skipped. Remove such markers with the tool that created them; this library never creates them.
 - `pruneReports` deletes objects one request at a time. This is fine for tens of runs; very large reports will be slow.
 - The selftest proves behaviour for the configured bucket and token. It does not check token scope beyond what it exercises, such as whether the token can also reach other buckets.
 - If cleanup itself fails (for example the network drops), objects may remain under the printed `test/...` root. Delete that prefix by hand.

@@ -1,0 +1,25 @@
+The test harness is done and its smoke test passes. It runs real WordPress 7.1.2 in Playground with licensed Gravity Forms 3.1.2 and Fluent Forms 6.2.14 (4 pass, 0 fail, about 57s, using the brief's exact command). A secret scan of all retained artifacts found neither the token value nor the Gravity Forms ZIP path. The report is at `issues/open/site-checks/form-helper-plugin/implementation/worker-1.md`. Nothing is committed.
+
+**What the smoke test covers:**
+- Real admin login in headless Chromium, and a throwaway plugin ZIP uploaded and activated through wp-admin.
+- One ordinary (untokened) submission on each plugin's form. Each sends 2 notifications to the original recipients with Cc and Bcc intact, adds one entry per plugin, and runs a real feed/integration on each plugin.
+- Gravity Forms sends notifications in the background by default. Its mails really arrived from the separate background-processor request the harness triggers, so queue driving works across requests.
+- The token, typed into the page and put in the URL on purpose, was scrubbed from the trace.
+- If Playground fails to start, the harness stops at once with a redacted error.
+- After a run, no Playground process is left behind.
+
+**Where I departed from the brief or plan:**
+- **`test/plugin/playground.ts` replaces the planned `blueprint.ts`.** Playground has to run under Node because Bun can't load a native module it needs. The Bun harness drives it as a child process and runs PHP through Playground's own API, with no HTTP backdoor.
+- **Installing now needs a C++ build toolchain (`g++`, `make`, `python3`).** That module has no prebuilt binary for Node 26, so I added `node-gyp` as a dev dependency and allowed its install script to run.
+
+**Decision for B:** the plan asks for traces with network activity but without DOM snapshots. Playwright only records network when snapshots are on, so the kept traces have 29 recorded actions and an empty network log. The smallest fix is turning snapshots on (screenshots stay off). The existing scrubbing and secret scan already cover snapshot content. I left it as the plan wrote it.
+
+**Deferred to later workers:**
+- reCAPTCHA forms (the fake Google verification response is in place and tested).
+- The unsupported-integration fixture.
+- Retry and aging fixtures.
+- Fluent Forms email queueing.
+
+The report names the harness functions each of these will use.
+
+Artifacts from the last green run are in `artifacts/plugin/harness-smoke-2026-09-25T13-33-26-057Z/`.

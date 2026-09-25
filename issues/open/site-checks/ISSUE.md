@@ -4,3 +4,4 @@
 - [form-helper-plugin](form-helper-plugin/brief.md): WordPress plugin that routes marked test submissions to the test mailbox, skips CAPTCHA for them, blocks integrations and deletes the entry
 - [visual-health-check](visual-health-check/brief.md): Desktop/mobile screenshots, breakage checks and the HTML report, via baseline/check/approve commands
 - [form-check](form-check/brief.md): Fill and submit Gravity/Fluent forms on listed pages and confirm the test email arrived
+- [form-check-scope](form-check-scope/brief.md): One designated test form per site, submitted once per run; everything else skipped

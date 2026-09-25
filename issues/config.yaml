@@ -1,0 +1,11 @@
+remote: origin
+default_branch: main
+worktree_root: issues/worktrees
+rebuttal: true
+fix_rounds: 3
+implement: subagents
+checks: 
+  {}
+advisory: 
+  []
+grounding: none

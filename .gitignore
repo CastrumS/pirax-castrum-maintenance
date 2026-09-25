@@ -1,0 +1,5 @@
+issues/worktrees/
+issues/seeds/
+.lock
+.env
+node_modules/

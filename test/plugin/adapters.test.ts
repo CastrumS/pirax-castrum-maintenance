@@ -184,7 +184,7 @@ const asPending = () =>
 // AC2/AC3 — Gravity Forms
 
 test("GF marked browser submission: both notifications redirected synchronously, no feeds, entry deleted after mail", async () => {
-  expect(await h.php("return (bool) get_option('gform_enable_async_notifications');")).toBe(true);
+  expect(await h.php<boolean>("return (bool) get_option('gform_enable_async_notifications');")).toBe(true);
   const before = await counts();
   const tokenValues = await gfTokenValues();
   // Later add-on/form-specific filters re-enable feeds and background notifications for every
@@ -218,7 +218,7 @@ test("GF marked browser submission: both notifications redirected synchronously,
   expect(after.gf).toBe(before.entries.gf);
   expect(await gfTokenValues()).toBe(tokenValues);
   expect(await orphans()).toEqual(NO_ORPHANS);
-  expect(await h.php("return (bool) get_option('gform_enable_async_notifications');")).toBe(true);
+  expect(await h.php<boolean>("return (bool) get_option('gform_enable_async_notifications');")).toBe(true);
 }, 180_000);
 
 test("GF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries", async () => {
@@ -233,7 +233,7 @@ test("GF controls: unmarked, wrong-token and empty-token submissions keep recipi
   }
   const asyncFeed = (await h.feeds()).slice(before.feeds);
   expect(asyncFeed.map((f) => f.plugin)).toEqual(["gf"]);
-  expect(asyncFeed[0].request).toMatch(/action=wp_gf_pirax-harness-ledger_feed_processor/);
+  expect(asyncFeed[0]!.request).toMatch(/action=wp_gf_pirax-harness-ledger_feed_processor/);
   expect((await gfSubmit(h.fixtures.gf, h.fixtures.page, gfValues(`Pirax check ${WRONG}-${ID}`))).ok).toBe(true);
   await setOptions({ pirax_form_test_token: "" });
   try {
@@ -343,7 +343,7 @@ test("FF reCAPTCHA with failing siteverify: marked passes, unmarked fails; other
   expect((await h.siteverify()).length).toBe(before.siteverify + 1);
 
   // Without a response the negative control would never reach the verifier.
-  expect((await h.php("return get_option('_fluentform_reCaptcha_details')['secretKey'];"))).toBe("pirax-local-secret-key");
+  expect((await h.php<string>("return get_option('_fluentform_reCaptcha_details')['secretKey'];"))).toBe("pirax-local-secret-key");
 
   before = await counts();
   const marked = await ffSubmit(ff, page, ffValues(`Pirax check ${marker}`), { captcha: true });
@@ -488,14 +488,14 @@ test("FF queued email: marked entry kept until every job completes across reques
     expect(ordinaryMail.length).toBe(2);
     expectOriginal(ordinaryMail);
     expect(new Set([...markedMail, ...ordinaryMail].map((x) => x.request)).size).toBe(1); // same runner request
-    expect(markedMail[0].time).toBeLessThan(Math.min(...ordinaryMail.map((x) => x.time)));
+    expect(markedMail[0]!.time).toBeLessThan(Math.min(...ordinaryMail.map((x) => x.time)));
     expect((await h.feeds()).slice(before.feeds).map((f) => f.entry)).toEqual([o]);
 
     // Retryable failure: the marked entry survives this and a fresh request.
     const afterRunner = await ffRows([m]);
     await note("ff queued: after one Action Scheduler runner request", { rows: await ffRows([m, o]), asPending: await asPending() });
     expect(afterRunner.map((r) => r.status)).toEqual(["success", "failed"]);
-    expect(afterRunner[1].retries).toBe(1);
+    expect(afterRunner[1]!.retries).toBe(1);
     expect((await h.entries()).rows.some((r) => r.plugin === "ff" && r.id === m)).toBe(true);
 
     // FF's own retry (WP-Cron fluentform_do_scheduled_tasks) delivers B, then cleanup runs at request end.
@@ -505,7 +505,7 @@ test("FF queued email: marked entry kept until every job completes across reques
     await note("ff queued: after WP-Cron retry request", { rows: await ffRows([m, o]), entries: (await h.entries()).rows.filter((r) => r.id === m || r.id === o) });
     expect(retried.map((x) => x.subject)).toEqual([`[pirax-test ${ID}] ff-${h.fixtures.ff} notification B`]);
     expectRedirected(retried);
-    expect(retried[0].request).toContain("wp-cron.php");
+    expect(retried[0]!.request).toContain("wp-cron.php");
     const rows = (await h.entries()).rows.filter((r) => r.plugin === "ff").map((r) => r.id);
     expect(rows).not.toContain(m);
     expect(rows).toContain(o);
@@ -523,6 +523,7 @@ test("FF queued email: a job still processing elsewhere blocks FF's pending-only
     const marked = await ffSubmit(h.fixtures.ff, h.fixtures.page, ffValues(`Pirax check ${marker}`));
     const m = marked.insertId!;
     const [, b] = await ffRows([m]);
+    if (!b) throw new Error("expected two queued email jobs for the marked FF entry");
     // Another worker has claimed job B (FF's own claim: status processing, retry_count + 1).
     await h.php(`global $wpdb; $wpdb->update("{$wpdb->prefix}ff_scheduled_actions", ['status' => 'processing', 'retry_count' => 1, 'updated_at' => current_time('mysql')], ['id' => ${b.id}]); return true;`);
     await h.drainQueues(); // runs A; B's queued action finds no pending row; FF's maybeFinished sees no pending rows
@@ -618,8 +619,8 @@ test("FF legacy batch runner: marked and ordinary jobs in one request keep their
 // AC7 — hourly recovery sweep
 
 /** Seed GF/FF entries through native APIs/tables; ages in seconds. Returns ids by label. */
-const seed = (items: { label: string; plugin: "gf" | "ff"; value: string; age: number; source?: string; job?: "pending" | "active" | "stale" }[]) =>
-  h.php<Record<string, number>>(`
+const seed = <L extends string>(items: readonly { label: L; plugin: "gf" | "ff"; value: string; age: number; source?: string; job?: "pending" | "active" | "stale" }[]) =>
+  h.php<Record<L, number>>(`
     global $wpdb; $p = $wpdb->prefix; $ids = [];
     foreach (${lit(items)} as $item) {
       $when = time() - $item['age'];
@@ -666,15 +667,15 @@ test("hourly sweep: real cron deletes only old token entries across pages, with 
     { label: "ffOrdinaryOld", plugin: "ff", value: "ordinary", age: 3700, job: "pending" },
     { label: "ffActiveOld", plugin: "ff", value: `Pirax check ${marker}`, age: 3700, job: "active" },
     { label: "ffStaleOld", plugin: "ff", value: `Pirax check ${marker}`, age: 3700, job: "stale" },
-    ...Array.from({ length: 120 }, (_, i) => ({ label: `gfBulk${i}`, plugin: "gf", value: `${h.token}-bulk${String(i).padStart(4, "0")}`, age: 7200 })),
-    ...Array.from({ length: 120 }, (_, i) => ({ label: `ffBulk${i}`, plugin: "ff", value: `${h.token}-bulk${String(i).padStart(4, "0")}`, age: 7200 })),
+    ...Array.from({ length: 120 }, (_, i) => ({ label: `gfBulk${i}`, plugin: "gf", value: `${h.token}-bulk${String(i).padStart(4, "0")}`, age: 7200 }) as const),
+    ...Array.from({ length: 120 }, (_, i) => ({ label: `ffBulk${i}`, plugin: "ff", value: `${h.token}-bulk${String(i).padStart(4, "0")}`, age: 7200 }) as const),
   ] as const;
-  const ids = await seed(items as any);
+  const ids = await seed(items);
   const plugin = Object.fromEntries(items.map((i) => [i.label, i.plugin]));
   const pendingBefore = await asPending();
   expect(pendingBefore).toBeGreaterThanOrEqual(2);
 
-  const special = ["ffMarkedOld", "ffOrdinaryOld", "ffActiveOld", "ffStaleOld"].map((k) => ids[k]);
+  const special = [ids.ffMarkedOld, ids.ffOrdinaryOld, ids.ffActiveOld, ids.ffStaleOld];
   await note("sweep: before", { rows: await ffRows(special), asPending: pendingBefore, seeded: Object.keys(ids).length });
   await h.runCron(["pirax_form_test_sweep"]);
   const state = await exists(ids, plugin);
@@ -686,7 +687,7 @@ test("hourly sweep: real cron deletes only old token entries across pages, with 
   expect((await ffRows([ids.ffActiveOld])).map((r) => r.status)).toEqual(["processing"]);
   expect(await asPending()).toBe(pendingBefore - 1); // the marked entry's queued job was cancelled, the ordinary one kept
   expect(await orphans()).toEqual(NO_ORPHANS);
-  expect(await h.php("return wp_next_scheduled('pirax_form_test_sweep') > time();")).toBe(true);
+  expect(await h.php<boolean>("return wp_next_scheduled('pirax_form_test_sweep') > time();")).toBe(true);
 
   // Repeating is a no-op.
   await h.runCron(["pirax_form_test_sweep"]);

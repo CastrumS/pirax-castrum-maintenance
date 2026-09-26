@@ -119,7 +119,7 @@ async function fluentFormsZip(): Promise<string> {
   return zip;
 }
 
-async function eachLine(stream: ReadableStream<Uint8Array>, onLine: (line: string) => void) {
+async function eachLine(stream: ReadableStream<BufferSource>, onLine: (line: string) => void) {
   let buffer = "";
   for await (const chunk of stream.pipeThrough(new TextDecoderStream())) {
     const lines = (buffer + chunk).split("\n");

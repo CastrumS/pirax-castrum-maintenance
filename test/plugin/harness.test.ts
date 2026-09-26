@@ -90,7 +90,7 @@ test("browser logs in to real wp-admin and submits unmarked forms for both plugi
     await Bun.$`zip -q -r probe.zip pirax-harness-probe`.cwd(dir);
     await h.uploadPlugin(page, join(dir, "probe.zip"));
     probeSha = new Bun.CryptoHasher("sha256").update(await Bun.file(join(dir, "probe.zip")).bytes()).digest("hex");
-    expect(await h.php("return in_array('pirax-harness-probe/pirax-harness-probe.php', get_option('active_plugins'), true);")).toBe(true);
+    expect(await h.php<boolean>("return in_array('pirax-harness-probe/pirax-harness-probe.php', get_option('active_plugins'), true);")).toBe(true);
 
     const before = await h.entries();
     const mailBefore = (await h.mail()).length;

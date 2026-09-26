@@ -174,7 +174,8 @@ test("settings mutate only for manage_options with a valid nonce and valid value
   }
 
   // Missing or forged nonce: WordPress refuses before any mutation.
-  for (const form of [{}, { _wpnonce: "0123456789" }]) {
+  const badNonces: Record<string, string>[] = [{}, { _wpnonce: "0123456789" }];
+  for (const form of badNonces) {
     const response = await post(page.request, { ...form, pirax_form_test_redirect: "other@operator.test", pirax_form_test_clear: "1" });
     expect(response.status()).toBe(403);
     expect(await settings()).toEqual(good);
@@ -280,7 +281,7 @@ test("marker parser classifies submitted values: ordinary, marked(id) or invalid
 
   // Without an explicit token the configured option is used.
   expect(
-    await h.php(`return ${F}parse(['f' => ['x' => get_option('pirax_form_test_token') . '-abc123@example.test']]);`),
+    await h.php<{ state: string; id: string | null; reason: string | null }>(`return ${F}parse(['f' => ['x' => get_option('pirax_form_test_token') . '-abc123@example.test']]);`),
   ).toEqual(marked("abc123"));
 });
 
@@ -421,9 +422,9 @@ test("the core never marks a request from query strings, cookies or arbitrary PO
   await response.text();
   const mail = (await h.mail()).slice(before);
   expect(mail).toHaveLength(1);
-  expect(mail[0].to).not.toContain(REDIRECT);
-  expect(mail[0].subject.startsWith("[pirax-test")).toBe(false);
-  expect(mail[0].headers.join("\n")).not.toMatch(/x-pirax-form-test/i);
+  expect(mail[0]!.to).not.toContain(REDIRECT);
+  expect(mail[0]!.subject.startsWith("[pirax-test")).toBe(false);
+  expect(mail[0]!.headers.join("\n")).not.toMatch(/x-pirax-form-test/i);
 });
 
 test("deactivation unschedules, uninstall is guarded and removes options and owned events", async () => {

@@ -7,7 +7,7 @@ import { createInterface } from "node:readline";
 import { runCLI } from "@wp-playground/cli";
 
 const MARK = "@@pirax-playground@@";
-const config: { ffZip: string; muPlugin: string; wp: string; php: string } = JSON.parse(process.argv[2]);
+const config: { ffZip: string; muPlugin: string; wp: string; php: string } = JSON.parse(process.argv[2]!);
 const send = (message: object) => process.stdout.write(`${MARK}${JSON.stringify(message)}\n`);
 const literal = (name: string, path: string) => ({
   resource: "literal",

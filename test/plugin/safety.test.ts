@@ -143,7 +143,7 @@ test("FF: a later PHP_INT_MAX feed-type filter registered after the plugin canno
     const ordinary = await ffSubmit(h.fixtures.ff, h.fixtures.page, ffValues("ordinary message"));
     expect(ordinary.ok).toBe(true);
     await h.drainQueues();
-    expect((await h.feeds()).slice(before.feeds).map((f) => [f.plugin, f.entry])).toEqual([["ff", ordinary.insertId]]);
+    expect((await h.feeds()).slice(before.feeds).map((f) => [f.plugin, f.entry])).toEqual([["ff", ordinary.insertId!]]);
     expectOriginal((await h.mail()).slice(before.mail + 2));
   } finally {
     await setOptions({ pirax_harness_late_feed_types: null });
@@ -179,7 +179,7 @@ test("FF queued: a marked notification that throws inside native mail processing
     expect(markedMail.map((x) => x.subject)).toEqual([`[pirax-test ${ID}] ff-${h.fixtures.ff} notification A`]);
     expectRedirected(markedMail);
     expect(new Set(mail.map((x) => x.request)).size).toBe(1); // same runner request
-    expect(markedMail[0].time).toBeLessThan(Math.min(...ordinaryMail.map((x) => x.time)));
+    expect(markedMail[0]!.time).toBeLessThan(Math.min(...ordinaryMail.map((x) => x.time)));
 
     // The thrown job is reported failed (retryable), and the marked entry is kept for it.
     expect((await ffRows([m])).map((r) => [r.status, r.retries])).toEqual([["success", 1], ["failed", 1]]);

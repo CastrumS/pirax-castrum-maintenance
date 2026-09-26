@@ -5,7 +5,9 @@ rebuttal: true
 fix_rounds: 3
 implement: subagents
 checks: 
-  {}
+  typecheck: bun run typecheck
+  test: bun test
+  test_changed: ": \"${AKROGON_BASE:?AKROGON_BASE is required}\" && bun test"
 advisory: 
   []
 grounding: none

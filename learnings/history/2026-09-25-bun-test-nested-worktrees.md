@@ -1,0 +1,9 @@
+# bun test runs nested worktree tests despite .gitignore
+
+2026-09-25. Leaf checker-foundation (site-checks) created the repository's Bun project with `"test": "bun test"` and no `bunfig.toml`. Akrogon's `worktree_root: issues/worktrees` puts every active leaf worktree inside the primary checkout, and the repository `.gitignore` lists `issues/worktrees/`.
+
+To test this, slot A archived HEAD into a scratch git repo and added one failing `issues/worktrees/other/tests/nested.test.ts`. `git check-ignore` confirmed the file is ignored. `bun test` on Bun 1.4.2 then reported "44 pass, 1 fail, Ran 45 tests across 4 files" and exited 1. The live primary checkout already held `issues/worktrees/form-helper-plugin/test/plugin/*.test.ts`. Adding `bunfig.toml` with `[test] pathIgnorePatterns = ["issues/**"]` gave 44 pass, exit 0, and so did `root = "tests"`. `tsc` was unaffected because `tsconfig.json` already limits `include`.
+
+Learning: Bun's test discovery walks every directory except `node_modules` and does not read `.gitignore`. In a repo whose leaf worktrees sit under `issues/worktrees/`, a Bun project needs a `[test]` scope in `bunfig.toml`. A worktree never contains nested worktrees, so a run there passes cleanly and hides the problem. Review should instead put one failing test in a nested directory.
+
+Applied 2026-09-25 in checker-foundation repair round 1: added `bunfig.toml` with `[test] pathIgnorePatterns = ["issues/**"]` and a permanent isolated discovery regression that preserves both `test/` and `tests/`. B also copied the complete repaired project suite (explicit non-env files only) into a sandbox with a deliberately failing nested worktree test: bare Bun discovery ran only the project's 48 tests (48 pass, 0 fail, exit 0). Original case/evidence above is unchanged. The active line was removed after application; these registered-checkout learning records remain for the operator to commit.

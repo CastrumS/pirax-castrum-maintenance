@@ -1,0 +1,22 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/playground.test.ts:
+(pass) native GF modern AJAX and FF AJAX retain separate confirmations and native cleanup [13390.20ms]
+(pass) production check captures both widths unchanged, attaches native failed forms and preserves failure status [30750.48ms]
+10 | 
+11 | export const ROOT = resolve(import.meta.dir, '../..');
+12 | export const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', true)`;
+13 | export type Fixtures = { ids: Record<'gf'|'ff'|'ajax'|'upload'|'nomarker'|'client'|'server', number>; pages: Record<'primary'|'ajax'|'negative', string> };
+14 | export const safe = secretRedactor();
+15 | export function assert(ok: unknown, message: string): asserts ok { if (!ok) throw new Error(message); }
+                                                                                           ^
+error: Retained evidence contains a secret or bearer URL
+      at assert (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/harness.ts:15:87)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/playground.test.ts:51:7)
+(fail) (unnamed) [4391.51ms]
+
+ 2 pass
+ 3 filtered out
+ 1 fail
+ 40 expect() calls
+Ran 3 tests across 1 file. [90.66s]

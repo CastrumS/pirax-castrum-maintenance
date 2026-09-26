@@ -1,0 +1,490 @@
+{
+  "command": "bun run visual:selftest",
+  "started": "2026-09-26T16-11-06.276Z",
+  "finished": "2026-09-26T16:18:10.785Z",
+  "root": "test/visual-2026-09-26T16-11-06.276Z-f1a5b72d/",
+  "result": "pass",
+  "checks": [
+    {
+      "name": "R2 credentials available by required names",
+      "ok": true
+    },
+    {
+      "name": "real Node Playground boots and seeds WordPress via same-instance WP-CLI",
+      "ok": true
+    },
+    {
+      "name": "baseline both widths and exact real R2 PNG/health bytes",
+      "ok": true
+    },
+    {
+      "name": "same-instance WP-CLI update changes exactly alpha at both widths",
+      "ok": true
+    },
+    {
+      "name": "page approval preserves beta; new check and CLI pass",
+      "ok": true
+    },
+    {
+      "name": "remote-only whole-site approval ignores newer unrelated and partial runs",
+      "ok": true
+    },
+    {
+      "name": "approval negative preflight leaves all real baselines unchanged",
+      "ok": true
+    },
+    {
+      "name": "isolated WordPress health failures and baseline-relative warnings",
+      "ok": true
+    },
+    {
+      "name": "site/page mask union stabilizes large random regions; no mask fails",
+      "ok": true
+    },
+    {
+      "name": "height and horizontal overflow preserve dimensions and approve correctly",
+      "ok": true
+    },
+    {
+      "name": "blocked unreachable/403/challenge sites continue to normal site",
+      "ok": true
+    },
+    {
+      "name": "GET-only browser policy prevents POST and beacon reaching WordPress",
+      "ok": true
+    },
+    {
+      "name": "self-signed HTTPS blocked by default; internal fixture reports mixed content",
+      "ok": true
+    },
+    {
+      "name": "CLI configuration errors and missing baseline leave baseline bytes intact",
+      "ok": true
+    },
+    {
+      "name": "real check prunes more than ten report runs; baselines unchanged",
+      "ok": true
+    }
+  ],
+  "commands": [
+    {
+      "label": "baseline",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-21.421Z",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-21.421Z/traces/wordpress/desktop/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-21.421Z/traces/wordpress/mobile/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-21.421Z/traces/wordpress/desktop/beta.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-21.421Z/traces/wordpress/mobile/beta.trace.zip"
+      ]
+    },
+    {
+      "label": "changed alpha",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-29.985Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-29.985Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-29.985Z/traces/wordpress/desktop/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-29.985Z/traces/wordpress/mobile/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-29.985Z/traces/wordpress/desktop/beta.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-29.985Z/traces/wordpress/mobile/beta.trace.zip"
+      ]
+    },
+    {
+      "label": "approve",
+      "exitCode": 0,
+      "traces": []
+    },
+    {
+      "label": "after page approval",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-46.493Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-46.493Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-46.493Z/traces/wordpress/desktop/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-46.493Z/traces/wordpress/mobile/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-46.493Z/traces/wordpress/desktop/beta.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-11-46.493Z/traces/wordpress/mobile/beta.trace.zip"
+      ]
+    },
+    {
+      "label": "CLI check wordpress",
+      "exitCode": 0,
+      "traces": []
+    },
+    {
+      "label": "remote approval source",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-11.950Z-retained",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-11.950Z-retained/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-11.950Z-retained/traces/wordpress/desktop/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-11.950Z-retained/traces/wordpress/mobile/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-11.950Z-retained/traces/wordpress/desktop/beta.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-11.950Z-retained/traces/wordpress/mobile/beta.trace.zip"
+      ]
+    },
+    {
+      "label": "unrelated newest",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-24.081Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-24.081Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-24.081Z/traces/other/desktop/beta.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-24.081Z/traces/other/mobile/beta.trace.zip"
+      ]
+    },
+    {
+      "label": "approve",
+      "exitCode": 0,
+      "traces": []
+    },
+    {
+      "label": "approval negative source",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-32.741Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-32.741Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-32.741Z/traces/wordpress/desktop/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-32.741Z/traces/wordpress/mobile/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-32.741Z/traces/wordpress/desktop/beta.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-32.741Z/traces/wordpress/mobile/beta.trace.zip"
+      ]
+    },
+    {
+      "label": "approve",
+      "exitCode": 1,
+      "traces": []
+    },
+    {
+      "label": "approve",
+      "exitCode": 1,
+      "traces": []
+    },
+    {
+      "label": "approve",
+      "exitCode": 1,
+      "traces": []
+    },
+    {
+      "label": "approve",
+      "exitCode": 1,
+      "traces": []
+    },
+    {
+      "label": "approve",
+      "exitCode": 1,
+      "traces": []
+    },
+    {
+      "label": "approve",
+      "exitCode": 1,
+      "traces": []
+    },
+    {
+      "label": "baseline",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-50.876Z",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-50.876Z/traces/health/desktop/notfound.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-50.876Z/traces/health/mobile/notfound.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-50.876Z/traces/health/desktop/critical.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-50.876Z/traces/health/mobile/critical.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-50.876Z/traces/health/desktop/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-50.876Z/traces/health/mobile/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-50.876Z/traces/health/desktop/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-50.876Z/traces/health/mobile/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-50.876Z/traces/health/desktop/transport.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-12-50.876Z/traces/health/mobile/transport.trace.zip"
+      ]
+    },
+    {
+      "label": "new health failures",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z/traces/health/desktop/notfound.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z/traces/health/mobile/notfound.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z/traces/health/desktop/critical.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z/traces/health/mobile/critical.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z/traces/health/desktop/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z/traces/health/mobile/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z/traces/health/desktop/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z/traces/health/mobile/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z/traces/health/desktop/transport.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-06.953Z/traces/health/mobile/transport.trace.zip"
+      ]
+    },
+    {
+      "label": "approve",
+      "exitCode": 0,
+      "traces": []
+    },
+    {
+      "label": "known health findings",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z/traces/health/desktop/notfound.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z/traces/health/mobile/notfound.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z/traces/health/desktop/critical.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z/traces/health/mobile/critical.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z/traces/health/desktop/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z/traces/health/mobile/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z/traces/health/desktop/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z/traces/health/mobile/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z/traces/health/desktop/transport.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-13-47.375Z/traces/health/mobile/transport.trace.zip"
+      ]
+    },
+    {
+      "label": "warnings only",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-19.556Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-19.556Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-19.556Z/traces/health/desktop/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-19.556Z/traces/health/mobile/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-19.556Z/traces/health/desktop/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-19.556Z/traces/health/mobile/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-19.556Z/traces/health/desktop/transport.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-19.556Z/traces/health/mobile/transport.trace.zip"
+      ]
+    },
+    {
+      "label": "new relative findings",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-41.209Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-41.209Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-41.209Z/traces/health/desktop/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-41.209Z/traces/health/mobile/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-41.209Z/traces/health/desktop/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-41.209Z/traces/health/mobile/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-41.209Z/traces/health/desktop/transport.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-14-41.209Z/traces/health/mobile/transport.trace.zip"
+      ]
+    },
+    {
+      "label": "removed diagnostics",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-02.384Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-02.384Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-02.384Z/traces/health/desktop/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-02.384Z/traces/health/mobile/assets.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-02.384Z/traces/health/desktop/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-02.384Z/traces/health/mobile/console.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-02.384Z/traces/health/desktop/transport.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-02.384Z/traces/health/mobile/transport.trace.zip"
+      ]
+    },
+    {
+      "label": "baseline",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-20.478Z",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-20.478Z/traces/masked/desktop/random.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-20.478Z/traces/masked/mobile/random.trace.zip"
+      ]
+    },
+    {
+      "label": "masked random",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-23.644Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-23.644Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-23.644Z/traces/masked/desktop/random.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-23.644Z/traces/masked/mobile/random.trace.zip"
+      ]
+    },
+    {
+      "label": "baseline",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-29.973Z",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-29.973Z/traces/unmasked/desktop/random.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-29.973Z/traces/unmasked/mobile/random.trace.zip"
+      ]
+    },
+    {
+      "label": "unmasked random",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-33.437Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-33.437Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-33.437Z/traces/unmasked/desktop/random.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-33.437Z/traces/unmasked/mobile/random.trace.zip"
+      ]
+    },
+    {
+      "label": "CLI check unmasked",
+      "exitCode": 1,
+      "traces": []
+    },
+    {
+      "label": "CLI check masked",
+      "exitCode": 2,
+      "traces": []
+    },
+    {
+      "label": "unmatched selector",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-51.377Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-51.377Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-51.377Z/traces/masked/desktop/random.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-51.377Z/traces/masked/mobile/random.trace.zip"
+      ]
+    },
+    {
+      "label": "baseline",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-58.545Z",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-58.545Z/traces/sizing/desktop/height.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-58.545Z/traces/sizing/mobile/height.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-58.545Z/traces/sizing/desktop/overflow.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-15-58.545Z/traces/sizing/mobile/overflow.trace.zip"
+      ]
+    },
+    {
+      "label": "dimensions changed",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-05.253Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-05.253Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-05.253Z/traces/sizing/desktop/height.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-05.253Z/traces/sizing/mobile/height.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-05.253Z/traces/sizing/desktop/overflow.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-05.253Z/traces/sizing/mobile/overflow.trace.zip"
+      ]
+    },
+    {
+      "label": "approve",
+      "exitCode": 0,
+      "traces": []
+    },
+    {
+      "label": "approved dimensions",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-22.917Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-22.917Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-22.917Z/traces/sizing/desktop/height.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-22.917Z/traces/sizing/mobile/height.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-22.917Z/traces/sizing/desktop/overflow.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-22.917Z/traces/sizing/mobile/overflow.trace.zip"
+      ]
+    },
+    {
+      "label": "blocked continuation",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z/traces/unreachable/desktop/home.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z/traces/unreachable/mobile/home.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z/traces/denied/desktop/forbidden.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z/traces/denied/mobile/forbidden.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z/traces/challenge/desktop/challenge.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z/traces/challenge/mobile/challenge.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z/traces/wordpress/desktop/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z/traces/wordpress/mobile/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z/traces/wordpress/desktop/beta.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-16-41.354Z/traces/wordpress/mobile/beta.trace.zip"
+      ]
+    },
+    {
+      "label": "baseline",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-05.155Z",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-05.155Z/traces/readonly/desktop/writes.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-05.155Z/traces/readonly/mobile/writes.trace.zip"
+      ]
+    },
+    {
+      "label": "strict TLS",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-08.319Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-08.319Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-08.319Z/traces/mixed/desktop/home.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-08.319Z/traces/mixed/mobile/home.trace.zip"
+      ]
+    },
+    {
+      "label": "mixed content",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-12.639Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-12.639Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-12.639Z/traces/mixed/desktop/home.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-12.639Z/traces/mixed/mobile/home.trace.zip"
+      ]
+    },
+    {
+      "label": "approve",
+      "exitCode": 0,
+      "traces": []
+    },
+    {
+      "label": "baselined mixed content",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-19.924Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-19.924Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-19.924Z/traces/mixed/desktop/home.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-19.924Z/traces/mixed/mobile/home.trace.zip"
+      ]
+    },
+    {
+      "label": "CLI check unknown",
+      "exitCode": 2,
+      "traces": []
+    },
+    {
+      "label": "CLI approve wordpress /absent/",
+      "exitCode": 2,
+      "traces": []
+    },
+    {
+      "label": "CLI check wordpress --bogus",
+      "exitCode": 2,
+      "traces": []
+    },
+    {
+      "label": "missing baseline",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-28.738Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-28.738Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-28.738Z/traces/absent/desktop/beta.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-28.738Z/traces/absent/mobile/beta.trace.zip"
+      ]
+    },
+    {
+      "label": "retention check",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-37.210Z",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-37.210Z/index.html",
+      "traces": [
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-37.210Z/traces/wordpress/desktop/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-37.210Z/traces/wordpress/mobile/alpha.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-37.210Z/traces/wordpress/desktop/beta.trace.zip",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T16-11-06.276Z/commands/2026-09-26T16-17-37.210Z/traces/wordpress/mobile/beta.trace.zip"
+      ]
+    }
+  ],
+  "cleanup": {
+    "remote": true,
+    "remaining": 0,
+    "deleted": 198,
+    "wordpress": true,
+    "https": true,
+    "errors": []
+  }
+}

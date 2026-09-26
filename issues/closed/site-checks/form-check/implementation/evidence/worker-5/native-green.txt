@@ -1,0 +1,13 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/playground.test.ts:
+(pass) helper false fills native forms without changing mail, entries or feeds; warning-only publication never accesses baselines [8692.80ms]
+(pass) native upload/no-marker are unsupported; required client/server rejection continues to later FF [15070.42ms]
+(pass) native required GF checkbox/consent and FF checkbox/terms confirm, redirect and clean entries; helper false never submits [19634.78ms]
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-fbe1c9b3-3516-4ae4-a80f-f7916b253bcb/summary.json
+
+ 3 pass
+ 3 filtered out
+ 0 fail
+ 49 expect() calls
+Ran 3 tests across 1 file. [89.26s]

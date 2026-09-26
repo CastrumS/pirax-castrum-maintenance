@@ -1,0 +1,25 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/playground.test.ts:
+59 | const observe = async () => ({ mail: await harness.h.mail(), entries: await harness.h.entries(), feeds: await harness.h.feeds() });
+60 | const scan = (url: string, helper = true) => { const s = siteFor(url, helper); return scanPageForms(s, s.pages[0]!, { runDir: workspace, ...timing }); };
+61 | function confirmed(results: FormResult[]) {
+62 |   expect(results.map(f=>f.plugin)).toEqual(['gravity','fluent']);
+63 |   for (const f of results) {
+64 |     expect(f.outcome).toBe('failed');
+                           ^
+error: expect(received).toBe(expected)
+
+Expected: "failed"
+Received: "rejected"
+
+      at confirmed (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/playground.test.ts:64:23)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/playground.test.ts:147:3)
+(fail) native required GF checkbox/consent and FF checkbox/terms confirm, redirect and clean entries; helper false never submits [14567.40ms]
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-36ebb611-b471-4c3d-bdf9-a1a0b7cafdd3/summary.json
+
+ 0 pass
+ 5 filtered out
+ 1 fail
+ 7 expect() calls
+Ran 1 test across 1 file. [59.62s]

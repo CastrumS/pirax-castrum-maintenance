@@ -1,0 +1,7 @@
+FAIL literal path: configured=Tests, library=INBOX.Tests
+FAIL literal path: configured=Spam, library=INBOX.Spam
+FAIL literal path: configured=inbox, library=INBOX
+PASS installed MIME decoder: encoded exact tag accepted; wrong case rejected
+No network connections or authentication performed.
+
+exit 1

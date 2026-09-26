@@ -1,0 +1,6 @@
+Returned a mechanism mismatch in `implementation/worker-2.md`.
+
+- ImapFlow’s public API cannot enforce literal folders/no LIST.
+- Diagnostic reproduces the mismatch; existing 8 IMAP tests pass.
+- No worktree changes or mail sent.
+- Report proposes a narrowly scoped dependency patch for B’s authorization.

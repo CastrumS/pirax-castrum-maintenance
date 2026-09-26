@@ -1,0 +1,18 @@
+Repair unit 7 is finished and all five review items are fixed. The targeted command passes without a `--timeout` flag: 11 pass, 0 fail, 158 expect() calls, exit 0. Nothing is committed and I didn't run the full suite. The report is in `implementation/worker-7.md`.
+
+One deviation from the brief: its suggested `bunfig.toml` `[test] timeout` does nothing in Bun 1.4.2. I tried it with the literal command and still got the same 5000 ms failures (7 pass, 4 fail). A bunfig preload calling `setDefaultTimeout` didn't work either, because Bun applies that call only to the file that makes it. So each of the 5 suites now calls `setDefaultTimeout(180_000)` itself, which the brief allows as an equivalent. There is no `bunfig.toml`. The downside is that a new suite must add that line too; the README says so, and a suite that forgets it fails at 5 s.
+
+- **A F1 (timeouts):** besides the per-suite default above, `package.json` `test:plugin` and the docs no longer pass `--timeout`. The README claim that plain `bun test` works is now true.
+- **B F1 (hidden Cc/Bcc):** the mail filter now reads header names the same way `wp_mail()` does, stripping spaces and control characters around the name. The production guard reuses that function, so it also blocks a later filter that adds a control-padded Bcc.
+  - The new test in `test/plugin/review-regressions.test.ts` reads the real mail envelope in `phpmailer_init` and throws before anything is sent.
+  - It failed before the fix (Cc and Bcc were still there) and passes now: redirect-only To, empty Cc and Bcc.
+  - It covers array and string headers, and confirms ordinary mail keeps its recipients, the test tag appears once, and legitimate headers survive.
+- **B F2 (renamed field):** the hourly cleanup now checks the stored submission values minus Fluent Forms' own list of request metadata fields (`Helper::getWhiteListedFields`). It no longer depends on the form's current fields. Malformed JSON matches nothing. I deleted `ff_field_values()`, which had no other caller.
+  - The test runs the real hourly cron after renaming one field and removing another. It failed before the fix (renamed/removed entries survived) and passes now.
+  - Entries that are young, ordinary, metadata-only or malformed are kept, as are entries with the token only as a key or with a job still processing.
+- **A N1:** all four modules now load with plain `require_once`, so a damaged package fails loudly instead of treating test submissions as ordinary.
+- **A N2:** the original history case is unchanged. I appended a dated follow-up with the job-payload hardening, a summary of observed evidence taken only from the worker 3 and 6 reports, and the commit and regression test names.
+
+**Not run:** I changed only the timeout line and a comment in `harness`, `adapters` and `safety`; they transpile but haven't run. B's full `bun --env-file=<root>/.env test` run is what checks them.
+
+Artifacts are in `artifacts/plugin/core-2026-09-26T09-03-25-866Z/` and `artifacts/plugin/review-regressions-2026-09-26T09-02-40-981Z/`. The earlier failing runs are listed in the report. All 7 artifact directories have 0 matches for the token or the GF ZIP path, and no `.env` file was opened.

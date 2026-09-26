@@ -1,0 +1,47 @@
+bun test v1.4.2 (744846f84)
+
+tests/health.test.ts:
+(pass) normalizeHealth > deduplicates and sorts without dropping query distinctions [0.30ms]
+(pass) evaluateHealth > clean page has no findings [0.09ms]
+(pass) evaluateHealth > without a baseline every console and request finding fails [0.08ms]
+(pass) evaluateHealth > baselined console and URL/status pairs become warnings, new ones fail, removed ones vanish [0.14ms]
+(pass) evaluateHealth > HTTP >= 400, critical error and mixed content fail even when baselined [0.14ms]
+(pass) parseHealth > round-trips a valid snapshot and normalizes it [0.19ms]
+(pass) parseHealth > rejects malformed shapes with a field name [0.89ms]
+
+tests/capture.test.ts:
+(pass) locked viewports and readiness limits [0.10ms]
+(pass) capture in real Chromium > delayed main-document navigation to /missing uses final health and classification [1670.58ms]
+(pass) capture in real Chromium > delayed main-document navigation to /critical uses final health and classification [1635.39ms]
+(pass) capture in real Chromium > delayed main-document navigation to /forbidden uses final health and classification [1575.20ms]
+(pass) capture in real Chromium > delayed main-document navigation to /challenge uses final health and classification [1566.85ms]
+(pass) capture in real Chromium > delayed main-document navigation to /header-only-challenge uses final health and classification [1566.73ms]
+(pass) capture in real Chromium > direct HTTP redirect retains the final document status [752.03ms]
+(pass) capture in real Chromium > navigation triggered by readiness scrolling reconciles the final document [1761.52ms]
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/runs/capture-test-2026-09-26T08-55-13.710Z
+(pass) capture in real Chromium > read-only policy blocks real WebSocket mutations while GET content captures [735.22ms]
+(pass) capture in real Chromium > full-page PNG at both viewports includes lazy content; trace saved [2534.57ms]
+(pass) capture in real Chromium > site and page masks combine; masked captures are stable, unmasked ones change [6084.14ms]
+(pass) capture in real Chromium > unmatched valid mask warns; invalid or non-CSS selectors are configuration errors [1507.76ms]
+(pass) capture in real Chromium > health: console/pageerror, 404 assets, transport failure; policy aborts are warnings; CAPTCHA text is not blocked [762.79ms]
+(pass) capture in real Chromium > 404 page and critical error are captured health failures, not blocked [1483.75ms]
+(pass) capture in real Chromium > unreachable, 403 and challenge pages are blocked with reasons and a trace [2174.80ms]
+(pass) capture in real Chromium > never-idle, infinitely scrolling page finishes within its limits with readiness warnings [3355.56ms]
+(pass) TLS and mixed content on a real HTTPS fixture > self-signed certificate is blocked unless the internal test option is set [71.37ms]
+(pass) TLS and mixed content on a real HTTPS fixture > HTTP resources on an HTTPS page are mixed content; plain HTTP links are not [1546.28ms]
+(pass) challengeReason needs explicit markers [0.10ms]
+
+tests/commands.test.ts:
+(pass) command preflight without browser or storage > parses selection, optional sites and approve page; retains list order [0.16ms]
+(pass) command preflight without browser or storage > rejects missing, extra, unsupported flags and approve all [0.05ms]
+(pass) command preflight without browser or storage > exit 2 for configuration before work; empty all is zero with no credentials [0.57ms]
+(pass) command preflight without browser or storage > CLI imports have no credential reads or exits and missing env is sanitized exit 2 [683.96ms]
+(pass) only canonical completed run IDs qualify, in descending order [0.28ms]
+(pass) latest containing site is selected, incomplete/unrelated evidence never replaces it [1.71ms]
+(pass) latest valid containing site wins over unrelated newer history without falling back from blocked pages [0.73ms]
+(pass) direct approval rejects an unlisted page before touching its real lazy Store [0.53ms]
+
+ 34 pass
+ 0 fail
+ 197 expect() calls
+Ran 34 tests across 3 files. [31.83s]

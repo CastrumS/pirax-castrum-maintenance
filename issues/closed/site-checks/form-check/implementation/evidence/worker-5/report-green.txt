@@ -1,0 +1,19 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-collision-df83e349-dfb9-4362-8a0f-efe44b1fa9a3/synthetic-folder-collision/summary.json
+(pass) production forms command publishes with a nonsecret folder in both run and site paths [1542.06ms]
+(pass) forms-only manifest > parsePublishedManifest returns either validated mode; parseManifest stays check-only [0.56ms]
+(pass) forms-only manifest > rejects fabricated viewports, missing forms, mixed discriminators and malformed identity [0.67ms]
+(pass) form outcome gating > failed/rejected fail, spam/not-verified/unsupported warn, delivered passes [0.13ms]
+(pass) form outcome gating > existing visual/health failures still fail with passing forms [0.02ms]
+(pass) form outcome gating > forms-only HTML has page Forms data without image panels and escapes hostile text [0.11ms]
+(pass) form outcome gating > check pages show form-aware page and site status [0.21ms]
+(pass) forms-only local and published reports > local report has only HTML and manifest, excludes traces, and renders in real Chromium [134.49ms]
+(pass) forms-only local and published reports > real R2: manifest last, traces excluded, approval still selects the older check [6071.30ms]
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-report-tests-130ed088-87e5-4bfa-b00c-e825d608f058/summary.json
+
+ 9 pass
+ 0 fail
+ 77 expect() calls
+Ran 9 tests across 1 file. [7.97s]

@@ -1,0 +1,36 @@
+bun test v1.4.2 (744846f84)
+
+tests/health.test.ts:
+(pass) normalizeHealth > deduplicates and sorts without dropping query distinctions [0.53ms]
+(pass) evaluateHealth > clean page has no findings [0.19ms]
+(pass) evaluateHealth > without a baseline every console and request finding fails [0.12ms]
+(pass) evaluateHealth > baselined console and URL/status pairs become warnings, new ones fail, removed ones vanish [0.16ms]
+(pass) evaluateHealth > HTTP >= 400, critical error and mixed content fail even when baselined [0.15ms]
+(pass) parseHealth > round-trips a valid snapshot and normalizes it [0.24ms]
+(pass) parseHealth > rejects malformed shapes with a field name [0.21ms]
+
+tests/compare.test.ts:
+(pass) comparePng with equal dimensions > identical images are same with ratio 0 and a decodable diff [4.52ms]
+(pass) comparePng with equal dimensions > ratio below, equal to and above the allowance (100 px image, 1 px = 0.01) [3.28ms]
+(pass) comparePng with equal dimensions > uses pixelmatch threshold 0.1: small colour deltas ignored, larger ones counted [1.27ms]
+(pass) comparePng with different dimensions > height-only change is changed regardless of allowance, with padded diff [0.95ms]
+(pass) comparePng with different dimensions > width-only change and both-axis change do not crash [1.55ms]
+(pass) comparePng with undecodable input > corrupt baseline or actual PNG is an explicit error, not a crash [0.41ms]
+
+tests/capture.test.ts:
+(pass) locked viewports and readiness limits [0.08ms]
+(pass) capture in real Chromium > full-page PNG at both viewports includes lazy content; trace saved [2938.74ms]
+(pass) capture in real Chromium > site and page masks combine; masked captures are stable, unmasked ones change [6148.71ms]
+(pass) capture in real Chromium > unmatched valid mask warns; invalid or non-CSS selectors are configuration errors [1534.66ms]
+(pass) capture in real Chromium > health: console/pageerror, 404 assets, transport failure; policy aborts are warnings; CAPTCHA text is not blocked [762.26ms]
+(pass) capture in real Chromium > 404 page and critical error are captured health failures, not blocked [1473.19ms]
+(pass) capture in real Chromium > unreachable, 403 and challenge pages are blocked with reasons and a trace [161.18ms]
+(pass) capture in real Chromium > never-idle, infinitely scrolling page finishes within its limits with readiness warnings [3356.18ms]
+(pass) TLS and mixed content on a real HTTPS fixture > self-signed certificate is blocked unless the internal test option is set [74.44ms]
+(pass) TLS and mixed content on a real HTTPS fixture > HTTP resources on an HTTPS page are mixed content; plain HTTP links are not [1534.55ms]
+(pass) challengeReason needs explicit markers [0.15ms]
+
+ 24 pass
+ 0 fail
+ 145 expect() calls
+Ran 24 tests across 3 files. [18.34s]

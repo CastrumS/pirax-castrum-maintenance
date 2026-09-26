@@ -1,0 +1,6 @@
+{
+  "existingCaptureChallenge": "Cloudflare challenge page",
+  "forms": [],
+  "status": "pass",
+  "expected": "explicit failed page-scan, not empty/pass"
+}

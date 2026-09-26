@@ -1,0 +1,50 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/harness.test.ts:
+(pass) preflight names missing or invalid credentials without their values [0.35ms]
+(pass) loopback WordPress runs licensed Gravity Forms and pinned Fluent Forms with real PHP and database [3358.10ms]
+(pass) browser logs in to real wp-admin and submits unmarked forms for both plugins [27314.77ms]
+(pass) stop shuts the site down [171.02ms]
+
+test/plugin/core.test.ts:
+(pass) build:plugin produces only the allowlisted uploadable ZIP with no tests, secrets or licensed code [28.16ms]
+(pass) generated ZIP uploads and activates through wp-admin without Gravity Forms or Fluent Forms [15007.90ms]
+(pass) settings mutate only for manage_options with a valid nonce and valid values [39893.64ms]
+(pass) marker parser classifies submitted values: ordinary, marked(id) or invalid-marker [1456.45ms]
+(pass) request marker and stacked worker context; nothing is inherited by another request [2214.17ms]
+(pass) wp_mail in marked context is redirected, stripped and tagged; ordinary mail is untouched [6610.81ms]
+(pass) a bad redirect fails before marking and marked mail is never delivered to original recipients [10310.61ms]
+(pass) the core never marks a request from query strings, cookies or arbitrary POST data [2188.04ms]
+(pass) deactivation unschedules, uninstall is guarded and removes options and owned events [5176.38ms]
+
+test/plugin/adapters.test.ts:
+(pass) GF marked browser submission: both notifications redirected synchronously, no feeds, entry deleted after mail [17062.58ms]
+(pass) GF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries [19731.75ms]
+(pass) FF marked browser submission: both notifications redirected, only the email feed runs, entry and related rows deleted at request end [12425.08ms]
+(pass) FF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries [14177.08ms]
+(pass) GF reCAPTCHA v2 with failing siteverify: marked passes, unmarked fails; other errors and honeypot still apply [22119.66ms]
+(pass) FF reCAPTCHA with failing siteverify: marked passes, unmarked fails; other errors and honeypot still apply [23365.91ms]
+(pass) an integration outside the suppressible feed paths blocks marked submissions; ordinary ones still run it [20258.57ms]
+(pass) payment and post-creation paths are rejected for marked submissions [9833.97ms]
+(pass) malformed or ambiguous markers and an invalid redirect reject safely; nothing reaches original recipients [21554.87ms]
+(pass) FF queued email: marked entry kept until every job completes across requests; ordinary job in the same runner keeps its recipients [25575.50ms]
+(pass) FF queued email: a job still processing elsewhere blocks FF's pending-only completion signal [18553.31ms]
+(pass) FF queued email: rotating or clearing the token never turns queued test mail into client mail [25461.13ms]
+(pass) FF legacy batch runner: marked and ordinary jobs in one request keep their own recipients; marked entry removed [19094.99ms]
+(pass) hourly sweep: real cron deletes only old token entries across pages, with native cascade and queued-job removal, in a non-UTC site [20851.06ms]
+(pass) sweep: literal token with SQL wildcards, empty token no-op, and strict one-hour boundary [10313.79ms]
+(pass) retained evidence contains no token [2167.83ms]
+
+test/plugin/safety.test.ts:
+(pass) FF: a later PHP_INT_MAX feed-type filter registered after the plugin cannot resurrect the ledger feed on a marked submission [17855.99ms]
+(pass) FF queued: a marked notification that throws inside native mail processing does not redirect the next ordinary job in the same runner request [20783.59ms]
+(pass) FF queued cleanup race: a marked entry deleted natively after the runner loaded it, with the token rotated, still sends only redirected mail; ordinary jobs stay ordinary [16316.00ms]
+(pass) FF unsupported marked form with reCAPTCHA and failing siteverify is rejected with the blocked message before CAPTCHA [16138.60ms]
+(pass) GF sweep: an old token entry's queued notifications (entry snapshots included) and feeds are removed before deletion; ordinary queued work runs; active worker defers [21691.93ms]
+(pass) compatibility gate accepts exactly GF 3.1.2 and FF 6.2.14 [752.12ms]
+(pass) retained evidence contains no token [2173.50ms]
+
+ 36 pass
+ 0 fail
+ 661 expect() calls
+Ran 36 tests across 4 files. [597.95s]

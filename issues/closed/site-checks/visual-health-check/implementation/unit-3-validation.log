@@ -1,0 +1,27 @@
+bun test v1.4.2 (744846f84)
+
+tests/report.test.ts:
+(pass) private report > embeds images and escapes all untrusted text without external assets [4.65ms]
+(pass) private report > renders exact future Forms outcomes only when supplied [0.14ms]
+(pass) private report > aggregates blocked, failures and warnings while keeping capture separate [0.03ms]
+(pass) manifest and exact approval evidence > accepts canonical manifest and derives safe encoded page keys [0.49ms]
+(pass) manifest and exact approval evidence > rejects malformed schemas, shapes, duplicate sites, run mismatch and arbitrary artifact paths [0.50ms]
+(pass) manifest and exact approval evidence > requires current URL, requested pages and both complete captures from the selected run [0.57ms]
+(pass) manifest and exact approval evidence > validates actual PNG and raw health bytes against recorded dimensions [3.52ms]
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/runs/2026-09-25T16-27-46.263Z/index.html
+(pass) local report renders all embedded images and inert hostile text in real Chromium [928.86ms]
+
+tests/commands.test.ts:
+(pass) command preflight without browser or storage > parses selection, optional sites and approve page; retains list order [0.14ms]
+(pass) command preflight without browser or storage > rejects missing, extra, unsupported flags and approve all [0.05ms]
+(pass) command preflight without browser or storage > exit 2 for configuration before work; empty all is zero with no credentials [0.51ms]
+(pass) command preflight without browser or storage > CLI imports have no credential reads or exits and missing env is sanitized exit 2 [619.88ms]
+(pass) only canonical completed run IDs qualify, in descending order [0.11ms]
+(pass) latest containing site is selected, incomplete/unrelated evidence never replaces it [0.28ms]
+(pass) latest valid containing site wins over unrelated newer history without falling back from blocked pages [0.46ms]
+(pass) direct approval rejects an unlisted page before touching its real lazy Store [0.50ms]
+
+ 16 pass
+ 0 fail
+ 83 expect() calls
+Ran 16 tests across 2 files. [1.76s]

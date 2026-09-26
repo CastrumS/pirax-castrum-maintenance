@@ -1,0 +1,377 @@
+bun test v1.4.2 (744846f84)
+
+tests/sites.test.ts:
+94 |     const sites = loadSites(join(import.meta.dir, "..", "sites.example.yaml"));
+95 |     expect(sites.length).toBeGreaterThan(0);
+96 |     for (const s of sites) expect(new URL(s.url).hostname).toMatch(/(^|\.)example\.(com|org|net)$|\.example$/);
+97 |     const pages = sites.flatMap((s) => s.pages);
+98 |     expect(pages.some((p) => p.mask.length > 0)).toBe(true);
+99 |     expect(sites.some((s) => s.test_form)).toBe(true);
+                                                ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:99:44)
+(fail) loadSites valid input > shipped sites.example.yaml loads [0.33ms]
+100 |   });
+101 | 
+102 |   test("committed sites.yaml designates exactly the operator's 12 test forms, offline", () => {
+103 |     const sites = loadSites(join(import.meta.dir, "..", "sites.yaml"));
+104 |     expect(sites).toHaveLength(13);
+105 |     expect(Object.fromEntries(sites.filter((s) => s.test_form).map((s) => [s.slug, s.test_form]))).toEqual({
+                                                                                                         ^
+error: expect(received).toEqual(expected)
+
+- {
+-   "alu-kon": {
+-     "id": 1,
+-     "page": "/kontakt/",
+-     "plugin": "gravity",
+-   },
+-   "baterije-akumulatori": {
+-     "id": 2,
+-     "page": "/kontakt/",
+-     "plugin": "gravity",
+-   },
+-   "bravarskiservis": {
+-     "id": 5,
+-     "page": "/kontakt/",
+-     "plugin": "fluent",
+-   },
+-   "centrum-panda": {
+-     "id": 3,
+-     "page": "/",
+-     "plugin": "gravity",
+-   },
+-   "epamalgradnja": {
+-     "id": 1,
+-     "page": "/kontakt/",
+-     "plugin": "gravity",
+-   },
+-   "instrukcijezasve": {
+-     "id": 4,
+-     "page": "/kontakt/",
+-     "plugin": "gravity",
+-   },
+-   "laris-tcb": {
+-     "id": 2,
+-     "page": "/",
+-     "plugin": "gravity",
+-   },
+-   "spok-ing": {
+-     "id": 6,
+-     "page": "/kontakt/",
+-     "plugin": "fluent",
+-   },
+-   "stolarijabanek": {
+-     "id": 1,
+-     "page": "/kontakt/",
+-     "plugin": "fluent",
+-   },
+-   "suntos": {
+-     "id": 4,
+-     "page": "/kontakt/",
+-     "plugin": "fluent",
+-   },
+-   "tara-garden": {
+-     "id": 1,
+-     "page": "/about-us/",
+-     "plugin": "gravity",
+-   },
+-   "teambuildinghrvatska": {
+-     "id": 1,
+-     "page": "/",
+-     "plugin": "gravity",
+-   },
+- }
++ {}
+
+- Expected  - 62
++ Received  + 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:105:100)
+(fail) loadSites valid input > committed sites.yaml designates exactly the operator's 12 test forms, offline [0.87ms]
+42 |     .join("-");
+43 | }
+44 | 
+45 | export function loadSites(path = "sites.yaml"): Site[] {
+46 |   const fail = (site: string, field: string, detail: string): never => {
+47 |     throw new SitesConfigError(site, field, detail, path);
+                                                             ^
+SitesConfigError: /tmp/sites-test-3vE0Az/sites-4.yaml: acme: test_form: unknown key
+      at fail (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/sites.ts:47:57)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/sites.ts:80:71)
+      at map (1:11)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:130:26)
+(fail) test_form designation > string-page and object-page designations load; absence stays absent [0.33ms]
+25 |   } catch (e) {
+26 |     caught = e;
+27 |   }
+28 |   expect(caught).toBeInstanceOf(SitesConfigError);
+29 |   const err = caught as SitesConfigError;
+30 |   expect({ site: err.site, field: err.field }).toEqual({ site, field });
+                                                    ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,3 @@
+  {
+-   "field": "test_form.page",
++   "field": "test_form",
+    "site": "acme",
+
+- Expected  - 1
++ Received  + 1
+
+      at expectError (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:30:48)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:139:7)
+(fail) test_form designation > page must exactly match a listed normalized path [0.33ms]
+25 |   } catch (e) {
+26 |     caught = e;
+27 |   }
+28 |   expect(caught).toBeInstanceOf(SitesConfigError);
+29 |   const err = caught as SitesConfigError;
+30 |   expect({ site: err.site, field: err.field }).toEqual({ site, field });
+                                                    ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,3 @@
+  {
+-   "field": "test_form.plugin",
++   "field": "test_form",
+    "site": "acme",
+
+- Expected  - 1
++ Received  + 1
+
+      at expectError (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:30:48)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:145:7)
+(fail) test_form designation > plugin must be gravity or fluent [0.16ms]
+25 |   } catch (e) {
+26 |     caught = e;
+27 |   }
+28 |   expect(caught).toBeInstanceOf(SitesConfigError);
+29 |   const err = caught as SitesConfigError;
+30 |   expect({ site: err.site, field: err.field }).toEqual({ site, field });
+                                                    ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,3 @@
+  {
+-   "field": "test_form.id",
++   "field": "test_form",
+    "site": "acme",
+
+- Expected  - 1
++ Received  + 1
+
+      at expectError (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:30:48)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:151:7)
+(fail) test_form designation > id must be a numeric integer, never a coerced string [0.15ms]
+25 |   } catch (e) {
+26 |     caught = e;
+27 |   }
+28 |   expect(caught).toBeInstanceOf(SitesConfigError);
+29 |   const err = caught as SitesConfigError;
+30 |   expect({ site: err.site, field: err.field }).toEqual({ site, field });
+                                                    ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,3 @@
+  {
+-   "field": "test_form.submit",
++   "field": "test_form",
+    "site": "acme",
+
+- Expected  - 1
++ Received  + 1
+
+      at expectError (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:30:48)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:156:5)
+(fail) test_form designation > unknown member and malformed shape name the site [0.12ms]
+
+tests/report.test.ts:
+64 |     const report = fixture();
+65 |     report.sites[0]!.pages[0]!.forms = [
+66 |       { selector: "#gform_2", plugin: "gravity", outcome: "skipped", detail: "Not the designated test form on this page; not filled or submitted." },
+67 |       { selector: "form >> nth=1", plugin: "unknown", outcome: "skipped", detail: "Not the designated test form on this page; not filled or submitted." },
+68 |     ];
+69 |     expect(reportStatus(report)).toBe("pass"); // never a warning/failure by itself
+                                      ^
+error: expect(received).toBe(expected)
+
+Expected: "pass"
+Received: "warning"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/report.test.ts:69:34)
+(fail) private report > skipped forms are neutral, explained, and accepted by check manifests and approval [0.15ms]
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/runs/2026-09-26T20-04-28.930Z/index.html
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+238 |   await withEnv(fill, async () => {
+239 |     for (const [test_form, expected] of [
+240 |       [{ page: "/multi", plugin: "gravity", id: 1 }, ["gravity:not-verified", "gravity:skipped", "fluent:skipped", "unknown:skipped"]],
+241 |       [{ page: "/multi", plugin: "gravity", id: 3 }, ["gravity:skipped", "gravity:not-verified", "fluent:skipped", "unknown:skipped"]],
+242 |       [{ page: "/multi", plugin: "fluent", id: 2 }, ["gravity:skipped", "gravity:skipped", "fluent:not-verified", "unknown:skipped"]],
+243 |     ] as const) expect(shape(await scanPageForms(local(["/multi"], false, test_form), { path: "/multi", mask: [] }, { runDir }))).toEqual([...expected]);
+                                                                                                                                        ^
+error: expect(received).toEqual(expected)
+
+@@ -2,5 +2,5 @@
+    "gravity:not-verified",
+-   "gravity:skipped",
+-   "fluent:skipped",
+-   "unknown:skipped",
++   "gravity:not-verified",
++   "fluent:not-verified",
++   "unknown:unsupported",
+  ]
+
+- Expected  - 3
++ Received  + 3
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:243:131)
+      at async withEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:97:22)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:238:9)
+(fail) scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, each designation is filled in its own scan [2481.78ms]
+39 | 
+40 | /** Shared lazy reader: EnvError for missing/blank names first, then EnvFormatError for failed checks. Values are never trimmed. */
+41 | export function readEnv<const N extends string>(env: Record<string, string | undefined>, checks: Record<N, (value: string) => boolean>): Record<N, string> {
+42 |   const names = Object.keys(checks) as N[];
+43 |   const missing = names.filter((name) => !env[name]?.trim());
+44 |   if (missing.length) throw new EnvError(missing);
+                                 ^
+EnvError: Missing or blank environment variables: FORM_TEST_TOKEN, FORM_TEST_ADDRESS
+ missing: [ "FORM_TEST_TOKEN", "FORM_TEST_ADDRESS" ],
+
+      at readEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/env.ts:44:29)
+      at readFormConfig (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/forms/config.ts:13:18)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/forms/runner.ts:61:26)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/forms/runner.ts:41:20)
+      at async scanPageForms (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/forms/runner.ts:56:28)
+      at async watched (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:109:33)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:279:39)
+      at async withEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:97:22)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:278:45)
+(fail) omitted designation skips every form, helper true or false, with no credentials, typing or POST [624.38ms]
+297 |     const report = emptyReport(site);
+298 |     const dir = join(runDir, `scope-${paths.join("").replaceAll("/", "")}`);
+299 |     const before = { writes, traps };
+300 |     await populateForms([site], report, { runDir: dir, deliveryTimeoutMs: 2_000 });
+301 |     const page = (path: string) => report.sites[0]!.pages.find(p => p.path === path)!.forms;
+302 |     expect(shape(page("/scope-a"))).toEqual(allSkipped);
+                                          ^
+error: expect(received).toEqual(expected)
+
+  [
+-   "gravity:skipped",
+-   "gravity:skipped",
+-   "fluent:skipped",
+-   "unknown:skipped",
+-   "gravity:skipped",
+-   "gravity:skipped",
++   "gravity:failed",
++   "gravity:failed",
++   "fluent:failed",
++   "unknown:unsupported",
++   "gravity:unsupported",
++   "gravity:unsupported",
+  ]
+
+- Expected  - 6
++ Received  + 6
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:302:37)
+      at async withEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:97:22)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:295:83)
+(fail) the designated form on the second listed page is the only attempt, in either page order [4016.01ms]
+320 |       [{ page: "/scope-a", plugin: "gravity", id: 2 }, 1, "form-1:gform_2"],
+321 |       [{ page: "/scope-a", plugin: "fluent", id: 2 }, 2, "form-2:fluentform_2"],
+322 |       [{ page: "/scope-a", plugin: "gravity", id: 1 }, 0, "form-0:gform_1"],
+323 |     ] as const) {
+324 |       const { results, events } = await watched(local(["/scope-a"], false, test_form), "/scope-a");
+325 |       expect(shape(results)).toEqual(allSkipped.map((s, i) => i === index ? s.replace("skipped", "not-verified") : s));
+                                   ^
+error: expect(received).toEqual(expected)
+
+  [
+-   "gravity:skipped",
+    "gravity:not-verified",
+-   "fluent:skipped",
+-   "unknown:skipped",
+-   "gravity:skipped",
+-   "gravity:skipped",
++   "gravity:not-verified",
++   "fluent:not-verified",
++   "unknown:unsupported",
++   "gravity:unsupported",
++   "gravity:unsupported",
+  ]
+
+- Expected  - 5
++ Received  + 5
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:325:30)
+      at async withEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:97:22)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:318:9)
+(fail) helper false fills only the designated plugin/id: same-number GF/FF differ, other forms get no events or POST [1784.62ms]
+39 | 
+40 | /** Shared lazy reader: EnvError for missing/blank names first, then EnvFormatError for failed checks. Values are never trimmed. */
+41 | export function readEnv<const N extends string>(env: Record<string, string | undefined>, checks: Record<N, (value: string) => boolean>): Record<N, string> {
+42 |   const names = Object.keys(checks) as N[];
+43 |   const missing = names.filter((name) => !env[name]?.trim());
+44 |   if (missing.length) throw new EnvError(missing);
+                                 ^
+EnvError: Missing or blank environment variables: FORM_TEST_TOKEN, FORM_TEST_ADDRESS
+ missing: [ "FORM_TEST_TOKEN", "FORM_TEST_ADDRESS" ],
+
+      at readEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/env.ts:44:29)
+      at readFormConfig (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/forms/config.ts:13:18)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/forms/runner.ts:61:26)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/forms/runner.ts:41:20)
+      at async scanPageForms (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/forms/runner.ts:56:28)
+      at async populateForms (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/forms/runner.ts:99:38)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:349:13)
+      at async withEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:97:22)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:338:9)
+(fail) missing, wrong-plugin, elsewhere-only, GF #0 and empty-page designations fail once on their page; scan failures stay scan failures [573.80ms]
+371 |       ["/shifting", { page: "/shifting", plugin: "gravity", id: 1 }, ["gravity:failed", "gravity:skipped"], 0, null],
+372 |       ["/scope-a", { page: "/scope-a", plugin: "gravity", id: 5 }, ["gravity:skipped", "gravity:skipped", "fluent:skipped", "unknown:skipped", "gravity:unsupported", "gravity:skipped"], 0, null],
+373 |     ] as const) {
+374 |       const before = { writes, traps };
+375 |       const { results, events } = await watched(local([path], true, test_form), path);
+376 |       expect(shape(results)).toEqual([...expected]);
+                                   ^
+error: expect(received).toEqual(expected)
+
+@@ -2,3 +2,3 @@
+    "gravity:failed",
+-   "gravity:skipped",
++   "gravity:failed",
+  ]
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:376:30)
+      at async withEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:97:22)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/browser.test.ts:367:9)
+(fail) duplicate designated instances: only the first is attempted; rejected, unsupported and changed selections never fall through [1293.80ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/runs/forms-browser-c0214870-b092-4c51-9156-87cc02258ad2
+
+ 48 pass
+ 14 fail
+ 553 expect() calls
+Ran 62 tests across 3 files. [73.45s]
+EXIT=1

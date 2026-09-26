@@ -1,0 +1,10 @@
+{"j":0,"live":0,"closed":100}
+{"j":1,"live":0,"closed":100}
+{"j":2,"live":0,"closed":100}
+{"j":3,"live":0,"closed":100}
+{"j":4,"live":0,"closed":100}
+{"j":5,"live":0,"closed":100}
+{"j":6,"live":0,"closed":100}
+{"j":7,"live":0,"closed":100}
+{"j":8,"live":0,"closed":100}
+{"j":9,"live":0,"closed":100}

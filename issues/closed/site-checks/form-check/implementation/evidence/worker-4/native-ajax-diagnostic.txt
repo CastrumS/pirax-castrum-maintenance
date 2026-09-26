@@ -1,0 +1,25 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/playground.test.ts:
+60 | const scan = (url: string, helper = true) => { const s = siteFor(url, helper); return scanPageForms(s, s.pages[0]!, { runDir: workspace, ...timing }); };
+61 | function confirmed(results: FormResult[]) {
+62 |   expect(results.map(f=>f.plugin)).toEqual(['gravity','fluent']);
+63 |   for (const f of results) {
+64 |     expect(f.outcome).toBe('failed');
+65 |     expect(f.detail).toContain('confirmation:');
+                          ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "confirmation:"
+Received: "No new form-associated confirmation before timeout; not retried."
+
+      at confirmed (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/playground.test.ts:65:22)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/playground.test.ts:148:3)
+(fail) native GF modern AJAX and FF AJAX retain separate confirmations and native cleanup [23676.43ms]
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-cf2cad4e-a8d5-4b35-9555-e2748017e8e0/summary.json
+
+ 0 pass
+ 4 filtered out
+ 1 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [72.01s]

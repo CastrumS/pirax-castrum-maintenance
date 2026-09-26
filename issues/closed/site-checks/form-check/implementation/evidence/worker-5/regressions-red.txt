@@ -1,0 +1,83 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+108 |     <div class="ff-el-group"><input type="checkbox" name="optional[]" aria-required="false"></div>`;
+109 |   for (const [markup, expected] of [[gf(1, '<textarea name="input_3"></textarea>' + boxes), [false,false,true,false,true,false,false,true,true]], [ff.replace('<textarea', ffBoxes + '<textarea'), [false,true,false,true,false]]] as const) {
+110 |     await visit('/plain', async (page, policy) => {
+111 |       policy.freeze(); const before = writes;
+112 |       expect((await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId())).state).toBe('prepared');
+113 |       expect(await page.locator('input[type=checkbox]').evaluateAll(es => es.map(e => (e as HTMLInputElement).checked))).toEqual([...expected]);
+                                                                                                                               ^
+error: expect(received).toEqual(expected)
+
+  [
+    false,
+    false,
+-   true,
+    false,
+-   true,
++   false,
++   false,
+    false,
+    false,
+    true,
+    true,
+  ]
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:113:122)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:75:158)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:110:11)
+(fail) native required checkbox groups choose one usable option; individual required and optional choices are preserved [329.77ms]
+118 | 
+119 | test("HTTP-200 explicit challenges fail discovery, ordinary CAPTCHA/Cloudflare mentions remain empty", async () => {
+120 |   const site = { slug: 'local', url: base, form_helper: false, mask: [], max_diff_pixel_ratio: 0.01, pages: [] };
+121 |   for (const path of ['/challenge', '/challenge-header', '/firewall']) {
+122 |     const results = await scanPageForms(site, { path, mask: [] }, { runDir });
+123 |     expect(results).toHaveLength(1);
+                          ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:123:21)
+(fail) HTTP-200 explicit challenges fail discovery, ordinary CAPTCHA/Cloudflare mentions remain empty [342.09ms]
+
+test/forms/evidence.test.ts:
+16 |   const names = [...labels, ...credentials];
+17 |   const old = names.map(n => process.env[n]);
+18 |   try {
+19 |     for (const name of names) process.env[name] = `synthetic-${name}-value`;
+20 |     const redact = secretRedactor('synthetic-private-token');
+21 |     expect(labels.every(n => redact(process.env[n]!) === process.env[n])).toBe(true);
+                                                                               ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/evidence.test.ts:21:75)
+(fail) automatic redaction distinguishes credentials from nonsecret configuration labels [4.70ms]
+39 |     expect(await zip.exited).toBe(0);
+40 |     await sanitizeTrace(raw, target, secretRedactor('fixture-private-token', [credential]));
+41 |     const unzip = Bun.spawn(['unzip', '-p', target, 'trace.trace'], { stdout: 'pipe', stderr: 'ignore' });
+42 |     const retained = await new Response(unzip.stdout).text(); expect(await unzip.exited).toBe(0);
+43 |     const decoded = retained.split('\n').map(line => JSON.parse(line).params.value as string);
+44 |     expect(decoded.every(value => !value.includes(credential))).toBe(true);
+                                                                     ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/evidence.test.ts:44:65)
+(fail) sanitized trace JSON independently decodes without astral or mixed-escaped credentials [9.75ms]
+
+ 0 pass
+ 14 filtered out
+ 4 fail
+ 7 expect() calls
+Ran 4 tests across 2 files. [1274.00ms]

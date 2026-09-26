@@ -1,0 +1,114 @@
+bun test v1.4.2 (744846f84)
+
+tests/discovery.test.ts:
+(pass) bare bun test skips issues/** and still discovers tests/ and test/ [17.85ms]
+
+tests/env.test.ts:
+(pass) readR2Config > maps the four variables explicitly with region auto [0.15ms]
+(pass) readR2Config > names every missing or blank variable, never values [0.15ms]
+(pass) readR2Config > empty env names all four [0.11ms]
+(pass) readR2Config > defaults to process.env; importing helpers needs no credentials [31.75ms]
+
+tests/sites.test.ts:
+(pass) loadSites valid input > normalizes literal YAML, preserves order, applies defaults [0.70ms]
+(pass) loadSites valid input > empty sites list is allowed [0.05ms]
+(pass) loadSites valid input > ratio bounds 0 and 1 are inclusive [0.09ms]
+(pass) loadSites valid input > shipped sites.example.yaml loads [0.20ms]
+(pass) loadSites required negative cases > duplicate slug [0.13ms]
+(pass) loadSites required negative cases > missing url [0.04ms]
+(pass) loadSites required negative cases > trailing-slash url [0.03ms]
+(pass) loadSites required negative cases > empty pages [0.04ms]
+(pass) loadSites required negative cases > unknown site key [0.07ms]
+(pass) loadSites required negative cases > malformed masks [0.21ms]
+(pass) loadSites broader validation > root shape and unknown root key [0.10ms]
+(pass) loadSites broader validation > site entry must be a mapping [0.05ms]
+(pass) loadSites broader validation > slug missing or malformed uses index [0.14ms]
+(pass) loadSites broader validation > url wrong type, scheme, credentials, query, fragment [0.19ms]
+(pass) loadSites broader validation > form_helper required boolean [0.07ms]
+(pass) loadSites broader validation > ratio type and bounds [0.23ms]
+(pass) loadSites broader validation > pages wrong type and bad page entries [0.15ms]
+(pass) loadSites broader validation > bad page paths [0.22ms]
+(pass) loadSites broader validation > paths that URL resolution would normalize off-site or into traversal [0.44ms]
+(pass) loadSites broader validation > percent-encoded non-traversal paths stay valid [0.35ms]
+(pass) loadSites broader validation > duplicate page paths and key collisions [0.14ms]
+(pass) loadSites broader validation > same page across different sites is fine [0.07ms]
+(pass) loadSites broader validation > read and YAML errors are wrapped without file contents [0.11ms]
+(pass) loadSites broader validation > default path is sites.yaml in the working directory [8.75ms]
+(pass) pageKey > mandated examples [0.07ms]
+(pass) pageKey > deterministic and filename safe [0.12ms]
+
+tests/store.test.ts:
+(pass) run IDs > canonical millisecond UTC ISO with colons replaced [0.06ms]
+(pass) run IDs > rejects noncanonical and malformed IDs [0.03ms]
+(pass) expiredReportKeys > keeps the newest distinct runs and removes every object of older runs [0.15ms]
+(pass) expiredReportKeys > default is 10 [0.09ms]
+(pass) expiredReportKeys > zero removes all recognized reports, never sentinels [0.06ms]
+(pass) expiredReportKeys > count at or below keep is a no-op [0.08ms]
+(pass) expiredReportKeys > input order does not matter; runs count once regardless of object count [0.07ms]
+(pass) expiredReportKeys > invalid keep throws [0.06ms]
+(pass) store validation before any request > createStore validates root and page size [0.12ms]
+(pass) store validation before any request > unsafe keys reject with StoreError, not a network error [0.74ms]
+(pass) store validation before any request > root counts toward the key length limit [0.06ms]
+(pass) store validation before any request > presign validates expiry and signs the scoped key for GET [0.45ms]
+(pass) store validation before any request > external folder marker of an expired run is selected but rejected, never slash-trimmed [0.14ms]
+(pass) store validation before any request > invalid keep rejects before listing [0.14ms]
+(pass) lazy environment > importing store needs no env; first use names missing variables [19.05ms]
+(pass) store:selftest missing configuration > all blank: nonzero, names all four, no artifact [8.18ms]
+(pass) store:selftest missing configuration > one blank: names only it and prints no values [9.56ms]
+
+tests/health.test.ts:
+(pass) normalizeHealth > deduplicates and sorts without dropping query distinctions [0.13ms]
+(pass) evaluateHealth > clean page has no findings [0.09ms]
+(pass) evaluateHealth > without a baseline every console and request finding fails [0.06ms]
+(pass) evaluateHealth > baselined console and URL/status pairs become warnings, new ones fail, removed ones vanish [0.13ms]
+(pass) evaluateHealth > HTTP >= 400, critical error and mixed content fail even when baselined [0.10ms]
+(pass) parseHealth > round-trips a valid snapshot and normalizes it [0.16ms]
+(pass) parseHealth > rejects malformed shapes with a field name [0.18ms]
+
+tests/compare.test.ts:
+(pass) comparePng with equal dimensions > identical images are same with ratio 0 and a decodable diff [3.79ms]
+(pass) comparePng with equal dimensions > ratio below, equal to and above the allowance (100 px image, 1 px = 0.01) [3.25ms]
+(pass) comparePng with equal dimensions > uses pixelmatch threshold 0.1: small colour deltas ignored, larger ones counted [1.21ms]
+(pass) comparePng with different dimensions > height-only change is changed regardless of allowance, with padded diff [0.93ms]
+(pass) comparePng with different dimensions > width-only change and both-axis change do not crash [1.53ms]
+(pass) comparePng with undecodable input > corrupt baseline or actual PNG is an explicit error, not a crash [0.38ms]
+
+tests/capture.test.ts:
+(pass) locked viewports and readiness limits [0.09ms]
+(pass) capture in real Chromium > full-page PNG at both viewports includes lazy content; trace saved [2929.50ms]
+(pass) capture in real Chromium > site and page masks combine; masked captures are stable, unmasked ones change [6093.42ms]
+(pass) capture in real Chromium > unmatched valid mask warns; invalid or non-CSS selectors are configuration errors [1552.47ms]
+(pass) capture in real Chromium > health: console/pageerror, 404 assets, transport failure; policy aborts are warnings; CAPTCHA text is not blocked [764.23ms]
+(pass) capture in real Chromium > 404 page and critical error are captured health failures, not blocked [1455.15ms]
+(pass) capture in real Chromium > unreachable, 403 and challenge pages are blocked with reasons and a trace [155.94ms]
+(pass) capture in real Chromium > never-idle, infinitely scrolling page finishes within its limits with readiness warnings [3367.26ms]
+(pass) TLS and mixed content on a real HTTPS fixture > self-signed certificate is blocked unless the internal test option is set [65.42ms]
+(pass) TLS and mixed content on a real HTTPS fixture > HTTP resources on an HTTPS page are mixed content; plain HTTP links are not [1546.82ms]
+(pass) challengeReason needs explicit markers [0.12ms]
+
+tests/report.test.ts:
+(pass) private report > embeds images and escapes all untrusted text without external assets [1.90ms]
+(pass) private report > renders exact future Forms outcomes only when supplied [0.14ms]
+(pass) private report > aggregates blocked, failures and warnings while keeping capture separate [0.03ms]
+(pass) manifest and exact approval evidence > accepts canonical manifest and derives safe encoded page keys [0.48ms]
+(pass) manifest and exact approval evidence > rejects malformed schemas, shapes, duplicate sites, run mismatch and arbitrary artifact paths [0.51ms]
+(pass) manifest and exact approval evidence > requires current URL, requested pages and both complete captures from the selected run [0.44ms]
+(pass) manifest and exact approval evidence > validates actual PNG and raw health bytes against recorded dimensions [1.75ms]
+(pass) manifest and exact approval evidence > approval accepts full-page horizontal overflow using recorded dimensions [1.11ms]
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/runs/2026-09-25T17-12-59.405Z/index.html
+(pass) local report renders all embedded images and inert hostile text in real Chromium [258.81ms]
+
+tests/commands.test.ts:
+(pass) command preflight without browser or storage > parses selection, optional sites and approve page; retains list order [0.21ms]
+(pass) command preflight without browser or storage > rejects missing, extra, unsupported flags and approve all [0.07ms]
+(pass) command preflight without browser or storage > exit 2 for configuration before work; empty all is zero with no credentials [0.59ms]
+(pass) command preflight without browser or storage > CLI imports have no credential reads or exits and missing env is sanitized exit 2 [626.13ms]
+(pass) only canonical completed run IDs qualify, in descending order [0.13ms]
+(pass) latest containing site is selected, incomplete/unrelated evidence never replaces it [0.29ms]
+(pass) latest valid containing site wins over unrelated newer history without falling back from blocked pages [0.52ms]
+(pass) direct approval rejects an unlisted page before touching its real lazy Store [0.80ms]
+
+ 89 pass
+ 0 fail
+ 737 expect() calls
+Ran 89 tests across 9 files. [19.25s]

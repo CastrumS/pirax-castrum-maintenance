@@ -1,0 +1,24 @@
+== isolated run 1
+ 10 pass
+ 0 fail
+Ran 10 tests across 1 file. [1110.00ms]
+== isolated run 2
+ 10 pass
+ 0 fail
+Ran 10 tests across 1 file. [475.00ms]
+== isolated run 3
+ 10 pass
+ 0 fail
+Ran 10 tests across 1 file. [465.00ms]
+== suite-order run 1 (capture then report)
+ 31 pass
+ 0 fail
+Ran 31 tests across 2 files. [34.40s]
+== suite-order run 2 (capture then report)
+ 31 pass
+ 0 fail
+Ran 31 tests across 2 files. [34.42s]
+== suite-order run 3 (capture then report)
+ 31 pass
+ 0 fail
+Ran 31 tests across 2 files. [34.37s]

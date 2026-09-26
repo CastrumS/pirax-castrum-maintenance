@@ -1,0 +1,273 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+(pass) locked viewports and readiness limits [0.08ms]
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/capture-test-2026-09-26T15-15-20.317Z
+(pass) capture in real Chromium > failed later main-document navigation from /delayed-unreachable cannot reuse HTTP 200 [1626.31ms]
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/capture-test-2026-09-26T15-15-20.317Z
+(pass) capture in real Chromium > failed later main-document navigation from /delayed-post cannot reuse HTTP 200 [1579.70ms]
+(pass) capture in real Chromium > delayed main-document navigation to /missing uses final health and classification [1616.99ms]
+(pass) capture in real Chromium > delayed main-document navigation to /critical uses final health and classification [1612.99ms]
+(pass) capture in real Chromium > delayed main-document navigation to /forbidden uses final health and classification [1573.11ms]
+(pass) capture in real Chromium > delayed main-document navigation to /challenge uses final health and classification [1596.82ms]
+(pass) capture in real Chromium > delayed main-document navigation to /header-only-challenge uses final health and classification [1582.10ms]
+(pass) capture in real Chromium > direct HTTP redirect retains the final document status [728.94ms]
+(pass) capture in real Chromium > navigation triggered by readiness scrolling reconciles the final document [1762.45ms]
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/capture-test-2026-09-26T15-15-20.317Z
+(pass) capture in real Chromium > read-only policy blocks real WebSocket mutations while GET content captures [740.58ms]
+(pass) capture in real Chromium > full-page PNG at both viewports includes lazy content; trace saved [2553.26ms]
+(pass) capture in real Chromium > site and page masks combine; masked captures are stable, unmasked ones change [5981.56ms]
+(pass) capture in real Chromium > unmatched valid mask warns; invalid or non-CSS selectors are configuration errors [1556.13ms]
+(pass) capture in real Chromium > health: console/pageerror, 404 assets, transport failure; policy aborts are warnings; CAPTCHA text is not blocked [777.53ms]
+(pass) capture in real Chromium > 404 page and critical error are captured health failures, not blocked [1489.56ms]
+(pass) capture in real Chromium > unreachable, 403 and challenge pages are blocked with reasons and a trace [2167.80ms]
+(pass) capture in real Chromium > never-idle, infinitely scrolling page finishes within its limits with readiness warnings [3399.16ms]
+(pass) TLS and mixed content on a real HTTPS fixture > self-signed certificate is blocked unless the internal test option is set [69.06ms]
+(pass) TLS and mixed content on a real HTTPS fixture > HTTP resources on an HTTPS page are mixed content; plain HTTP links are not [1571.61ms]
+(pass) challengeReason needs explicit markers [0.13ms]
+
+tests/commands.test.ts:
+(pass) command preflight without browser or storage > parses selection, optional sites and approve page; retains list order [0.17ms]
+(pass) command preflight without browser or storage > rejects missing, extra, unsupported flags and approve all [0.06ms]
+(pass) command preflight without browser or storage > exit 2 for configuration before work; empty all is zero with no credentials [10.09ms]
+(pass) command preflight without browser or storage > CLI imports have no credential reads or exits and missing env is sanitized exit 2 [752.53ms]
+(pass) root forms alias invokes production entrypoint; empty/usage need no credentials or writes [827.05ms]
+(pass) direct forms/check errors sanitize trusted messages and classify config as exit 2 [400.30ms]
+(pass) only canonical completed run IDs qualify, in descending order [0.23ms]
+(pass) latest containing site is selected, incomplete/unrelated evidence never replaces it [0.41ms]
+(pass) latest valid containing site wins over unrelated newer history without falling back from blocked pages [0.76ms]
+(pass) direct approval rejects an unlisted page before touching its real lazy Store [4.19ms]
+(pass) newer valid forms-only runs are skipped; a malformed newer forms manifest is still an error [0.35ms]
+
+tests/compare.test.ts:
+(pass) comparePng with equal dimensions > identical images are same with ratio 0 and a decodable diff [3.45ms]
+(pass) comparePng with equal dimensions > ratio below, equal to and above the allowance (100 px image, 1 px = 0.01) [2.00ms]
+(pass) comparePng with equal dimensions > uses pixelmatch threshold 0.1: small colour deltas ignored, larger ones counted [1.13ms]
+(pass) comparePng with different dimensions > height-only change is changed regardless of allowance, with padded diff [0.93ms]
+(pass) comparePng with different dimensions > width-only change and both-axis change do not crash [1.49ms]
+(pass) comparePng with undecodable input > corrupt baseline or actual PNG is an explicit error, not a crash [0.36ms]
+
+tests/discovery.test.ts:
+(pass) bare bun test skips issues/** and still discovers tests/ and test/ [3.77ms]
+
+tests/env.test.ts:
+(pass) readR2Config > maps the four variables explicitly with region auto [0.06ms]
+(pass) readR2Config > names every missing or blank variable, never values [0.11ms]
+(pass) readR2Config > empty env names all four [0.11ms]
+(pass) readR2Config > defaults to process.env; importing helpers needs no credentials [20.05ms]
+
+tests/health.test.ts:
+(pass) normalizeHealth > deduplicates and sorts without dropping query distinctions [0.10ms]
+(pass) evaluateHealth > clean page has no findings [0.03ms]
+(pass) evaluateHealth > without a baseline every console and request finding fails [0.07ms]
+(pass) evaluateHealth > baselined console and URL/status pairs become warnings, new ones fail, removed ones vanish [0.13ms]
+(pass) evaluateHealth > HTTP >= 400, critical error and mixed content fail even when baselined [0.08ms]
+(pass) parseHealth > round-trips a valid snapshot and normalizes it [0.16ms]
+(pass) parseHealth > rejects malformed shapes with a field name [0.21ms]
+
+tests/report.test.ts:
+(pass) private report > embeds images and escapes all untrusted text without external assets [1.96ms]
+(pass) private report > renders exact future Forms outcomes only when supplied [0.22ms]
+(pass) private report > aggregates blocked, failures and warnings while keeping capture separate [0.03ms]
+(pass) manifest and exact approval evidence > accepts canonical manifest and derives safe encoded page keys [0.14ms]
+(pass) manifest and exact approval evidence > rejects malformed schemas, shapes, duplicate sites, run mismatch and arbitrary artifact paths [0.23ms]
+(pass) manifest and exact approval evidence > requires current URL, requested pages and both complete captures from the selected run [0.24ms]
+(pass) manifest and exact approval evidence > validates actual PNG and raw health bytes against recorded dimensions [1.78ms]
+(pass) manifest and exact approval evidence > approval accepts full-page horizontal overflow using recorded dimensions [1.32ms]
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/2026-09-26T15-15-56.469Z/index.html
+(pass) local report renders all embedded images and inert hostile text in real Chromium [238.49ms]
+
+tests/sites.test.ts:
+(pass) loadSites valid input > normalizes literal YAML, preserves order, applies defaults [0.24ms]
+(pass) loadSites valid input > empty sites list is allowed [0.04ms]
+(pass) loadSites valid input > ratio bounds 0 and 1 are inclusive [0.13ms]
+(pass) loadSites valid input > shipped sites.example.yaml loads [0.31ms]
+(pass) loadSites required negative cases > duplicate slug [0.13ms]
+(pass) loadSites required negative cases > missing url [0.04ms]
+(pass) loadSites required negative cases > trailing-slash url [0.04ms]
+(pass) loadSites required negative cases > empty pages [0.03ms]
+(pass) loadSites required negative cases > unknown site key [0.08ms]
+(pass) loadSites required negative cases > malformed masks [0.16ms]
+(pass) loadSites broader validation > root shape and unknown root key [0.10ms]
+(pass) loadSites broader validation > site entry must be a mapping [0.03ms]
+(pass) loadSites broader validation > slug missing or malformed uses index [0.15ms]
+(pass) loadSites broader validation > url wrong type, scheme, credentials, query, fragment [0.20ms]
+(pass) loadSites broader validation > form_helper required boolean [0.08ms]
+(pass) loadSites broader validation > ratio type and bounds [0.20ms]
+(pass) loadSites broader validation > pages wrong type and bad page entries [0.14ms]
+(pass) loadSites broader validation > bad page paths [0.21ms]
+(pass) loadSites broader validation > paths that URL resolution would normalize off-site or into traversal [0.38ms]
+(pass) loadSites broader validation > percent-encoded non-traversal paths stay valid [0.14ms]
+(pass) loadSites broader validation > duplicate page paths and key collisions [0.13ms]
+(pass) loadSites broader validation > same page across different sites is fine [0.07ms]
+(pass) loadSites broader validation > read and YAML errors are wrapped without file contents [0.11ms]
+(pass) loadSites broader validation > default path is sites.yaml in the working directory [7.81ms]
+(pass) pageKey > mandated examples [0.04ms]
+(pass) pageKey > deterministic and filename safe [0.11ms]
+
+tests/store.test.ts:
+(pass) run IDs > canonical millisecond UTC ISO with colons replaced [0.03ms]
+(pass) run IDs > rejects noncanonical and malformed IDs [0.03ms]
+(pass) expiredReportKeys > keeps the newest distinct runs and removes every object of older runs [0.14ms]
+(pass) expiredReportKeys > default is 10 [0.07ms]
+(pass) expiredReportKeys > zero removes all recognized reports, never sentinels [0.04ms]
+(pass) expiredReportKeys > count at or below keep is a no-op [0.07ms]
+(pass) expiredReportKeys > input order does not matter; runs count once regardless of object count [0.05ms]
+(pass) expiredReportKeys > invalid keep throws [0.06ms]
+(pass) store validation before any request > createStore validates root and page size [0.12ms]
+(pass) store validation before any request > unsafe keys reject with StoreError, not a network error [0.64ms]
+(pass) store validation before any request > root counts toward the key length limit [0.07ms]
+(pass) store validation before any request > presign validates expiry and signs the scoped key for GET [0.12ms]
+(pass) store validation before any request > external folder marker of an expired run is selected but rejected, never slash-trimmed [0.13ms]
+(pass) store validation before any request > invalid keep rejects before listing [0.13ms]
+(pass) lazy environment > importing store needs no env; first use names missing variables [8.79ms]
+(pass) store:selftest missing configuration > all blank: nonzero, names all four, no artifact [8.41ms]
+(pass) store:selftest missing configuration > one blank: names only it and prints no values [6.29ms]
+
+test/plugin/adapters.test.ts:
+(pass) GF marked browser submission: both notifications redirected synchronously, no feeds, entry deleted after mail [18228.16ms]
+(pass) GF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries [21016.42ms]
+(pass) FF marked browser submission: both notifications redirected, only the email feed runs, entry and related rows deleted at request end [13774.10ms]
+(pass) FF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries [15538.43ms]
+(pass) GF reCAPTCHA v2 with failing siteverify: marked passes, unmarked fails; other errors and honeypot still apply [23615.49ms]
+(pass) FF reCAPTCHA with failing siteverify: marked passes, unmarked fails; other errors and honeypot still apply [24832.33ms]
+(pass) an integration outside the suppressible feed paths blocks marked submissions; ordinary ones still run it [21989.64ms]
+(pass) payment and post-creation paths are rejected for marked submissions [10946.35ms]
+(pass) malformed or ambiguous markers and an invalid redirect reject safely; nothing reaches original recipients [22725.84ms]
+(pass) FF queued email: marked entry kept until every job completes across requests; ordinary job in the same runner keeps its recipients [26791.89ms]
+(pass) FF queued email: a job still processing elsewhere blocks FF's pending-only completion signal [18231.58ms]
+(pass) FF queued email: rotating or clearing the token never turns queued test mail into client mail [25203.15ms]
+(pass) FF legacy batch runner: marked and ordinary jobs in one request keep their own recipients; marked entry removed [18894.83ms]
+(pass) hourly sweep: real cron deletes only old token entries across pages, with native cascade and queued-job removal, in a non-UTC site [22196.28ms]
+(pass) sweep: literal token with SQL wildcards, empty token no-op, and strict one-hour boundary [10724.52ms]
+(pass) retained evidence contains no token [2286.73ms]
+
+test/plugin/core.test.ts:
+(pass) build:plugin produces only the allowlisted uploadable ZIP with no tests, secrets or licensed code [21.17ms]
+(pass) generated ZIP uploads and activates through wp-admin without Gravity Forms or Fluent Forms [15793.59ms]
+(pass) settings mutate only for manage_options with a valid nonce and valid values [46474.92ms]
+(pass) marker parser classifies submitted values: ordinary, marked(id) or invalid-marker [1574.67ms]
+(pass) request marker and stacked worker context; nothing is inherited by another request [2409.91ms]
+(pass) wp_mail in marked context is redirected, stripped and tagged; ordinary mail is untouched [7199.82ms]
+(pass) a bad redirect fails before marking and marked mail is never delivered to original recipients [11429.11ms]
+(pass) the core never marks a request from query strings, cookies or arbitrary POST data [2368.08ms]
+(pass) deactivation unschedules, uninstall is guarded and removes options and owned events [5571.34ms]
+
+test/plugin/harness.test.ts:
+(pass) preflight names missing or invalid credentials without their values [0.32ms]
+(pass) loopback WordPress runs licensed Gravity Forms and pinned Fluent Forms with real PHP and database [3751.89ms]
+(pass) browser logs in to real wp-admin and submits unmarked forms for both plugins [28107.11ms]
+(pass) stop shuts the site down [197.66ms]
+
+test/plugin/review-regressions.test.ts:
+(pass) marked wp_mail: control-prefixed Cc/Bcc header names never reach the native envelope; ordinary mail keeps them [3939.21ms]
+(pass) hourly sweep deletes old FF test entries whose marker field was later renamed or removed; controls stay [11339.12ms]
+
+test/plugin/safety.test.ts:
+(pass) FF: a later PHP_INT_MAX feed-type filter registered after the plugin cannot resurrect the ledger feed on a marked submission [18674.19ms]
+(pass) FF queued: a marked notification that throws inside native mail processing does not redirect the next ordinary job in the same runner request [22833.91ms]
+(pass) FF queued cleanup race: a marked entry deleted natively after the runner loaded it, with the token rotated, still sends only redirected mail; ordinary jobs stay ordinary [17603.28ms]
+(pass) FF unsupported marked form with reCAPTCHA and failing siteverify is rejected with the blocked message before CAPTCHA [16332.63ms]
+(pass) GF sweep: an old token entry's queued notifications (entry snapshots included) and feeds are removed before deletion; ordinary queued work runs; active worker defers [21765.57ms]
+(pass) compatibility gate accepts exactly GF 3.1.2 and FF 6.2.14 [771.86ms]
+(pass) retained evidence contains no token [2351.54ms]
+
+test/forms/config.test.ts:
+(pass) readFormConfig > returns the exact token and single address without trimming or transforming [0.31ms]
+(pass) readFormConfig > missing or blank names are EnvError naming each variable [0.11ms]
+(pass) readFormConfig > invalid token and address formats are value-free configuration errors [18.55ms]
+(pass) readImapConfig > 993 is implicit TLS, other ports require STARTTLS; password and folders are literal [0.29ms]
+(pass) readImapConfig > missing or blank names list every variable [0.07ms]
+(pass) readImapConfig > invalid host, port, user and non-literal folders are value-free errors [0.21ms]
+(pass) importing readers needs no environment; process.env default reads lazily [78.93ms]
+
+test/forms/imap.test.ts:
+(pass) pollDelivery input and deadline > rejects non-canonical IDs and deadlines before any network access [0.65ms]
+(pass) pollDelivery input and deadline > a silent server cannot outlive the deadline; the connection is closed and not reported as absent mail [1554.76ms]
+(pass) pollDelivery input and deadline > STARTTLS is required off port 993: no credentials are ever sent in plaintext [55.73ms]
+(pass) pollDelivery input and deadline > refused and dropped connections are explicit sanitized failures [1.25ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: startup discovery is opt-in suppressed, including no-NAMESPACE LIST fallback [0.75ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: literal EXAMINE skips metadata LIST, preserves encoding and has no failed-open fallback [11.36ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: installed fetch compiler requests only candidate UID and Subject PEEK [0.76ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: startup discovery is opt-in suppressed, including no-NAMESPACE LIST fallback [10.59ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: literal EXAMINE skips metadata LIST, preserves encoding and has no failed-open fallback [1.86ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: installed fetch compiler requests only candidate UID and Subject PEEK [1.14ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > unfolds and MIME-decodes one Subject, rejecting malformed/duplicate fields and near tags [0.67ms]
+(pass) tag matching and folder policy > rechecks the exact tag because IMAP SUBJECT search is a case-insensitive substring match [0.04ms]
+(pass) tag matching and folder policy > equal configured names are opened once and treated conservatively as spam [0.03ms]
+(pass) tag matching and folder policy > a match in both folders favors spam; no match waits [0.05ms]
+(pass) tag matching and folder policy > protocol evidence keeps only command names and fetch data items [0.12ms]
+
+test/forms/report.test.ts:
+(pass) forms-only manifest > parsePublishedManifest returns either validated mode; parseManifest stays check-only [0.31ms]
+(pass) forms-only manifest > rejects fabricated viewports, missing forms, mixed discriminators and malformed identity [0.77ms]
+(pass) form outcome gating > failed/rejected fail, spam/not-verified/unsupported warn, delivered passes [0.15ms]
+(pass) form outcome gating > existing visual/health failures still fail with passing forms [0.03ms]
+(pass) form outcome gating > forms-only HTML has page Forms data without image panels and escapes hostile text [0.19ms]
+(pass) form outcome gating > check pages show form-aware page and site status [0.07ms]
+(pass) forms-only local and published reports > local report has only HTML and manifest, excludes traces, and renders in real Chromium [127.14ms]
+(pass) forms-only local and published reports > real R2: manifest last, traces excluded, approval still selects the older check [5662.60ms]
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-report-tests-af1747dd-1e98-468f-adcc-d087637bea2e/summary.json
+
+test/forms/browser.test.ts:
+(pass) detects actual distinct plugin forms once and preserves unknown identities [76.95ms]
+(pass) fills basic controls with full random marker, preserving hidden/honeypot data [204.69ms]
+(pass) preinspects whole form: hidden upload, marker constraints and custom flows never type [558.56ms]
+(pass) no-helper blocks autonomous input/change GET/POST/image/navigation and sockets [5606.85ms]
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: confirmed
+123 |       policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+124 |       expect(prepared.state).toBe("prepared"); if (prepared.state !== "prepared") return;
+125 |       const before = writes;
+126 |       const result = await submitForm(page, prepared, policy, { timeoutMs: 600, redact });
+127 |       console.log(`Submission fixture ${path}: ${result.state}`);
+128 |       expect(result.state).toBe(expected); expect(writes - before).toBeLessThanOrEqual(1);
+                                 ^
+error: expect(received).toBe(expected)
+
+Expected: "failed"
+Received: "confirmed"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:128:28)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:69:158)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:122:11)
+(fail) specific new GF and associated FF confirmations; errors sanitized; no retry [1066.49ms]
+(pass) marker changed after preparation is never submitted; native invalidity is rejection [397.23ms]
+(pass) scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, later forms continue [2517.10ms]
+(pass) selected submit blocks unrelated same-origin writes/GETs and autonomous native GET submit [320.55ms]
+39 | 
+40 | /** Shared lazy reader: EnvError for missing/blank names first, then EnvFormatError for failed checks. Values are never trimmed. */
+41 | export function readEnv<const N extends string>(env: Record<string, string | undefined>, checks: Record<N, (value: string) => boolean>): Record<N, string> {
+42 |   const names = Object.keys(checks) as N[];
+43 |   const missing = names.filter((name) => !env[name]?.trim());
+44 |   if (missing.length) throw new EnvError(missing);
+                                 ^
+EnvError: Missing or blank environment variables: FORM_TEST_TOKEN, FORM_TEST_ADDRESS
+ missing: [ "FORM_TEST_TOKEN", "FORM_TEST_ADDRESS" ],
+
+      at readEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/env.ts:44:29)
+      at readFormConfig (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/forms/config.ts:13:18)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/forms/runner.ts:59:26)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/forms/runner.ts:39:20)
+      at async scanPageForms (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/forms/runner.ts:54:28)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:182:19)
+(fail) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [1158.28ms]
+(pass) encoded URLs and browser exceptions are scrubbed from retained action traces [36.06ms]
+(pass) direct forms command writes a truthful local report without form credentials or visual/baseline access [594.60ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-bfa0ed8b-e56b-48a7-8006-65d96b894908
+(pass) retained action traces are secret-free with no image/DOM/source payloads [114.32ms]
+
+test/forms/evidence.test.ts:
+(pass) sanitizer removes raw, percent, JSON/unicode, HTML and nested encodings [3.66ms]
+(pass) trace sanitation fails closed, deletes raw and unsafe output on invalid archive [4.16ms]
+
+2 tests failed:
+(fail) specific new GF and associated FF confirmations; errors sanitized; no retry [1066.49ms]
+(fail) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [1158.28ms]
+
+ 182 pass
+ 2 fail
+ 2118 expect() calls
+Ran 184 tests across 19 files. [752.24s]

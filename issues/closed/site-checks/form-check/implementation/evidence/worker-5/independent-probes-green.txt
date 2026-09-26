@@ -1,0 +1,2 @@
+{"existingCaptureChallenge":"Cloudflare challenge page","forms":[{"selector":"page-scan","plugin":"unknown","outcome":"failed","detail":"Page navigation/discovery or trace sanitation failed; forms were not verified."}],"status":"failure","expected":"explicit failed page-scan, not empty/pass"}
+{"rawCredentialRedacted":true,"jsonEscapedSurrogateCredentialRedacted":true,"expected":"both true"}

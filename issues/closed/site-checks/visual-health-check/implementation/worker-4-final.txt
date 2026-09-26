@@ -1,0 +1,3 @@
+Implemented unit 4. Real WordPress/R2 selftest passed all 15 scenarios; 17 targeted tests and typecheck passed. R2 cleanup confirmed empty, and fixtures stopped.
+
+[Worker report](</home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/visual-health-check/implementation/worker-4.md>) includes evidence, Node 24 setup, and remaining extended checks.

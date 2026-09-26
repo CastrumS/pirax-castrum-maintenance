@@ -1,0 +1,29 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+(pass) detects actual distinct plugin forms once and preserves unknown identities [116.11ms]
+(pass) fills basic controls with full random marker, preserving hidden/honeypot data [263.85ms]
+(pass) preinspects whole form: hidden upload, marker constraints and custom flows never type [921.24ms]
+(pass) no-helper blocks autonomous input/change GET/POST/image/navigation and sockets [5742.75ms]
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+(pass) specific new GF and associated FF confirmations; errors sanitized; no retry [4877.55ms]
+(pass) marker changed after preparation is never submitted; native invalidity is rejection [521.14ms]
+(pass) scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, later forms continue [2923.05ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-94278117-c75b-4305-9796-e2958d7d5d1c
+(pass) retained action traces are secret-free with no image/DOM/source payloads [928.84ms]
+
+test/forms/evidence.test.ts:
+(pass) sanitizer removes raw, percent, JSON/unicode, HTML and nested encodings [1.97ms]
+(pass) trace sanitation fails closed, deletes raw and unsafe output on invalid archive [2.98ms]
+
+ 10 pass
+ 0 fail
+ 86 expect() calls
+Ran 10 tests across 2 files. [16.55s]

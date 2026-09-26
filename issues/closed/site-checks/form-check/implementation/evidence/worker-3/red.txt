@@ -1,0 +1,22 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../../src/forms/detect.ts' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts'
+-------------------------------
+
+
+test/forms/evidence.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../../src/forms/evidence.ts' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/evidence.test.ts'
+-------------------------------
+
+
+ 0 pass
+ 2 fail
+ 2 errors
+Ran 2 tests across 2 files. [12.00ms]

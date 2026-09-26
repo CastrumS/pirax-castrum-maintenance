@@ -1,0 +1,11 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/playground.test.ts:
+(pass) production bun run forms local CLI waits two default five-minute deadlines and publishes truthful failed private report [612158.08ms]
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-032e3bf8-3a10-4019-95ef-70b420611019/summary.json
+
+ 1 pass
+ 4 filtered out
+ 0 fail
+ 37 expect() calls
+Ran 1 test across 1 file. [659.60s]

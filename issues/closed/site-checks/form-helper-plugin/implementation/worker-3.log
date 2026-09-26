@@ -1,0 +1,37 @@
+Worker unit 3 is implemented and the brief's test command passes on the final code: core + adapters, 25 of 25. I also re-ran the harness smoke suite (4 of 4) because I changed the harness files. The report is at `issues/open/site-checks/form-helper-plugin/implementation/worker-3.md`. Nothing is committed, no lifecycle commands were run, and no `.env` file was opened.
+
+**What was built**
+- **Compatibility check** (`compatibility.php`): a marked submission is only processed if every callback on the audited submission hooks is on an exact allowlist, identified by `Class::method`, function name or closure file. It also requires GF 3.1.x and FF 6.2.x. Anything else is rejected with `Pirax test blocked: integrations could not be suppressed`.
+- **Gravity Forms** (`gravity-forms.php`):
+  - The marker is detected before validation, and only the CAPTCHA field's result is overridden.
+  - Add-on feeds are suppressed on the generic, per-form and per-add-on filters.
+  - Marked notifications are sent synchronously even with GF background notifications on, and the entry is deleted after the mail.
+- **Fluent Forms** (`fluent-forms.php`):
+  - Only reCAPTCHA is skipped, and only the email feed runs.
+  - Each queued email job uses the context of its own entry.
+  - The entry is deleted with FF's own deletion at the end of the request, once no job is pending, processing or retryable.
+- **Hourly sweep** (`cleanup.php`): deletes token entries older than one hour with the native APIs. It pages by id, uses UTC for GF and site-local time for FF, and cancels queued jobs first. It skips an entry whose job may be sending right now.
+
+**Test evidence**
+- **Red first:** 13 of 15 tests failed before any adapter code existed, each for the expected reason.
+- **Mutation check:** with the GF per-form overrides removed, the marked-submission test fails.
+- **Artifacts:** the final run is `artifacts/plugin/adapters-2026-09-25T14-59-26-211Z/`, with traces, mail/feed/entry logs and queue states before and after each async step. A scan of `artifacts/plugin/` and `dist/` found neither credential value.
+
+**Decisions B should review**
+1. **FF marker stored on the entry.** The brief says the stored response decides whether a queued job is a test. I store the test ID as FF entry meta at submission instead: the ID only, never the token, and FF's deletion removes it. Re-parsing the response with the current token deleted an ordinary entry in one run. It would also send queued test mail to clients after the token is cleared or changed. A regression test covers both cases, and the report gives the one-line change to revert.
+2. **FF job results.** FF's email action never records a result, so a sent job stays "processing" forever. For marked jobs I record success or failure through FF's own result action; ordinary jobs are untouched.
+3. **Harness changes:**
+   - `drainQueues` counts only pending FF rows.
+   - The test-only mu-plugin turns off Action Scheduler's loopback runner, which was racing the tests.
+   - `queues()` also tracks GF 3.x's per-add-on feed processors.
+   - `runCron` runs named events through a real `wp-cron.php` request.
+
+**Limitations and untested cases**
+- **Whole-site blocking:** on sites with FF Pro, GF payment add-ons or any other callback on the audited hooks, every marked submission is rejected. The same happens after a GF or FF update beyond the audited versions.
+- **GF CAPTCHA scope:** the override applies to every type of GF's built-in CAPTCHA field, but only reCAPTCHA v2 was tested.
+- **Not tested:**
+  - GF payment add-on rejection, because no licensed add-on was available;
+  - other CAPTCHA types;
+  - multisite;
+  - PHP 7.4, because there is no local `php` binary.
+- **Other gaps:** GF save-and-continue drafts are not detected, and a cleared or changed token stops the sweep from finding old test entries.

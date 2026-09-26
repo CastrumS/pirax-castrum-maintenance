@@ -1,0 +1,3 @@
+Implemented unit 3. Targeted tests: **16 passed**; typecheck and diff checks passed. Local Chromium report verification passed with screenshot and trace retained.
+
+Completed [worker-3.md](/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/visual-health-check/implementation/worker-3.md) with exports, evidence and limitations. Real R2 acceptance remains for the next harness unit.

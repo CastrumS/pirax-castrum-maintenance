@@ -1,0 +1,73 @@
+{
+  "workspace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-032e3bf8-3a10-4019-95ef-70b420611019",
+  "root": "test/forms-native-2026-09-26T16-08-04.963Z-60df4afe/",
+  "cleanup": {
+    "ok": true,
+    "deleted": 2,
+    "remaining": 0,
+    "stopped": true
+  },
+  "cases": {
+    "cli": {
+      "argv": [
+        "/home/rudi/.local/share/mise/installs/bun/1.4.2/bin/bun",
+        "run",
+        "forms",
+        "local",
+        "--sites",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-032e3bf8-3a10-4019-95ef-70b420611019/package/sites.json"
+      ],
+      "cwd": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-032e3bf8-3a10-4019-95ef-70b420611019/package",
+      "exitCode": 1,
+      "elapsedMs": 607056,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-032e3bf8-3a10-4019-95ef-70b420611019/cli/2026-09-26T16-08-51.799Z",
+      "manifest": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-032e3bf8-3a10-4019-95ef-70b420611019/cli/2026-09-26T16-08-51.799Z/manifest.json",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-032e3bf8-3a10-4019-95ef-70b420611019/cli/2026-09-26T16-08-51.799Z/index.html"
+    },
+    "cliForms": [
+      {
+        "selector": "#gform_1",
+        "plugin": "gravity",
+        "outcome": "failed",
+        "detail": "Native Gravity Forms confirmation: Pirax GF thanks Submission hfw076w43mx8. No message tagged [pirax-test hfw076w43mx8] arrived in the configured folders within 300 s."
+      },
+      {
+        "selector": "#fluentform_3",
+        "plugin": "fluent",
+        "outcome": "failed",
+        "detail": "Native Fluent Forms confirmation: Thank you for your message. We will get in touch with you shortly Submission k3as93z3934a. No message tagged [pirax-test k3as93z3934a] arrived in the configured folders within 300 s."
+      }
+    ],
+    "cliCleanup": {
+      "ids": [
+        "hfw076w43mx8",
+        "k3as93z3934a"
+      ],
+      "mailCount": 4,
+      "entriesBefore": {
+        "gf": 0,
+        "ff": 0,
+        "rows": []
+      },
+      "entriesAfter": {
+        "gf": 0,
+        "ff": 0,
+        "rows": []
+      },
+      "feedsUnchanged": true
+    }
+  },
+  "versions": {
+    "gf": "3.1.2",
+    "ff": "6.2.14",
+    "wp": "7.1.2",
+    "php": "8.3"
+  },
+  "pluginArtifacts": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/artifacts/plugin/forms-checker-2026-09-26T16-08-04-965Z",
+  "fixtureReadback": "exact installed PHP and page content; served native-v1 marker verified",
+  "privacy": {
+    "files": 12,
+    "archives": 5,
+    "unsafe": 0
+  }
+}

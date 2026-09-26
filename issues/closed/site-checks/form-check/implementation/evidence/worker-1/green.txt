@@ -1,0 +1,7 @@
+bun test v1.4.2 (744846f84)
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/2026-09-26T10-38-00.463Z/index.html
+ 41 pass
+ 0 fail
+ 399 expect() calls
+Ran 41 tests across 5 files. [8.76s]

@@ -1,0 +1,20 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/runs/forms-browser-cc8415d6-a464-4b53-ac7a-9e4199b17aa3
+
+ 20 pass
+ 0 fail
+ 211 expect() calls
+Ran 20 tests across 1 file. [77.68s]
+EXIT=0

@@ -1,0 +1,65 @@
+$ tsc --noEmit
+test/plugin/adapters.test.ts(187,93): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'true' is not assignable to parameter of type 'undefined'.
+test/plugin/adapters.test.ts(221,93): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'true' is not assignable to parameter of type 'undefined'.
+test/plugin/adapters.test.ts(236,10): error TS2532: Object is possibly 'undefined'.
+test/plugin/adapters.test.ts(346,98): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '"pirax-local-secret-key"' is not assignable to parameter of type 'undefined'.
+test/plugin/adapters.test.ts(491,12): error TS2532: Object is possibly 'undefined'.
+test/plugin/adapters.test.ts(498,12): error TS2532: Object is possibly 'undefined'.
+test/plugin/adapters.test.ts(508,12): error TS2532: Object is possibly 'undefined'.
+test/plugin/adapters.test.ts(527,183): error TS18048: 'b' is possibly 'undefined'.
+test/plugin/adapters.test.ts(534,120): error TS18048: 'b' is possibly 'undefined'.
+test/plugin/adapters.test.ts(678,52): error TS2345: Argument of type '(number | undefined)[]' is not assignable to parameter of type 'number[]'.
+  Type 'number | undefined' is not assignable to type 'number'.
+    Type 'undefined' is not assignable to type 'number'.
+test/plugin/adapters.test.ts(680,35): error TS2345: Argument of type '{ [k: string]: string; }' is not assignable to parameter of type 'Record<string, "ff" | "gf">'.
+  'string' index signatures are incompatible.
+    Type 'string' is not assignable to type '"ff" | "gf"'.
+test/plugin/adapters.test.ts(681,51): error TS2345: Argument of type '(number | undefined)[]' is not assignable to parameter of type 'number[]'.
+  Type 'number | undefined' is not assignable to type 'number'.
+    Type 'undefined' is not assignable to type 'number'.
+test/plugin/adapters.test.ts(684,24): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+test/plugin/adapters.test.ts(684,41): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+test/plugin/adapters.test.ts(685,25): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+test/plugin/adapters.test.ts(686,25): error TS2322: Type 'number | undefined' is not assignable to type 'number'.
+  Type 'undefined' is not assignable to type 'number'.
+test/plugin/adapters.test.ts(689,91): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'true' is not assignable to parameter of type 'undefined'.
+test/plugin/adapters.test.ts(693,28): error TS2345: Argument of type '{ [k: string]: string; }' is not assignable to parameter of type 'Record<string, "ff" | "gf">'.
+  'string' index signatures are incompatible.
+    Type 'string' is not assignable to type '"ff" | "gf"'.
+test/plugin/core.test.ts(178,47): error TS2345: Argument of type '{ _wpnonce?: undefined; pirax_form_test_redirect: string; pirax_form_test_clear: string; } | { _wpnonce: string; pirax_form_test_redirect: string; pirax_form_test_clear: string; }' is not assignable to parameter of type 'Record<string, string>'.
+  Type '{ _wpnonce?: undefined; pirax_form_test_redirect: string; pirax_form_test_clear: string; }' is not assignable to type 'Record<string, string>'.
+    Property '_wpnonce' is incompatible with index signature.
+      Type 'undefined' is not assignable to type 'string'.
+test/plugin/core.test.ts(284,13): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type '{ state: string; id: string; reason: null; }' is not assignable to parameter of type 'undefined'.
+test/plugin/core.test.ts(424,10): error TS2532: Object is possibly 'undefined'.
+test/plugin/core.test.ts(425,10): error TS2532: Object is possibly 'undefined'.
+test/plugin/core.test.ts(426,10): error TS2532: Object is possibly 'undefined'.
+test/plugin/harness.test.ts(93,133): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'true' is not assignable to parameter of type 'undefined'.
+test/plugin/harness.ts(124,48): error TS2345: Argument of type 'TextDecoderStream' is not assignable to parameter of type 'ReadableWritablePair<string, Uint8Array<ArrayBufferLike>>'.
+  Types of property 'writable' are incompatible.
+    Type 'WritableStream<BufferSource>' is not assignable to type 'WritableStream<Uint8Array<ArrayBufferLike>>'.
+      Type 'BufferSource' is not assignable to type 'Uint8Array<ArrayBufferLike>'.
+        Type 'ArrayBuffer' is missing the following properties from type 'Uint8Array<ArrayBufferLike>': BYTES_PER_ELEMENT, buffer, byteOffset, copyWithin, and 33 more.
+test/plugin/playground.ts(10,89): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+test/plugin/safety.test.ts(146,99): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Type 'number | undefined' is not assignable to type 'number | "ff" | "ff-direct" | "gf" | "gf-direct"'.
+      Type 'undefined' is not assignable to type 'number | "ff" | "ff-direct" | "gf" | "gf-direct"'.
+test/plugin/safety.test.ts(182,12): error TS2532: Object is possibly 'undefined'.
+error: script "typecheck" exited with code 1

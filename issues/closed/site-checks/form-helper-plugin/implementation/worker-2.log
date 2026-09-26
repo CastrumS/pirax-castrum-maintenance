@@ -1,0 +1,33 @@
+Brief-2 is implemented and its targeted test passes against real WordPress in Playground: 9 pass, 0 fail, 134 checks. The report is written to `implementation/worker-2.md`. Nothing was committed, and no `.env` file was opened.
+
+**Test history**
+- **Red:** before any plugin code existed, 8 of 9 failed (`Call to undefined function Pirax\FormTest\mark()`). The one pass was the "query, cookie and POST data never mark a request" test, which passes trivially with no plugin.
+- **Intermediate:** 2 pass, 7 fail. Two were real test problems, both fixed in the test:
+  - The build check's `wp_mail(` pattern also matched doc comments; it now checks code only.
+  - The Settings submenu only appears on hover; the test now hovers first.
+  - The rest failed only because the token was never saved.
+- **Green:** the brief's exact command, 9 pass in 110s.
+
+**What was built**
+- **Plugin files:** the bootstrap, `includes/settings.php`, `marker.php`, `mail.php`, and `uninstall.php`, all under the `Pirax\FormTest` namespace. Activation creates both options with autoload off and schedules one hourly `pirax_form_test_sweep` event; deactivation clears it. The bootstrap loads the next worker's adapter files only if they exist.
+- **`scripts/build-plugin.ts`:** builds `dist/pirax-form-test.zip` from an explicit list of five files. It fails if a listed file is missing, an unlisted file appears, or a file contains a credential value.
+- **`test/plugin/core.test.ts`:**
+  - Settings are tested through real browser logins. Editors and subscribers get 403 even with a valid nonce for their own session; missing or forged nonces also get 403. Bad redirects or tokens never change the options.
+  - The parser has 26 cases, plus real `wp_mail` tests for header stripping, nested contexts and a bad redirect.
+  - The uninstall test deletes the plugin through WordPress's own `delete_plugins()`.
+
+**Decisions worker 3 should know**
+- Worker 3 must add its adapter files to `FILES` in the build script, or the build fails.
+- An unmarked worker job nested inside a marked request stays marked. A client's genuine mail in that case goes to the test mailbox instead of leaking test mail to clients.
+- Marked mail fails outright if the redirect is invalid or a later `wp_mail` filter changes it. `wp_mail` returns false and `wp_mail_failed` fires; it never falls back to the original recipients.
+- The token must be 16–255 characters of `A–Z a–z 0–9 . _ ~ + / = -`, so form plugins can't alter it. The configured token passes; only a yes/no result was printed.
+
+**Evidence:** traces and logs are in `artifacts/plugin/core-2026-09-25T13-50-12-540Z/`, including a 42-action install/settings trace and one trace each for the editor and subscriber. A secret scan over all of `artifacts/plugin/` and `dist/` found nothing. The current ZIP's SHA-256 is `ec490b00…41c5`; it changes on every rebuild.
+
+**Not verified**
+- The end-to-end form submissions, CAPTCHA, async jobs and sweep (AC2 end-to-end, AC4, AC5, AC7) belong to worker 3.
+- There is no local `php` binary, so PHP 7.4 compatibility is by construction only; the code actually ran on PHP 8.3.
+- "Works without GF/FF" was shown by deactivating them before the first upload, not on a site where they were never installed.
+- Multisite was not tested.
+
+The MCP servers claude.ai Gmail and Google Calendar need authorizing in your claude.ai connector settings before they can be used. This task didn't need them.

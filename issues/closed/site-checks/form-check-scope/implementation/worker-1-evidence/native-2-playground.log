@@ -1,0 +1,11 @@
+v24.21.0
+bun test v1.4.2 (744846f84)
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/runs/forms-playground-84962d93-1a36-4e5f-8164-8f54ce23ef80/summary.json
+
+ 8 pass
+ 0 fail
+ 195 expect() calls
+Ran 8 tests across 1 file. [496.75s]
+EXIT=0

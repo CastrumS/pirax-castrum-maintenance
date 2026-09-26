@@ -1,0 +1,32 @@
+Unit 1 is implemented and its targeted tests pass, but the real mailbox selftest (AC5) couldn't run because five credentials in `.env` are empty. The report is at `issues/open/site-checks/form-check/implementation/worker-1.md`, with the red and green test outputs in `implementation/evidence/worker-1/`.
+
+**The blocker (needs you).** `bun --env-file=.env run mail:selftest` stops before sending anything, with exit 2, because these names exist in the registered repo's `.env` but have empty values:
+- `FORM_TEST_ADDRESS`
+- `IMAP_USER`
+- `IMAP_PASSWORD`
+- `SMTP_USER`
+- `SMTP_PASSWORD`
+
+The planning check listed them as "present" because it only checked that the names exist, not that they have values. I checked this by printing names only and never opened `.env`. Once the dedicated mailbox and its IMAP/SMTP logins are filled in, rerunning that one command finishes AC5. It takes about 7–8 minutes, including the full five-minute wait for the unsent ID. The selftest script is written and type-checks, but it has never run against a real mail server.
+
+**What was built:**
+- **Configuration:** lazy readers `readFormConfig` and `readImapConfig`, plus a new `EnvFormatError` that names the bad variables without showing values. Values are never trimmed, and a bad format gives exit 2.
+- **Mail polling:** `pollDelivery` in `src/mail/imap.ts` uses `imapflow`. I read the installed library source rather than assuming:
+  - Folders open read-only (the library sends EXAMINE).
+  - Searches use the exact `[pirax-test <id>]` subject tag.
+  - Only the message's UID and decoded header summary are fetched, never a body, and it never marks mail as read.
+  - Connection or authentication errors report `failed`, not "no mail", and the connection is always closed.
+- **Reports:** a new forms-only report type and `parsePublishedManifest`, while the existing check report types stay as they were. Failed or rejected forms now fail the page, site and run; spam, not-verified and unsupported show as warnings. Approval skips valid newer forms-only runs but still errors on a malformed manifest.
+
+**Tests:** 41/41 pass in the targeted command, and `tsc --noEmit` is clean. That includes a real R2 check under a throwaway `test/` prefix, which was cleaned up afterwards:
+- The report upload sends `index.html` then `manifest.json` last, with no trace files.
+- Approval picks the older check, not the newer forms run.
+
+**Things you should know:**
+- I fetch the header summary (ENVELOPE) rather than raw Subject headers. WordPress mailers encode non-ASCII subjects, such as Croatian ones, which would hide the tag from a raw header check.
+- `imapflow` sends one exact-name folder lookup (LIST) before opening each folder. I reject `*` and `%` in folder names so that lookup can't turn into a wildcard listing.
+- `imapflow` may add the server's folder-name prefix: on some servers (Dovecot/Courier) `Spam` becomes `INBOX.Spam`. Gmail isn't affected.
+- A dropped connection during the five-minute poll is reported as `failed`; there's no reconnect or retry.
+- Updating the README for the new variable names is left for the docs worker, as the plan assigns.
+
+Nothing was committed, and `.env` was never opened, printed or edited.

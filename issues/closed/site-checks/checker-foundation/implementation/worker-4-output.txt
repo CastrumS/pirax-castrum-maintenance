@@ -1,0 +1,11 @@
+I've finished the unit-4 remainder. A N3 is now documented as a nonblocking limitation, not fixed: the store code still rejects folder markers and I didn't change it.
+
+**Report:** `/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/checker-foundation/implementation/worker-4.md`
+
+**Changes (only these two files):**
+- **`tests/store.test.ts`:** one new test for the exact case: an externally created `reports/<oldest>/` marker. Pruning picks the marker along with its expired run, but not the key without the slash (`reports/<oldest>`). Deleting the marker fails with `StoreError`, and the error names the exact marker key. Like the existing validation tests, it uses the fake config pointed at a closed local port, so the error shows the check runs before any request is sent. It says nothing about a successful delete against a real bucket. No existing test or signature changed.
+- **`README.md`:** one new line under Limitations. It says such a marker makes `pruneReports` fail once its run expires, because Bun's S3 client drops the trailing `/`. The marker is neither deleted nor skipped. Operators should remove it with the tool that created it; this library never creates markers. Unit 3's README changes are untouched.
+
+**Tests:** the brief's command, `AKROGON_BASE=93cf3b7f6b99f3a34be7f69c004345c439fa6a76 bun test tests/store.test.ts`, gave 17 passed and 0 failed on Bun 1.4.2, and `git diff --check` is clean. The new test checks behaviour that already existed, so there was no failing run first, as the brief allows. I didn't run the full suite, typecheck or the storage selftest; those are left to B.
+
+As briefed, I didn't open any `.env` file, use the network, commit, or run lifecycle commands.

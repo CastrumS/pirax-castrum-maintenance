@@ -1,0 +1,22 @@
+{
+  "root": "test/forms-collision-2026-09-26T18-00-31.403Z-a45614a1/",
+  "directory": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-collision-de25b553-a7be-470e-9147-fa8e0ec24e41/synthetic-folder-collision",
+  "exitCode": 0,
+  "logs": [
+    "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-collision-de25b553-a7be-470e-9147-fa8e0ec24e41/synthetic-folder-collision/2026-09-26T18-00-31.355Z/index.html",
+    "Private report published; bearer link withheld from logs. Open the local report above."
+  ],
+  "publication": {
+    "keys": [
+      "reports/2026-09-26T18-00-31.355Z/index.html",
+      "reports/2026-09-26T18-00-31.355Z/manifest.json"
+    ],
+    "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-collision-de25b553-a7be-470e-9147-fa8e0ec24e41/synthetic-folder-collision/2026-09-26T18-00-31.355Z/index.html",
+    "fetchedBytesEqual": true
+  },
+  "cleanup": {
+    "deleted": 2,
+    "remaining": 0,
+    "serverStopped": true
+  }
+}

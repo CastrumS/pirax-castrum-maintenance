@@ -1,0 +1,24 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-collision-3190b1f3-e753-4c67-88fc-f8ccd52ca3e2/synthetic-folder-collision/summary.json
+48 |     process.env.IMAP_FOLDER = label;
+49 |     const selected: Site = { ...site, slug: 'local', url: `http://127.0.0.1:${server.port}`, form_helper: false, pages: [{ path: `/${label}/`, mask: [] }] };
+50 |     const result = await runForms([selected], real, { runsDir: dir, log: line => logs.push(line) });
+51 |     evidence.exitCode = result.exitCode;
+52 |     evidence.logs = logs;
+53 |     expect(result.exitCode).toBe(0);
+                                 ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 2
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/report.test.ts:53:29)
+(fail) production forms command publishes with a nonsecret folder in both run and site paths [405.12ms]
+
+ 0 pass
+ 8 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [663.00ms]

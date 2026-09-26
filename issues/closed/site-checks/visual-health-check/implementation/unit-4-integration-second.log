@@ -1,0 +1,12 @@
+$ bun --env-file=.env scripts/visual-selftest.ts
+visual:selftest root test/visual-2026-09-25T16-41-21.101Z-d8810cb0/
+run  R2 credentials available by required names
+ok   R2 credentials available by required names
+run  real Node Playground boots and seeds WordPress via same-instance WP-CLI
+ok   real Node Playground boots and seeds WordPress via same-instance WP-CLI
+run  baseline both widths and exact real R2 PNG/health bytes
+ok   baseline both widths and exact real R2 PNG/health bytes
+run  same-instance WP-CLI update changes exactly alpha at both widths
+FAIL same-instance WP-CLI update changes exactly alpha at both widths: WP-CLI did not find alpha ID
+visual:selftest FAIL; cleanup empty; summary /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/runs/visual-selftest-2026-09-25T16-41-21.101Z/summary.json
+error: script "visual:selftest" exited with code 1

@@ -1,0 +1,21 @@
+Worker unit 5 is finished and its report is in `implementation/worker-5.md`. The brief's targeted command passes: `harness.test.ts` plus `core.test.ts`, 13 pass / 0 fail. Nothing was committed, the full suite was not run (that's B's), and no `.env` file was opened.
+
+**Evidence changes** (`test/plugin/harness.ts`)
+- **Network log:** each browser run now writes `network.jsonl`, one line per request with the method, URL, status and resource type. It records no headers, cookies or bodies. Traces still have screenshots, snapshots and sources turned off.
+- **Red then green:** I added the new assertions to `harness.test.ts` first, and it failed because `network.jsonl` didn't exist. After the change it passed. The test puts the token in a URL on purpose, and the log shows it as `?probe=[REDACTED]`.
+- **Manifest:** `manifest.json` now lists the suite, the browser scenarios, the versions, and the paths to the mail, feed, entry, network and trace files. It also records the name and SHA-256 of each uploaded ZIP. In the core run that digest matches the built `dist/pirax-form-test.zip`.
+- **Secret check:** a scan for the token and the Gravity Forms ZIP path found 0 hits in the new artifact folders, `dist/`, the docs, `plugin/`, `test/plugin/` and `learnings/`. Only counts were printed.
+
+**Docs**
+- The root `README.md`, `plugin/pirax-form-test/README.md` and `test/plugin/README.md` all follow the current code and worker 4's report. That includes the exact supported versions (Gravity Forms 3.1.2, Fluent Forms 6.2.14) and the limitations still open after worker 4. None of them claims that the local mail log proves delivery.
+- One line in `learnings/LESSONS.md` and `learnings/history/2026-09-25-form-helper-plugin.md` record the regression worker 3 found: queued jobs re-checked against the current token.
+
+**Packaging**
+- The plugin README is now on the ZIP allowlist in `scripts/build-plugin.ts` and in `core.test.ts`, so the ZIP has 10 files.
+- One test change to note: the core test's scan for forbidden code (such as `wp_mail(`) now reads only the `.php` files. It used to read every file, and the README mentions `wp_mail()` in prose. All 9 PHP files are still scanned.
+
+**Limitations and what wasn't checked**
+- The adapters and safety suites weren't rerun, so their updated manifests and the 10-file ZIP haven't been checked there; B's full-suite run will cover them.
+- "Scenarios" in the manifest are the browser session names, not individual Bun test names.
+- ZIPs uploaded from outside the repo, such as the harness's probe ZIP, are recorded by file name only.
+- URLs are scrubbed of the raw, URL-encoded and JSON-escaped token. A token encoded any other way would be missed.

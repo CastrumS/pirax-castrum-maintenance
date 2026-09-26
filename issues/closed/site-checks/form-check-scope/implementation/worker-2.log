@@ -1,0 +1,14 @@
+I fixed review B's F1 by changing one sentence in `README.md`. The configured changed-tests command passed: 212 pass, 0 fail, exit 0, in 1243.67 s.
+
+**The change** (`README.md:204`, "Private reports and local evidence"): the paragraph used to say every page with no forms gives `[]`. It now reads: "a successfully scanned page without forms is `[]`, except the `test_form` page, which gets one `failed` result with detail `test form not found`; discovery failures (including positively identified HTTP-200 challenge/interstitial pages) are explicit failed results." That now matches the "Designated test form" section at line 231.
+
+Before editing, I checked the wording against the code:
+- `src/forms/runner.ts:89` adds the `test form not found` result only when the designated page scans successfully and the form isn't there.
+- `src/forms/runner.ts:51` returns a page-scan failure when discovery fails.
+- `test/forms/browser.test.ts:336-365` already tests both cases.
+
+**Scope:** no source, test, config or plan files changed, and no test was added for the prose. Review A's optional Nits are left undone, as the brief says. There was no commit, no lifecycle command and no live-site run, and no `.env` file was opened.
+
+**Evidence:** the log and exit code are in `<leaf>/implementation/worker-2-evidence/`. The Playground run summary is `runs/forms-playground-e11f4094-4f0a-450e-af82-1bf82aef83e8/summary.json`: storage cleanup deleted 42 test files with none left, and the privacy scan found 0 unsafe files. I did not run the typecheck separately; the brief leaves that to B.
+
+The four-section report is filled in at `<leaf>/implementation/worker-2-report.md`, with "Unverified criteria: none".

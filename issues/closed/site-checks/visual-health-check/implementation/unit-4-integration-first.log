@@ -1,0 +1,8 @@
+$ bun --env-file=.env scripts/visual-selftest.ts
+visual:selftest root test/visual-2026-09-25T16-40-42.961Z-91d9e53e/
+run  R2 credentials available by required names
+ok   R2 credentials available by required names
+run  real Node Playground boots and seeds WordPress via same-instance WP-CLI
+FAIL real Node Playground boots and seeds WordPress via same-instance WP-CLI: Node Playground exited before bridge reply (requires compatible Node and downloadable WordPress/WP-CLI)
+visual:selftest FAIL; cleanup empty; summary /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/runs/visual-selftest-2026-09-25T16-40-42.961Z/summary.json
+error: script "visual:selftest" exited with code 1

@@ -1,0 +1,39 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+(pass) detects actual distinct plugin forms once and preserves unknown identities [88.20ms]
+(pass) fills basic controls with full random marker, preserving hidden/honeypot data [213.27ms]
+(pass) native required checkbox groups choose one usable option; individual required and optional choices are preserved [993.29ms]
+(pass) HTTP-200 explicit challenges fail discovery, ordinary CAPTCHA/Cloudflare mentions remain empty [1221.52ms]
+(pass) preinspects whole form: hidden upload, marker constraints and custom flows never type [531.31ms]
+(pass) no-helper blocks autonomous input/change GET/POST/image/navigation and sockets [5614.62ms]
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+(pass) specific new GF and associated FF confirmations; errors sanitized; no retry [5466.54ms]
+(pass) marker changed after preparation is never submitted; native invalidity is rejection [386.36ms]
+(pass) scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, later forms continue [2457.04ms]
+(pass) selected submit blocks unrelated same-origin writes/GETs and autonomous native GET submit [297.60ms]
+(pass) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [45709.30ms]
+(pass) encoded URLs and browser exceptions are scrubbed from retained action traces [35.78ms]
+(pass) direct forms command writes a truthful local report without form credentials or visual/baseline access [614.82ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-0bf5f3dc-83a5-4808-acb1-a78bb8c7d300
+(pass) retained action traces are secret-free with no image/DOM/source payloads [136.74ms]
+
+test/forms/evidence.test.ts:
+(pass) sanitizer removes raw, percent, JSON/unicode, HTML and nested encodings [2.01ms]
+(pass) automatic redaction distinguishes credentials from nonsecret configuration labels [2.21ms]
+(pass) sanitized trace JSON independently decodes without astral or mixed-escaped credentials [7.92ms]
+(pass) trace sanitation fails closed, deletes raw and unsafe output on invalid archive [2.58ms]
+
+ 18 pass
+ 0 fail
+ 143 expect() calls
+Ran 18 tests across 2 files. [64.04s]

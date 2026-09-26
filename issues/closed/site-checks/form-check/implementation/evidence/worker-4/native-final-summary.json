@@ -1,0 +1,315 @@
+{
+  "workspace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-05edfcf3-4915-47ad-a1c3-3ed8e794b338",
+  "root": "test/forms-native-2026-09-26T16-23-30.794Z-763c54d7/",
+  "cleanup": {
+    "ok": true,
+    "deleted": 20,
+    "remaining": 0,
+    "stopped": true
+  },
+  "cases": {
+    "noHelper": {
+      "forms": [
+        {
+          "selector": "#gform_1",
+          "plugin": "gravity",
+          "outcome": "not-verified",
+          "detail": "Helper not enabled; filled without submission. Native client validation passed. Delivery not verified."
+        },
+        {
+          "selector": "#fluentform_3",
+          "plugin": "fluent",
+          "outcome": "not-verified",
+          "detail": "Helper not enabled; filled without submission. Native client validation passed. Delivery not verified."
+        }
+      ],
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-05edfcf3-4915-47ad-a1c3-3ed8e794b338/warnings/2026-09-26T16-24-15.060Z/index.html",
+      "exitCode": 0,
+      "mailEntriesFeedsUnchanged": true,
+      "baselineAccesses": 0,
+      "puts": [
+        "reports/2026-09-26T16-24-15.060Z/index.html",
+        "reports/2026-09-26T16-24-15.060Z/manifest.json"
+      ],
+      "accesses": [
+        "reports/2026-09-26T16-24-15.060Z/index.html",
+        "reports/2026-09-26T16-24-15.060Z/manifest.json"
+      ]
+    },
+    "negative": [
+      {
+        "selector": "#gform_5",
+        "plugin": "gravity",
+        "outcome": "unsupported",
+        "detail": "File upload controls are unsupported (including hidden uploads)."
+      },
+      {
+        "selector": "#gform_6",
+        "plugin": "gravity",
+        "outcome": "unsupported",
+        "detail": "No writable visible textarea or plain text marker field."
+      },
+      {
+        "selector": "#gform_8",
+        "plugin": "gravity",
+        "outcome": "rejected",
+        "detail": "Control 1: Please fill out this field."
+      },
+      {
+        "selector": "#gform_7",
+        "plugin": "gravity",
+        "outcome": "rejected",
+        "detail": "Plugin refused submission: There was a problem with your submission. Please review the fields below.Required consent: This field is required.; This field is required."
+      },
+      {
+        "selector": "#fluentform_3",
+        "plugin": "fluent",
+        "outcome": "failed",
+        "detail": "Native Fluent Forms confirmation: Thank you for your message. We will get in touch with you shortly Submission fwldgmxrsibt. Mailbox check did not complete within 1 s (search)."
+      }
+    ],
+    "negativeCleanup": {
+      "ids": [
+        "fwldgmxrsibt"
+      ],
+      "mailCount": 2,
+      "entriesBefore": {
+        "gf": 0,
+        "ff": 0,
+        "rows": []
+      },
+      "entriesAfter": {
+        "gf": 0,
+        "ff": 0,
+        "rows": []
+      },
+      "feedsUnchanged": true
+    },
+    "ajax": [
+      {
+        "selector": "#gform_4",
+        "plugin": "gravity",
+        "outcome": "failed",
+        "detail": "Native Gravity Forms confirmation: Pirax GF thanks Submission qvpufhoso3tn. Mailbox check did not complete within 1 s (search)."
+      },
+      {
+        "selector": "#fluentform_3",
+        "plugin": "fluent",
+        "outcome": "failed",
+        "detail": "Native Fluent Forms confirmation: Thank you for your message. We will get in touch with you shortly Submission 3axc0gkv4fsg. Mailbox check did not complete within 1 s (search)."
+      }
+    ],
+    "ajaxCleanup": {
+      "ids": [
+        "qvpufhoso3tn",
+        "3axc0gkv4fsg"
+      ],
+      "mailCount": 4,
+      "entriesBefore": {
+        "gf": 0,
+        "ff": 0,
+        "rows": []
+      },
+      "entriesAfter": {
+        "gf": 0,
+        "ff": 0,
+        "rows": []
+      },
+      "feedsUnchanged": true
+    },
+    "cli": {
+      "argv": [
+        "/home/rudi/.local/share/mise/installs/bun/1.4.2/bin/bun",
+        "run",
+        "forms",
+        "local",
+        "--sites",
+        "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-05edfcf3-4915-47ad-a1c3-3ed8e794b338/package/sites.json"
+      ],
+      "cwd": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-05edfcf3-4915-47ad-a1c3-3ed8e794b338/package",
+      "exitCode": 1,
+      "elapsedMs": 606556,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-05edfcf3-4915-47ad-a1c3-3ed8e794b338/cli/2026-09-26T16-24-51.592Z",
+      "manifest": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-05edfcf3-4915-47ad-a1c3-3ed8e794b338/cli/2026-09-26T16-24-51.592Z/manifest.json",
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-05edfcf3-4915-47ad-a1c3-3ed8e794b338/cli/2026-09-26T16-24-51.592Z/index.html"
+    },
+    "cliForms": [
+      {
+        "selector": "#gform_1",
+        "plugin": "gravity",
+        "outcome": "failed",
+        "detail": "Native Gravity Forms confirmation: Pirax GF thanks Submission nda73hbfqqsn. No message tagged [pirax-test nda73hbfqqsn] arrived in the configured folders within 300 s."
+      },
+      {
+        "selector": "#fluentform_3",
+        "plugin": "fluent",
+        "outcome": "failed",
+        "detail": "Native Fluent Forms confirmation: Thank you for your message. We will get in touch with you shortly Submission llbqwj116ehs. No message tagged [pirax-test llbqwj116ehs] arrived in the configured folders within 300 s."
+      }
+    ],
+    "cliCleanup": {
+      "ids": [
+        "nda73hbfqqsn",
+        "llbqwj116ehs"
+      ],
+      "mailCount": 4,
+      "entriesBefore": {
+        "gf": 0,
+        "ff": 0,
+        "rows": []
+      },
+      "entriesAfter": {
+        "gf": 0,
+        "ff": 0,
+        "rows": []
+      },
+      "feedsUnchanged": true
+    },
+    "check": {
+      "exitCode": 1,
+      "report": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-05edfcf3-4915-47ad-a1c3-3ed8e794b338/check/2026-09-26T16-35-07.655Z/index.html",
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-05edfcf3-4915-47ad-a1c3-3ed8e794b338/check/2026-09-26T16-35-07.655Z",
+      "data": {
+        "runId": "2026-09-26T16-35-07.655Z",
+        "sites": [
+          {
+            "slug": "local",
+            "url": "http://127.0.0.1:40859",
+            "pages": [
+              {
+                "path": "/checker-negative/",
+                "pageKey": "checker-negative",
+                "viewports": {
+                  "desktop": {
+                    "viewport": "desktop",
+                    "capture": {
+                      "state": "captured",
+                      "detail": null
+                    },
+                    "visual": {
+                      "state": "same",
+                      "detail": null,
+                      "baseline": {
+                        "width": 1440,
+                        "height": 3321
+                      },
+                      "actual": {
+                        "width": 1440,
+                        "height": 3321
+                      },
+                      "ratio": 0,
+                      "allowance": 0.01
+                    },
+                    "health": [],
+                    "warnings": [],
+                    "artifacts": {
+                      "trace": "traces/local/desktop/checker-negative.trace.zip",
+                      "actualHealth": "actual/local/desktop/checker-negative.health.json",
+                      "actualPng": "actual/local/desktop/checker-negative.png",
+                      "baselinePng": "baseline/local/desktop/checker-negative.png",
+                      "baselineHealth": "baseline/local/desktop/checker-negative.health.json",
+                      "diffPng": "diff/local/desktop/checker-negative.png"
+                    }
+                  },
+                  "mobile": {
+                    "viewport": "mobile",
+                    "capture": {
+                      "state": "captured",
+                      "detail": null
+                    },
+                    "visual": {
+                      "state": "same",
+                      "detail": null,
+                      "baseline": {
+                        "width": 390,
+                        "height": 3240
+                      },
+                      "actual": {
+                        "width": 390,
+                        "height": 3240
+                      },
+                      "ratio": 0,
+                      "allowance": 0.01
+                    },
+                    "health": [],
+                    "warnings": [],
+                    "artifacts": {
+                      "trace": "traces/local/mobile/checker-negative.trace.zip",
+                      "actualHealth": "actual/local/mobile/checker-negative.health.json",
+                      "actualPng": "actual/local/mobile/checker-negative.png",
+                      "baselinePng": "baseline/local/mobile/checker-negative.png",
+                      "baselineHealth": "baseline/local/mobile/checker-negative.health.json",
+                      "diffPng": "diff/local/mobile/checker-negative.png"
+                    }
+                  }
+                },
+                "forms": [
+                  {
+                    "selector": "#gform_5",
+                    "plugin": "gravity",
+                    "outcome": "unsupported",
+                    "detail": "File upload controls are unsupported (including hidden uploads)."
+                  },
+                  {
+                    "selector": "#gform_6",
+                    "plugin": "gravity",
+                    "outcome": "unsupported",
+                    "detail": "No writable visible textarea or plain text marker field."
+                  },
+                  {
+                    "selector": "#gform_8",
+                    "plugin": "gravity",
+                    "outcome": "rejected",
+                    "detail": "Control 1: Please fill out this field."
+                  },
+                  {
+                    "selector": "#gform_7",
+                    "plugin": "gravity",
+                    "outcome": "rejected",
+                    "detail": "Plugin refused submission: There was a problem with your submission. Please review the fields below.Required consent: This field is required.; This field is required."
+                  },
+                  {
+                    "selector": "#fluentform_3",
+                    "plugin": "fluent",
+                    "outcome": "failed",
+                    "detail": "Native Fluent Forms confirmation: Thank you for your message. We will get in touch with you shortly Submission sc72b2gkeknj. Mailbox check did not complete within 1 s (open)."
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "checkCleanup": {
+      "ids": [
+        "sc72b2gkeknj"
+      ],
+      "mailCount": 2,
+      "entriesBefore": {
+        "gf": 0,
+        "ff": 0,
+        "rows": []
+      },
+      "entriesAfter": {
+        "gf": 0,
+        "ff": 0,
+        "rows": []
+      },
+      "feedsUnchanged": true
+    }
+  },
+  "versions": {
+    "gf": "3.1.2",
+    "ff": "6.2.14",
+    "wp": "7.1.2",
+    "php": "8.3"
+  },
+  "pluginArtifacts": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/artifacts/plugin/forms-checker-2026-09-26T16-23-30-795Z",
+  "fixtureReadback": "exact installed PHP and page content; served native-v1 marker verified",
+  "privacy": {
+    "files": 55,
+    "archives": 27,
+    "unsafe": 0
+  }
+}

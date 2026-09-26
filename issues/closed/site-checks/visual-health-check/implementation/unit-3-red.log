@@ -1,0 +1,22 @@
+bun test v1.4.2 (744846f84)
+
+tests/report.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../src/report/html.ts' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/tests/report.test.ts'
+-------------------------------
+
+
+tests/commands.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../src/commands/common.ts' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/tests/commands.test.ts'
+-------------------------------
+
+
+ 0 pass
+ 2 fail
+ 2 errors
+Ran 2 tests across 2 files. [15.00ms]

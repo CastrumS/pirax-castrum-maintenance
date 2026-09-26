@@ -1,0 +1,29 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: confirmed
+123 |       policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+124 |       expect(prepared.state).toBe("prepared"); if (prepared.state !== "prepared") return;
+125 |       const before = writes;
+126 |       const result = await submitForm(page, prepared, policy, { timeoutMs: 600, redact });
+127 |       console.log(`Submission fixture ${path}: ${result.state}`);
+128 |       expect(result.state).toBe(expected); expect(writes - before).toBeLessThanOrEqual(1);
+                                 ^
+error: expect(received).toBe(expected)
+
+Expected: "failed"
+Received: "confirmed"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:128:28)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:69:158)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:122:11)
+(fail) specific new GF and associated FF confirmations; errors sanitized; no retry [1216.20ms]
+
+ 0 pass
+ 11 filtered out
+ 1 fail
+ 14 expect() calls
+Ran 1 test across 1 file. [1494.00ms]

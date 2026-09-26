@@ -1,0 +1,25 @@
+Unit 2 is done: the R2 store, its tests, the real selftest and the README are in place, and the selftest passed against the real bucket and cleaned up after itself. The full report is at `/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/checker-foundation/implementation/worker-2.md`.
+
+**Files added** (no existing file was changed; unit 1's package script, tsconfig and the `runs/` ignore already covered what I needed):
+- **`src/store.ts`:**
+  - The `store` export and `createStore({ config?, root?, pageSize? })` provide put/get/list/presign/delete/pruneReports, and importing them needs no environment.
+  - Keys, the root, the page size, the link expiry (1–604800 seconds) and `keep` are all checked before any request is made.
+  - `list` follows every continuation page and returns sorted keys relative to the root.
+  - `pruneReports` keeps the newest run directories. It leaves alone objects directly under `reports/`, directories with malformed names, neighbouring prefixes and `baselines/`.
+- **`tests/store.test.ts`:** 16 tests covering validation, retention selection, no-env import, and the selftest's missing-variable path. The missing-variable tests run in a child process with no env file, a temp directory and all four variables blank.
+- **`scripts/store-selftest.ts`:** runs against the real bucket under a fresh `test/<timestamp>-<random>/` root. It cleans up in `finally` and writes a sanitised artifact to `runs/`.
+- **`README.md`:** setup, commands, site schema, storage layout and API, retention, what the selftest writes and deletes, and limitations. It doesn't mention baseline, check or approve commands as if they existed.
+
+**Evidence:**
+- **Red, then green:** the tests failed first because `src/store.ts` didn't exist. Next, the two missing-variable tests failed (14 pass, 2 fail) because the selftest script didn't exist yet. Final run: 16 pass, 0 fail.
+- **Other checks:** `tsc --noEmit` and `git diff --check` both exit 0.
+- **Real selftest:** `bun run store:selftest` passed all 11 checks, cleaned up (deleted 10 remaining objects) and exited 0. Artifact: `runs/store-selftest-2026-09-25T13-53-34.850Z.json`.
+- **Cleanup:** I ran the selftest twice. The second run followed a cosmetic change to the artifact's `startedAt` timestamp format. Afterwards I listed both test roots in the bucket, and both are empty.
+- **No secrets:** a check confirmed the artifact contains none of the four configured values and no signed-URL parameters. I didn't open `.env` or `.env.example`.
+
+**Not verified:**
+- The failure path (a check or cleanup failing should still write a `fail` artifact and exit 1) was never triggered against real R2. The brief rules out mocks and neither real run failed, so it's only checked by reading the code.
+- Retention deletes one object at a time and isn't transactional: a prune that fails partway rejects, but anything already deleted stays deleted.
+- The full `bun test` and `bun run typecheck` runs are left to B.
+
+Separately: Gmail and Google Calendar need to be authorised in your claude.ai connector settings before they can be used. This task didn't need them.

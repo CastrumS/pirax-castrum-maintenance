@@ -1,0 +1,24 @@
+I've fixed all four safety gaps and the version gate. The new `test/plugin/safety.test.ts` failed 5 of 6 before the repairs and passes 6 of 6 after, with the brief's exact command. The full report is in `implementation/worker-4.md`.
+
+**Fixes (criteria 1–5):**
+1. **Late FF feed filter:** a filter added later at `PHP_INT_MAX` ran after ours because same-priority filters run in the order they were added. For a marked entry, our filter is now removed and re-added just before dispatch, so it runs last and only email goes out. I chose this over rejecting in preflight: once our filter is last it wins anyway, and adding the hook to the preflight audit would only block more sites. Ordinary submissions are unchanged, and the test covers both.
+2. **Throwing marked notification:** the regression reproduced the leak — the next ordinary job in the same runner request was redirected to the test mailbox. A handler on Action Scheduler's own failure hook now restores the context and marks the job `failed`, so FF's cron retries it. The test shows the retry delivering to the redirect and the entry then being deleted.
+3. **CAPTCHA precedence:** an unsupported marked FF form now gets `Pirax test blocked: integrations could not be suppressed` before the CAPTCHA check and before anything is saved, using FF's own validation error. Unmarked submissions still get FF's normal reCAPTCHA error.
+4. **GF sweep:** before deleting an old test entry, the sweep removes that entry's queued notification and feed tasks through GF's public queue APIs, including tasks that carry a copy of the entry. Other queued work is kept. If a GF worker is running, the entry is left for a later sweep. After the sweep, the real runners sent only the ordinary notification and ran only the ordinary feed.
+5. **Version gate:** only exactly GF 3.1.2 and FF 6.2.14 are accepted; tested inside real WordPress, including with the GF version bumped to 3.1.3.
+
+**Files changed:** `plugin/pirax-form-test/includes/fluent-forms.php`, `cleanup.php`, `compatibility.php`, the new `test/plugin/safety.test.ts`, and two test-only switches in `test/plugin/mu-plugin.php` (both off by default).
+
+**Other checks:** I reran the 7 adapter tests that exercise the changed code; all pass. I did not run the full suites, per the brief. The safety and adapter artifacts and the ZIP contain no token or ZIP path.
+
+**For the docs worker:**
+- An unsafe marked FF submission now shows only the Pirax message, not its other field errors as well.
+- The version gate is exact, not `3.1.x`/`6.2.x`.
+- Two of worker 3's known limitations are now fixed: the leftover context after an exception, and the sweep not clearing GF queued work.
+
+**Not tested:**
+- The legacy FF runner and the cron retry with a throwing notification. From the FF source, the exception ends that request, so no later job is affected.
+- A throwing notification during a normal (non-queued) submission.
+- A GF worker that starts during the sweep's queue cleanup. This timing gap is marked in a code comment.
+
+The Gmail and Google Calendar connectors need authorizing in your claude.ai connector settings; they weren't needed here.

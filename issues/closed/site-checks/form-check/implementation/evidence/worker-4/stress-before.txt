@@ -1,0 +1,2 @@
+{"kind":"poll","live":0,"ends":100,"closes":100}
+{"kind":"destroy","live":0,"ends":100,"closes":100}

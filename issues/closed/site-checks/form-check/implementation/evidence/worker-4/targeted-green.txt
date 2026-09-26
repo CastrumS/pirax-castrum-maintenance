@@ -1,0 +1,52 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/imap.test.ts:
+(pass) pollDelivery input and deadline > rejects non-canonical IDs and deadlines before any network access [0.62ms]
+(pass) pollDelivery input and deadline > a silent server cannot outlive the deadline; the connection is closed and not reported as absent mail [1555.51ms]
+(pass) pollDelivery input and deadline > STARTTLS is required off port 993: no credentials are ever sent in plaintext [56.22ms]
+(pass) pollDelivery input and deadline > refused and dropped connections are explicit sanitized failures [2.37ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: startup discovery is opt-in suppressed, including no-NAMESPACE LIST fallback [1.14ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: literal EXAMINE skips metadata LIST, preserves encoding and has no failed-open fallback [4.35ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: installed fetch compiler requests only candidate UID and Subject PEEK [0.56ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: startup discovery is opt-in suppressed, including no-NAMESPACE LIST fallback [3.31ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: literal EXAMINE skips metadata LIST, preserves encoding and has no failed-open fallback [1.15ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: installed fetch compiler requests only candidate UID and Subject PEEK [0.58ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > unfolds and MIME-decodes one Subject, rejecting malformed/duplicate fields and near tags [0.63ms]
+(pass) tag matching and folder policy > rechecks the exact tag because IMAP SUBJECT search is a case-insensitive substring match [0.04ms]
+(pass) tag matching and folder policy > equal configured names are opened once and treated conservatively as spam [0.03ms]
+(pass) tag matching and folder policy > a match in both folders favors spam; no match waits [0.05ms]
+(pass) tag matching and folder policy > protocol evidence keeps only command names and fetch data items [0.11ms]
+
+test/forms/browser.test.ts:
+(pass) detects actual distinct plugin forms once and preserves unknown identities [101.13ms]
+(pass) fills basic controls with full random marker, preserving hidden/honeypot data [236.00ms]
+(pass) preinspects whole form: hidden upload, marker constraints and custom flows never type [695.25ms]
+(pass) no-helper blocks autonomous input/change GET/POST/image/navigation and sockets [5611.31ms]
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+(pass) specific new GF and associated FF confirmations; errors sanitized; no retry [5595.89ms]
+(pass) marker changed after preparation is never submitted; native invalidity is rejection [415.38ms]
+(pass) scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, later forms continue [2528.08ms]
+(pass) selected submit blocks unrelated same-origin writes/GETs and autonomous native GET submit [324.10ms]
+(pass) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [42677.76ms]
+(pass) encoded URLs and browser exceptions are scrubbed from retained action traces [44.43ms]
+(pass) direct forms command writes a truthful local report without form credentials or visual/baseline access [612.25ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-004aa0d5-8a94-4c4a-b397-bcc20aa06746
+(pass) retained action traces are secret-free with no image/DOM/source payloads [147.41ms]
+
+test/forms/evidence.test.ts:
+(pass) sanitizer removes raw, percent, JSON/unicode, HTML and nested encodings [3.01ms]
+(pass) trace sanitation fails closed, deletes raw and unsafe output on invalid archive [3.89ms]
+
+ 29 pass
+ 0 fail
+ 405 expect() calls
+Ran 29 tests across 3 files. [60.90s]

@@ -1,0 +1,8 @@
+[0.02ms] ".env"
+bun install v1.4.2 (744846f84)
+Resolving dependencies
+Resolved, downloaded and extracted [1]
+
++ imapflow@2.0.7
+
+1 package installed [17.00ms]

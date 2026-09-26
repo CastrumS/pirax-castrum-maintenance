@@ -1,0 +1,32 @@
+slug: visual-health-check
+phase: merged
+created: 2026-09-25
+repo: Pirax-Castrum-Maintenance
+debate: "no"
+blocked-by: 
+  - checker-foundation
+sources: 
+  []
+busy_since: 
+  {}
+busy_notified: 
+  {}
+attempts: 
+  A: 0
+  B: 0
+done: 
+  []
+fix_rounds: 2
+verdict: 
+  {}
+tab: wM:t4
+worktree: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check
+pane: 
+  A: wM:p6
+  B: wM:p7
+prompted: 
+  {}
+prompted_at: 
+  {}
+delivery_error: 
+  {}

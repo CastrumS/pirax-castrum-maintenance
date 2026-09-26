@@ -1,0 +1,29 @@
+{"i":0,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":1,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":2,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":3,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":4,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":5,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":6,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":7,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":8,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":9,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":10,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":11,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":12,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":13,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":14,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":15,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":16,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":17,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":18,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":19,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":20,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":21,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":22,"live":0,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":23,"live":1,"ends":1,"closes":1,"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+State  Recv-Q Send-Q Local Address:Port  Peer Address:Port Process
+LISTEN 0      512        127.0.0.1:37111      0.0.0.0:*     users:(("bun",pid=1287568,fd=8))
+ESTAB  0      0          127.0.0.1:37111    127.0.0.1:40484 users:(("bun",pid=1287568,fd=12))
+
+{"afterPeerEnd":1,"closes":1}

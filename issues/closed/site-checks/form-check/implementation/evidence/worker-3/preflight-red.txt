@@ -1,0 +1,26 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+39 | 
+40 | /** Shared lazy reader: EnvError for missing/blank names first, then EnvFormatError for failed checks. Values are never trimmed. */
+41 | export function readEnv<const N extends string>(env: Record<string, string | undefined>, checks: Record<N, (value: string) => boolean>): Record<N, string> {
+42 |   const names = Object.keys(checks) as N[];
+43 |   const missing = names.filter((name) => !env[name]?.trim());
+44 |   if (missing.length) throw new EnvError(missing);
+                                 ^
+EnvError: Missing or blank environment variables: FORM_TEST_TOKEN, FORM_TEST_ADDRESS
+ missing: [ "FORM_TEST_TOKEN", "FORM_TEST_ADDRESS" ],
+
+      at readEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/env.ts:44:29)
+      at readFormConfig (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/forms/config.ts:13:18)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/forms/runner.ts:59:26)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/forms/runner.ts:39:20)
+      at async scanPageForms (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/forms/runner.ts:54:28)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:180:19)
+(fail) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [1234.30ms]
+
+ 0 pass
+ 11 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [1500.00ms]

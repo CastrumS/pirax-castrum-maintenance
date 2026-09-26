@@ -1,0 +1,32 @@
+slug: form-check-scope
+phase: merged
+created: 2026-09-25
+repo: Pirax-Castrum-Maintenance
+debate: "no"
+blocked-by: 
+  - form-check
+sources: 
+  []
+busy_since: 
+  {}
+busy_notified: 
+  {}
+attempts: 
+  A: 0
+  B: 0
+done: 
+  []
+fix_rounds: 1
+verdict: 
+  {}
+tab: wM:t6
+worktree: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope
+pane: 
+  A: wM:pA
+  B: wM:pB
+prompted: 
+  {}
+prompted_at: 
+  {}
+delivery_error: 
+  {}

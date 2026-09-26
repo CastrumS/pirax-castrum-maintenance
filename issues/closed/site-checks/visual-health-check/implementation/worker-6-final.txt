@@ -1,0 +1,5 @@
+Repaired B-F1 and B-F2 in the shared capture path. Added real browser regressions and updated README.
+
+Validation: 34 tests passed, typecheck passed, whitespace checks passed. Changes remain uncommitted.
+
+Evidence and limitations: [worker-6.md](/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/visual-health-check/implementation/worker-6.md).

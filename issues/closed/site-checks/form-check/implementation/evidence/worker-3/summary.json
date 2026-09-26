@@ -1,0 +1,17 @@
+{
+  "checkedBrowserDirectories": 18,
+  "retainedTraceArchives": 453,
+  "unsafeBrowserHits": 0,
+  "unsafeEvidenceHits": 0,
+  "scrubbedLogs": 0,
+  "configuredSuiteExit": 1,
+  "latestBrowserEvidence": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-fb244ac9-a698-472f-9186-830136c6a278",
+  "exampleTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-fb244ac9-a698-472f-9186-830136c6a278/1.trace.zip",
+  "traceOptions": {
+    "screenshots": false,
+    "snapshots": false,
+    "sources": false,
+    "video": false
+  },
+  "rawTempsRemaining": 0
+}

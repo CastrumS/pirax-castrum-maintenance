@@ -1,0 +1,6 @@
+$ bun src/commands/forms.ts all --sites "runs/forms-worker4-diagnostic/empty.json"
+No sites selected.
+empty-exit=0
+$ bun src/commands/forms.ts
+forms: usage: forms <slug|all> [--sites file]
+usage-exit=2

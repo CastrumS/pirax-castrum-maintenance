@@ -1,0 +1,5 @@
+Completed the documentation unit: updated README and added the lesson/history pair.
+
+Validation: 8 targeted tests passed, documentation audit passed, and `git diff --check` passed. Integration tests were not rerun; code limitations are documented.
+
+Saved the required [worker-5 report](/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/visual-health-check/implementation/worker-5.md). No environment files or source code were changed.

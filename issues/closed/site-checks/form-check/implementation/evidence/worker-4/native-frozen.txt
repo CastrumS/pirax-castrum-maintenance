@@ -1,0 +1,14 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/playground.test.ts:
+(pass) helper false fills native forms without changing mail, entries or feeds; warning-only publication never accesses baselines [9195.86ms]
+(pass) native upload/no-marker are unsupported; required client/server rejection continues to later FF [15542.66ms]
+(pass) native GF modern AJAX and FF AJAX retain separate confirmations and native cleanup [12735.05ms]
+(pass) production bun run forms local CLI waits two default five-minute deadlines and publishes truthful failed private report [611922.80ms]
+(pass) production check captures both widths unchanged, attaches native failed forms and preserves failure status [28082.49ms]
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-7a48680a-54be-47ba-badd-28377c20cc77/summary.json
+
+ 5 pass
+ 0 fail
+ 98 expect() calls
+Ran 5 tests across 1 file. [726.07s]

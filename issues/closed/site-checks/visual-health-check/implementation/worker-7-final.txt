@@ -1,0 +1,5 @@
+Repaired A-F1. Failed later navigations now return blocked, null status, and no image. B-F1/B-F2 behavior remains passing.
+
+Validation: 36 targeted tests passed; typecheck and diff check passed. No commits.
+
+[Worker report and evidence](/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/visual-health-check/implementation/worker-7.md) includes red/green outputs, trace paths, and unverified permutations.

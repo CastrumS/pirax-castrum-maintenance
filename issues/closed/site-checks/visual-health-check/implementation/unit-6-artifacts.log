@@ -1,0 +1,29 @@
+runs/capture-test-2026-09-26T08-52-20.841Z: 7 nonempty traces
+WebSocket counts: {
+  "mutations": 1,
+  "connections": 1
+}
+{"result": "0-delayedtomissing-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:42635/missing", "criticalError": false, "hasImage": true, "warnings": [], "trace": "0-delayedtomissing-desktop.trace.zip"}
+{"result": "1-delayedtocritical-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:42635/critical", "criticalError": true, "hasImage": true, "warnings": [], "trace": "1-delayedtocritical-desktop.trace.zip"}
+{"result": "2-delayedtoforbidden-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:42635/forbidden", "criticalError": false, "hasImage": true, "warnings": [], "trace": "2-delayedtoforbidden-desktop.trace.zip"}
+{"result": "3-delayedtochallenge-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:42635/challenge", "criticalError": false, "hasImage": true, "warnings": [], "trace": "3-delayedtochallenge-desktop.trace.zip"}
+{"result": "4-delayedtoheaderonlychallenge-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:42635/header-only-challenge", "criticalError": false, "hasImage": true, "warnings": [], "trace": "4-delayedtoheaderonlychallenge-desktop.trace.zip"}
+{"result": "6-socketpage-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:42635/socket-page", "criticalError": false, "hasImage": true, "warnings": [], "trace": "6-socketpage-desktop.trace.zip"}
+runs/capture-test-2026-09-26T08-55-13.710Z: 36 nonempty traces
+WebSocket counts: {
+  "mutations": 0,
+  "connections": 0
+}
+{"result": "0-delayedtomissing-desktop.result.json", "state": "captured", "detail": null, "status": 404, "finalUrl": "http://127.0.0.1:44755/missing", "criticalError": false, "hasImage": true, "warnings": [], "trace": "0-delayedtomissing-desktop.trace.zip"}
+{"result": "1-normal-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:44755/normal", "criticalError": false, "hasImage": true, "warnings": [], "trace": "1-normal-desktop.trace.zip"}
+{"result": "11-scrollnavigationtomissing-desktop.result.json", "state": "captured", "detail": null, "status": 404, "finalUrl": "http://127.0.0.1:44755/missing", "criticalError": false, "hasImage": true, "warnings": [], "trace": "11-scrollnavigationtomissing-desktop.trace.zip"}
+{"result": "12-scrollnavigationtoheaderonlychallenge-desktop.result.json", "state": "blocked", "detail": "Cloudflare challenge (cf-mitigated: challenge)", "status": 200, "finalUrl": "http://127.0.0.1:44755/header-only-challenge", "criticalError": false, "hasImage": false, "warnings": [], "trace": "12-scrollnavigationtoheaderonlychallenge-desktop.trace.zip"}
+{"result": "13-socketpage-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:44755/socket-page", "criticalError": false, "hasImage": true, "warnings": ["read-only policy blocked WebSocket ws://127.0.0.1:44755/socket"], "trace": "13-socketpage-desktop.trace.zip"}
+{"result": "2-delayedtocritical-desktop.result.json", "state": "captured", "detail": null, "status": 500, "finalUrl": "http://127.0.0.1:44755/critical", "criticalError": true, "hasImage": true, "warnings": [], "trace": "2-delayedtocritical-desktop.trace.zip"}
+{"result": "3-normal-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:44755/normal", "criticalError": false, "hasImage": true, "warnings": [], "trace": "3-normal-desktop.trace.zip"}
+{"result": "4-delayedtoforbidden-desktop.result.json", "state": "blocked", "detail": "HTTP 403 Forbidden", "status": 403, "finalUrl": "http://127.0.0.1:44755/forbidden", "criticalError": false, "hasImage": false, "warnings": [], "trace": "4-delayedtoforbidden-desktop.trace.zip"}
+{"result": "5-normal-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:44755/normal", "criticalError": false, "hasImage": true, "warnings": [], "trace": "5-normal-desktop.trace.zip"}
+{"result": "6-delayedtochallenge-desktop.result.json", "state": "blocked", "detail": "Cloudflare challenge page", "status": 200, "finalUrl": "http://127.0.0.1:44755/challenge", "criticalError": false, "hasImage": false, "warnings": [], "trace": "6-delayedtochallenge-desktop.trace.zip"}
+{"result": "7-normal-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:44755/normal", "criticalError": false, "hasImage": true, "warnings": [], "trace": "7-normal-desktop.trace.zip"}
+{"result": "8-delayedtoheaderonlychallenge-desktop.result.json", "state": "blocked", "detail": "Cloudflare challenge (cf-mitigated: challenge)", "status": 200, "finalUrl": "http://127.0.0.1:44755/header-only-challenge", "criticalError": false, "hasImage": false, "warnings": [], "trace": "8-delayedtoheaderonlychallenge-desktop.trace.zip"}
+{"result": "9-normal-desktop.result.json", "state": "captured", "detail": null, "status": 200, "finalUrl": "http://127.0.0.1:44755/normal", "criticalError": false, "hasImage": true, "warnings": [], "trace": "9-normal-desktop.trace.zip"}

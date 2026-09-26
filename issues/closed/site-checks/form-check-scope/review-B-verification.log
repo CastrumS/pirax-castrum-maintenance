@@ -1,0 +1,11 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+(pass) missing, wrong-plugin, elsewhere-only, GF #0 and empty-page designations fail once on their page; scan failures stay scan failures [4572.96ms]
+
+ 1 pass
+ 19 filtered out
+ 0 fail
+ 20 expect() calls
+Ran 1 test across 1 file. [4.82s]
+EXIT=0

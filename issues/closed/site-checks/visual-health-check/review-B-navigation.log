@@ -1,0 +1,32 @@
+[
+  {
+    "expectedFinalStatus": 404,
+    "expectedCapture": "captured",
+    "actualCapture": "captured",
+    "health": {
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:45361/final-404",
+      "criticalError": false,
+      "consoleErrors": [],
+      "failedRequests": [],
+      "mixedContent": []
+    },
+    "findings": [],
+    "trace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/runs/review-B-navigation/redirect-404.trace.zip"
+  },
+  {
+    "expectedFinalStatus": 403,
+    "expectedCapture": "blocked",
+    "actualCapture": "captured",
+    "health": {
+      "status": 200,
+      "finalUrl": "http://127.0.0.1:45361/final-403",
+      "criticalError": false,
+      "consoleErrors": [],
+      "failedRequests": [],
+      "mixedContent": []
+    },
+    "findings": [],
+    "trace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/runs/review-B-navigation/redirect-403.trace.zip"
+  }
+]

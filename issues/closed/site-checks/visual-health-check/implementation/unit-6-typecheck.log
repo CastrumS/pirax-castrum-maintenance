@@ -1,0 +1,5 @@
+$ tsc --noEmit
+src/capture.ts(242,12): error TS7022: 'document' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/capture.ts(243,21): error TS7024: Function implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.
+tests/capture.test.ts(158,23): error TS2554: Expected 2 arguments, but got 1.
+error: script "typecheck" exited with code 1

@@ -1,0 +1,19 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/playground.test.ts:
+79 |     for (const url of Object.values(fixtures.pages)) {
+80 |       const body = await (await fetch(url)).text();
+81 |       assert(body.includes('data-forms-fixture="native-v1"'), 'Native fixture served marker missing');
+82 |     }
+83 |     return { h, fixtures, stop };
+84 |   } catch (error) { await stop(); throw new Error(secretRedactor(undefined, [h.users.admin.password])(error instanceof Error ? error.message : 'Harness startup failed')); }
+                                                 ^
+error: PHP error: RuntimeException: Native page fixture readback mismatch
+      at startFormsHarness (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/harness.ts:84:45)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/playground.test.ts:25:19)
+(fail) (unnamed) [44659.16ms]
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-c7fcc8cf-21f8-487d-837b-73ef5f97241b/summary.json
+
+ 0 pass
+ 1 fail
+Ran 1 test across 1 file. [45.15s]

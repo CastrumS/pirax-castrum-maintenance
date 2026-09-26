@@ -1,0 +1,54 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/harness.test.ts:
+(pass) preflight names missing or invalid credentials without their values [0.34ms]
+(pass) loopback WordPress runs licensed Gravity Forms and pinned Fluent Forms with real PHP and database [3892.25ms]
+(pass) browser logs in to real wp-admin and submits unmarked forms for both plugins [25940.30ms]
+(pass) stop shuts the site down [162.55ms]
+
+test/plugin/review-regressions.test.ts:
+(pass) marked wp_mail: control-prefixed Cc/Bcc header names never reach the native envelope; ordinary mail keeps them [3804.76ms]
+(pass) hourly sweep deletes old FF test entries whose marker field was later renamed or removed; controls stay [10958.79ms]
+
+test/plugin/core.test.ts:
+(pass) build:plugin produces only the allowlisted uploadable ZIP with no tests, secrets or licensed code [24.18ms]
+(pass) generated ZIP uploads and activates through wp-admin without Gravity Forms or Fluent Forms [14968.45ms]
+(pass) settings mutate only for manage_options with a valid nonce and valid values [41489.44ms]
+(pass) marker parser classifies submitted values: ordinary, marked(id) or invalid-marker [1516.10ms]
+(pass) request marker and stacked worker context; nothing is inherited by another request [2320.19ms]
+(pass) wp_mail in marked context is redirected, stripped and tagged; ordinary mail is untouched [6688.22ms]
+(pass) a bad redirect fails before marking and marked mail is never delivered to original recipients [10211.11ms]
+(pass) the core never marks a request from query strings, cookies or arbitrary POST data [2196.68ms]
+(pass) deactivation unschedules, uninstall is guarded and removes options and owned events [5222.56ms]
+
+test/plugin/adapters.test.ts:
+(pass) GF marked browser submission: both notifications redirected synchronously, no feeds, entry deleted after mail [16786.74ms]
+(pass) GF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries [19786.32ms]
+(pass) FF marked browser submission: both notifications redirected, only the email feed runs, entry and related rows deleted at request end [10745.14ms]
+(pass) FF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries [14732.33ms]
+(pass) GF reCAPTCHA v2 with failing siteverify: marked passes, unmarked fails; other errors and honeypot still apply [21585.72ms]
+(pass) FF reCAPTCHA with failing siteverify: marked passes, unmarked fails; other errors and honeypot still apply [22308.41ms]
+(pass) an integration outside the suppressible feed paths blocks marked submissions; ordinary ones still run it [19318.82ms]
+(pass) payment and post-creation paths are rejected for marked submissions [10282.11ms]
+(pass) malformed or ambiguous markers and an invalid redirect reject safely; nothing reaches original recipients [22435.90ms]
+(pass) FF queued email: marked entry kept until every job completes across requests; ordinary job in the same runner keeps its recipients [25509.92ms]
+(pass) FF queued email: a job still processing elsewhere blocks FF's pending-only completion signal [17416.46ms]
+(pass) FF queued email: rotating or clearing the token never turns queued test mail into client mail [23602.25ms]
+(pass) FF legacy batch runner: marked and ordinary jobs in one request keep their own recipients; marked entry removed [17751.16ms]
+(pass) hourly sweep: real cron deletes only old token entries across pages, with native cascade and queued-job removal, in a non-UTC site [20699.56ms]
+(pass) sweep: literal token with SQL wildcards, empty token no-op, and strict one-hour boundary [10851.14ms]
+(pass) retained evidence contains no token [2263.11ms]
+
+test/plugin/safety.test.ts:
+(pass) FF: a later PHP_INT_MAX feed-type filter registered after the plugin cannot resurrect the ledger feed on a marked submission [18169.51ms]
+(pass) FF queued: a marked notification that throws inside native mail processing does not redirect the next ordinary job in the same runner request [21089.18ms]
+(pass) FF queued cleanup race: a marked entry deleted natively after the runner loaded it, with the token rotated, still sends only redirected mail; ordinary jobs stay ordinary [16168.97ms]
+(pass) FF unsupported marked form with reCAPTCHA and failing siteverify is rejected with the blocked message before CAPTCHA [15816.85ms]
+(pass) GF sweep: an old token entry's queued notifications (entry snapshots included) and feeds are removed before deletion; ordinary queued work runs; active worker defers [21150.96ms]
+(pass) compatibility gate accepts exactly GF 3.1.2 and FF 6.2.14 [704.07ms]
+(pass) retained evidence contains no token [2224.20ms]
+
+ 38 pass
+ 0 fail
+ 680 expect() calls
+Ran 38 tests across 5 files. [634.57s]

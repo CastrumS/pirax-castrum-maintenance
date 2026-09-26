@@ -1,0 +1,47 @@
+bun test v1.4.2 (744846f84)
+
+tests/commands.test.ts:
+(pass) command preflight without browser or storage > parses selection, optional sites and approve page; retains list order [0.16ms]
+(pass) command preflight without browser or storage > rejects missing, extra, unsupported flags and approve all [0.05ms]
+(pass) command preflight without browser or storage > exit 2 for configuration before work; empty all is zero with no credentials [8.83ms]
+(pass) command preflight without browser or storage > CLI imports have no credential reads or exits and missing env is sanitized exit 2 [702.48ms]
+(pass) root forms alias invokes production entrypoint; empty/usage need no credentials or writes [767.97ms]
+(pass) direct forms/check errors sanitize trusted messages and classify config as exit 2 [374.67ms]
+(pass) only canonical completed run IDs qualify, in descending order [0.23ms]
+(pass) latest containing site is selected, incomplete/unrelated evidence never replaces it [0.44ms]
+(pass) latest valid containing site wins over unrelated newer history without falling back from blocked pages [0.76ms]
+(pass) direct approval rejects an unlisted page before touching its real lazy Store [3.87ms]
+(pass) newer valid forms-only runs are skipped; a malformed newer forms manifest is still an error [0.31ms]
+
+test/forms/browser.test.ts:
+(pass) detects actual distinct plugin forms once and preserves unknown identities [91.56ms]
+(pass) fills basic controls with full random marker, preserving hidden/honeypot data [227.95ms]
+(pass) preinspects whole form: hidden upload, marker constraints and custom flows never type [615.51ms]
+(pass) no-helper blocks autonomous input/change GET/POST/image/navigation and sockets [5611.15ms]
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+(pass) specific new GF and associated FF confirmations; errors sanitized; no retry [4619.13ms]
+(pass) marker changed after preparation is never submitted; native invalidity is rejection [388.08ms]
+(pass) scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, later forms continue [2462.12ms]
+(pass) selected submit blocks unrelated same-origin writes/GETs and autonomous native GET submit [306.54ms]
+(pass) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [24337.31ms]
+(pass) encoded URLs and browser exceptions are scrubbed from retained action traces [46.10ms]
+(pass) direct forms command writes a truthful local report without form credentials or visual/baseline access [604.45ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-cbc72c26-f6a5-45ee-9db0-8363d121ae9b
+(pass) retained action traces are secret-free with no image/DOM/source payloads [128.92ms]
+
+test/forms/evidence.test.ts:
+(pass) sanitizer removes raw, percent, JSON/unicode, HTML and nested encodings [2.96ms]
+(pass) trace sanitation fails closed, deletes raw and unsafe output on invalid archive [4.14ms]
+
+ 25 pass
+ 0 fail
+ 155 expect() calls
+Ran 25 tests across 3 files. [41.54s]

@@ -1,0 +1,8 @@
+Fixed all four defects with red/green, native confirmations, and real scoped publication evidence.
+
+- Frozen suite: **195 passed, 0 failed**
+- Typecheck passed
+- Privacy clean; all nine R2 prefixes empty
+- No commits or lifecycle commands
+
+Report: `/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/form-check/implementation/worker-5.md`

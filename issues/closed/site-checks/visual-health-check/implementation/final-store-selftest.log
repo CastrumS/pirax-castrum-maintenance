@@ -1,0 +1,15 @@
+$ bun --env-file=.env scripts/store-selftest.ts
+store:selftest root test/2026-09-25T17-13-06.803Z-4f215dcc/
+ok   binary roundtrip {"bytes":64}
+ok   file roundtrip {"bytes":256}
+ok   list {"keys":2}
+ok   signed GET {"status":200,"invalidExpiriesRejected":5}
+ok   missing get rejects
+ok   service honours small page size {"objects":46,"pageSize":5,"minPages":10}
+ok   invalid keep rejects and deletes nothing {"invalidKeepsRejected":4,"objects":46}
+ok   prune 12 runs to 10 {"runs":10,"objects":40}
+ok   no-op when count <= keep {"objects":40}
+ok   default keep is 10 {"runs":10,"objects":40}
+ok   keep 0 removes all recognized runs {"runs":0,"objects":10}
+ok   cleanup test/2026-09-25T17-13-06.803Z-4f215dcc/ (deleted 10)
+PASS artifact runs/store-selftest-2026-09-25T17-13-06.803Z.json

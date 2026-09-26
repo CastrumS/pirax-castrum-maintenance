@@ -1,0 +1,8 @@
+Implemented browser checking and forms/check command wiring; predecessor work preserved.
+
+Report: `issues/open/site-checks/form-check/implementation/worker-3.md`
+
+- Targeted tests: 25 passed; typecheck clean.
+- Full suite: 183 passed, 1 unchanged IMAP socket-cleanup failure; three isolated reruns passed.
+- Privacy scan: zero hits across 453 traces.
+- Playground/CLI integration and docs remain assigned to the next worker.

@@ -1,0 +1,49 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/report.test.ts:
+4 | import { pageKey, type Site } from "../sites.ts";
+5 | import { isRunId } from "../store.ts";
+6 | import type { FormsManifest, Manifest, PageResult, PublishedManifest, ViewportResult } from "./model.ts";
+7 | 
+8 | export class ReportError extends Error {}
+9 | const fail = (detail: string): never => { throw new ReportError(detail); };
+                                                                          ^
+error: invalid forms manifest; run forms again
+      at fail (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/src/report/manifest.ts:9:71)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/report.test.ts:87:12)
+(fail) forms-only manifest > both manifest modes accept skipped; unknown outcomes still reject [0.14ms]
+120 |       expect(reportStatus(formsReport([form(outcome as FormResult["outcome"])]))).toBe(status as never);
+121 |       const check = fixture();
+122 |       check.sites[0]!.pages[0]!.forms = [form("delivered"), form(outcome as FormResult["outcome"])];
+123 |       expect(reportStatus(check)).toBe(status as never);
+124 |       // Mixed with skips, every other outcome keeps its own effect.
+125 |       expect(reportStatus(formsReport([form("skipped"), form(outcome as FormResult["outcome"]), form("skipped")]))).toBe(status as never);
+                                                                                                                          ^
+error: expect(received).toBe(expected)
+
+Expected: "pass"
+Received: "warning"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/report.test.ts:125:117)
+(fail) form outcome gating > failed/rejected fail, spam/not-verified/unsupported warn, delivered passes, skipped is neutral [0.31ms]
+146 |     expect(html).toContain("default-src 'none'");
+147 |   });
+148 |   test("forms-only HTML renders skipped literally as neutral and explains it", () => {
+149 |     const report = formsReport([form("skipped", "No test form configured; not filled or submitted.")]);
+150 |     const html = renderHtml(report, new Map());
+151 |     expect(html).toContain("acme — pass");
+                       ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "acme — pass"
+Received: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\"><title>Form check 2026-09-25T13-00-00.000Z</title><style>\nbody{font:16px/1.5 system-ui,sans-serif;margin:24px;color:#172033;background:#f5f7fb}h1,h2,h3{line-height:1.2}table{width:100%;border-collapse:collapse;background:white;margin-bottom:32px}th,td{border:1px solid #cbd2dd;padding:12px;text-align:left;vertical-align:top}th{background:#e8edf6}figure{margin:0;min-width:0}figcaption{font-weight:bold}img{max-width:100%;height:auto;border:1px solid #abb7c9}.panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.failure,.blocked{color:#a01326}.warning{color:#795100}.pass{color:#116034}p,li{overflow-wrap:anywhere}ul{padding-left:20px}.details{min-width:230px}small{color:#46516a}@media(max-width:800px){body{margin:10px}.panels{grid-template-columns:1fr}table{display:block;overflow-x:auto}}\n</style></head><body><h1>Form check</h1><p>Run 2026-09-25T13-00-00.000Z · <strong class=\"warning\">warning</strong></p><section><h2>acme — warning</h2><p>https://example.test</p><h3>/ — warning</h3><table><thead><tr><th>Outcome</th><th>Plugin</th><th>Form</th><th>Detail</th></tr></thead><tbody><tr><td class=\"warning\"><strong>skipped</strong></td><td>gravity</td><td>#gform_1</td><td>No test form configured; not filled or submitted.</td></tr></tbody></table><h3>/about/ — pass</h3><p>No forms found.</p></section><p><small>Desktop 1440 × 900 form pass only; no screenshots or visual comparison. Failed/rejected forms fail the run; spam, not-verified and unsupported are warnings.</small></p></body></html>"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/test/forms/report.test.ts:151:18)
+(fail) form outcome gating > forms-only HTML renders skipped literally as neutral and explains it [0.11ms]
+
+ 5 pass
+ 3 filtered out
+ 3 fail
+ 38 expect() calls
+Ran 8 tests across 1 file. [205.00ms]
+EXIT=1

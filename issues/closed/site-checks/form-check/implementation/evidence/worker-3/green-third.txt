@@ -1,0 +1,37 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+(pass) detects actual distinct plugin forms once and preserves unknown identities [137.76ms]
+(pass) fills basic controls with full random marker, preserving hidden/honeypot data [279.80ms]
+(pass) preinspects whole form: hidden upload, marker constraints and custom flows never type [1002.70ms]
+(pass) no-helper blocks autonomous input/change GET/POST/image/navigation and sockets [5766.38ms]
+Submission fixture /plain: failed
+115 |       policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+116 |       expect(prepared.state).toBe("prepared"); if (prepared.state !== "prepared") return;
+117 |       const before = writes;
+118 |       const result = await submitForm(page, prepared, policy, { timeoutMs: 600, redact });
+119 |       console.log(`Submission fixture ${path}: ${result.state}`);
+120 |       expect(result.state).toBe(expected); expect(writes - before).toBeLessThanOrEqual(1);
+                                 ^
+error: expect(received).toBe(expected)
+
+Expected: "confirmed"
+Received: "failed"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:120:28)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:61:158)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:114:11)
+(fail) specific new GF and associated FF confirmations; errors sanitized; no retry [2384.46ms]
+(pass) marker changed after preparation is never submitted; native invalidity is rejection [561.02ms]
+(pass) scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, later forms continue [2971.99ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-f6dcaede-e248-42ca-bf88-fb0920e5d811
+(pass) retained action traces are secret-free with no image/DOM/source payloads [742.85ms]
+
+test/forms/evidence.test.ts:
+(pass) sanitizer removes raw, percent, JSON/unicode, HTML and nested encodings [2.03ms]
+(pass) trace sanitation fails closed, deletes raw and unsafe output on invalid archive [3.17ms]
+
+ 9 pass
+ 1 fail
+ 55 expect() calls
+Ran 10 tests across 2 files. [14.13s]

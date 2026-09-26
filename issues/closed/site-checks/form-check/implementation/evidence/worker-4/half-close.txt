@@ -1,0 +1,10 @@
+{"i":0,"live":0,"ended":1,"closed":1,"clientDestroyed":true}
+{"i":1,"live":0,"ended":1,"closed":1,"clientDestroyed":true}
+{"i":2,"live":0,"ended":1,"closed":1,"clientDestroyed":true}
+{"i":3,"live":0,"ended":1,"closed":1,"clientDestroyed":true}
+{"i":4,"live":0,"ended":1,"closed":1,"clientDestroyed":true}
+{"i":5,"live":0,"ended":1,"closed":1,"clientDestroyed":true}
+{"i":6,"live":0,"ended":1,"closed":1,"clientDestroyed":true}
+{"i":7,"live":0,"ended":1,"closed":1,"clientDestroyed":true}
+{"i":8,"live":0,"ended":1,"closed":1,"clientDestroyed":true}
+{"i":9,"live":0,"ended":1,"closed":1,"clientDestroyed":true}

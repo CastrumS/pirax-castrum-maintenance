@@ -1,0 +1,26 @@
+I've fixed the Fluent Forms cleanup race from brief 6. A marked queued email now stays redirected even if the entry and its metadata are deleted after the runner has loaded it. The targeted tests fail before the fix and pass after it. The report is in `implementation/worker-6.md`.
+
+**Fix** (`plugin/pirax-form-test/includes/fluent-forms.php`):
+- **Writing the id:** a new filter on Fluent Forms' own `fluentform/integration_feed_before_parse` hook runs just before each notification job is saved to the queue. It always removes the `_pirax_form_test` key. It adds it back only for a supported marked submission, and only when the id matches the one already saved on the entry. Only the checked test id is stored, never the token, and there's no new table.
+- **Reading the id:** `ff_before_notification` takes the id from the job if it's valid. Jobs queued before this change have no id, so they fall back to the entry metadata. The runner never re-reads field content or checks the current token.
+
+**Regression test** (`test/plugin/safety.test.ts`, with a new option-driven fixture in `test/plugin/mu-plugin.php`):
+- The fixture is only switched on after submitting, so only the runner request has it. It deletes the marked entry with Fluent Forms' own delete function, at priority 8 on the notification hook. That is after the runner has loaded the entry and just before the plugin's priority-9 setup.
+- Before the runner, the test also changes the token.
+- It checks that the marked mail is redirected and tagged, and that the two ordinary mails in the same runner request still go to their original recipients.
+- It checks the saved jobs: the marked ones carry `abc123` and none of the three ordinary ones has the key.
+
+**Results:**
+- **Before the fix:** the marked mail went out untagged, as `ff-3 notification A`. Evidence is in `artifacts/plugin/safety-2026-09-25T15-37-55-300Z/`.
+- **After the fix:** the brief's command (`-t 'cleanup race|retained evidence'`) passed 2/2, including the check that saved evidence contains no token. Evidence is in `artifacts/plugin/safety-2026-09-25T15-40-16-611Z/`.
+- **Nearby tests:** I also ran the existing Fluent Forms queue tests that go through the changed code. All 5 in `adapters.test.ts` and all 3 in `safety.test.ts` passed. I did not run the full suite, as the brief says.
+- `php -l` isn't installed here, so the PHP was only checked by these real WordPress test runs.
+
+**Docs:** the plugin README now says the id is stored in each queued job, so mail stays redirected after the entry is deleted. It also now says Fluent Forms' `recaptcha` bypass covers reCAPTCHA v2 and v3, but only v2 was tested; hCaptcha and Turnstile are unchanged. I confirmed the v3 point in Fluent Forms' source (`FormValidationService.php:595`). The test README lists the new fixture.
+
+**Limitations:**
+- **Open decision:** the new hook isn't in the plugin's compatibility list. Another filter added later at the same top priority could remove the id; that job would then use the old metadata lookup, and the race would come back on that site. Adding the hook to the list would instead block marked submissions on any site with such a filter. I left that choice to B.
+- Jobs queued before this change still rely on the entry metadata, so they can still hit the race.
+- No test forges the key directly into a stored feed setting, because that needs direct database edits. The filter removes the key from every non-marked feed, so this is covered by the code itself.
+
+I made no commits. The Gmail and Google Calendar connectors need to be authorized in your claude.ai connector settings before they can be used; this task didn't need them.

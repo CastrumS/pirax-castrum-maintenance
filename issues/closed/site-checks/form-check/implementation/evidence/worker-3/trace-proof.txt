@@ -1,0 +1,6 @@
+Fill trace token placeholders: 3
+Encoded URL/error trace token placeholders: 4
+Fill trace entries:
+trace.trace
+trace.network
+trace.stacks

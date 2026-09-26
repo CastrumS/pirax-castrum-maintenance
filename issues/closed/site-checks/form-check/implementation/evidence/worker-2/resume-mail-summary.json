@@ -1,0 +1,201 @@
+{
+  "startedAt": "2026-09-26T14:15:22.260Z",
+  "ids": {
+    "sent": "wge120saxsa7",
+    "unsent": "3p7ozkvnzzpq"
+  },
+  "smtpAttempts": 1,
+  "smtpAccepted": true,
+  "checks": [
+    {
+      "name": "real IMAP authentication and both exact folders are usable before sending",
+      "ok": true
+    },
+    {
+      "name": "smtp sends exactly one harmless tagged message",
+      "ok": true,
+      "facts": {
+        "accepted": 1,
+        "rejected": 0
+      }
+    },
+    {
+      "name": "message arrives before the before-snapshot (arrival settles)",
+      "ok": true,
+      "facts": {
+        "arrivalMs": 1973,
+        "categories": [
+          "inbox"
+        ]
+      }
+    },
+    {
+      "name": "production poll finds the sent tag in the expected folder category",
+      "ok": true,
+      "facts": {
+        "outcome": "delivered",
+        "elapsedMs": 3138
+      }
+    },
+    {
+      "name": "mailbox unchanged by the delivered poll (counts, UIDs, modseq, candidate flags)",
+      "ok": true,
+      "facts": {
+        "seenBefore": false,
+        "seenAfter": false
+      }
+    },
+    {
+      "name": "unsent ID runs the full default deadline to failed",
+      "ok": true,
+      "facts": {
+        "outcome": "failed",
+        "elapsedMs": 300001
+      }
+    },
+    {
+      "name": "mailbox unchanged by the timeout poll",
+      "ok": true
+    },
+    {
+      "name": "wire commands are read-only: EXAMINE, UID SEARCH, Subject-only BODY.PEEK; no discovery",
+      "ok": true,
+      "facts": {
+        "sentPoll": {
+          "AUTHENTICATE": 1,
+          "CAPABILITY": 1,
+          "COMPRESS": 1,
+          "ENABLE": 1,
+          "EXAMINE": 2,
+          "ID": 1,
+          "LOGOUT": 1,
+          "UID FETCH (UID X-GM-MSGID MODSEQ BODY.PEEK[HEADER.FIELDS (SUBJECT)])": 1,
+          "UID SEARCH": 2
+        }
+      }
+    }
+  ],
+  "snapshotBefore": [
+    {
+      "category": "inbox",
+      "exists": 2,
+      "uidValidity": "13",
+      "uidNext": 3,
+      "highestModseq": "2137",
+      "readOnly": true,
+      "candidates": [
+        {
+          "tag": "sent",
+          "uid": 2,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "category": "spam",
+      "exists": 0,
+      "uidValidity": "3",
+      "uidNext": 1,
+      "highestModseq": "2137",
+      "readOnly": true,
+      "candidates": []
+    }
+  ],
+  "sentPoll": {
+    "outcome": "delivered",
+    "detail": "Tagged message found in the configured inbox folder after 3 s.",
+    "elapsedMs": 3138
+  },
+  "snapshotAfterSent": [
+    {
+      "category": "inbox",
+      "exists": 2,
+      "uidValidity": "13",
+      "uidNext": 3,
+      "highestModseq": "2137",
+      "readOnly": true,
+      "candidates": [
+        {
+          "tag": "sent",
+          "uid": 2,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "category": "spam",
+      "exists": 0,
+      "uidValidity": "3",
+      "uidNext": 1,
+      "highestModseq": "2137",
+      "readOnly": true,
+      "candidates": []
+    }
+  ],
+  "unsentPoll": {
+    "outcome": "failed",
+    "detail": "No message tagged [pirax-test 3p7ozkvnzzpq] arrived in the configured folders within 300 s.",
+    "elapsedMs": 300001
+  },
+  "snapshotAfterUnsent": [
+    {
+      "category": "inbox",
+      "exists": 2,
+      "uidValidity": "13",
+      "uidNext": 3,
+      "highestModseq": "2137",
+      "readOnly": true,
+      "candidates": [
+        {
+          "tag": "sent",
+          "uid": 2,
+          "flags": []
+        }
+      ]
+    },
+    {
+      "category": "spam",
+      "exists": 0,
+      "uidValidity": "3",
+      "uidNext": 1,
+      "highestModseq": "2137",
+      "readOnly": true,
+      "candidates": []
+    }
+  ],
+  "commands": {
+    "sentPoll": {
+      "AUTHENTICATE": 1,
+      "CAPABILITY": 1,
+      "COMPRESS": 1,
+      "ENABLE": 1,
+      "EXAMINE": 2,
+      "ID": 1,
+      "LOGOUT": 1,
+      "UID FETCH (UID X-GM-MSGID MODSEQ BODY.PEEK[HEADER.FIELDS (SUBJECT)])": 1,
+      "UID SEARCH": 2
+    },
+    "unsentPoll": {
+      "AUTHENTICATE": 1,
+      "CAPABILITY": 1,
+      "COMPRESS": 1,
+      "ENABLE": 1,
+      "EXAMINE": 41,
+      "ID": 1,
+      "UID SEARCH": 40
+    },
+    "snapshotSessions": {
+      "AUTHENTICATE": 6,
+      "CAPABILITY": 6,
+      "COMPRESS": 6,
+      "ENABLE": 6,
+      "EXAMINE": 12,
+      "ID": 6,
+      "LOGOUT": 6,
+      "UID FETCH (UID FLAGS X-GM-MSGID MODSEQ)": 5,
+      "UID SEARCH": 24
+    }
+  },
+  "finishedAt": "2026-09-26T14:20:49.741Z",
+  "limitations": "Read-only IMAP cannot prevent other clients/providers from changing the mailbox; unchanged snapshots show a quiet interval, not exclusive control. Any sent message is left in the mailbox by design. The pinned literalMailboxes patch disables startup discovery and select-time LIST/path normalization."
+}

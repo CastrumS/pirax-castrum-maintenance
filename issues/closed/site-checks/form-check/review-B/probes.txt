@@ -1,0 +1,2 @@
+{"existingCaptureChallenge":"Cloudflare challenge page","forms":[],"status":"pass","expected":"explicit failed page-scan, not empty/pass"}
+{"rawCredentialRedacted":true,"jsonEscapedSurrogateCredentialRedacted":false,"expected":"both true"}

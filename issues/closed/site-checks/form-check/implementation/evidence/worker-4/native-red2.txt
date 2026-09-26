@@ -1,0 +1,49 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/playground.test.ts:
+(pass) helper false fills native forms without changing mail, entries or feeds; warning-only publication never accesses baselines [10064.31ms]
+109 | test('native upload/no-marker are unsupported; required client/server rejection continues to later FF', async () => {
+110 |   const before = await observe();
+111 |   const forms = await scan(harness.fixtures.pages.negative);
+112 |   cases.negative = forms;
+113 |   await Bun.write(join(workspace,'negative.json'), safe(JSON.stringify(forms,null,2)));
+114 |   expect(forms.map(f=>f.outcome)).toEqual(['unsupported','unsupported','rejected','rejected','failed']);
+                                        ^
+error: expect(received).toEqual(expected)
+
+  [
+    "unsupported",
+    "unsupported",
+-   "rejected",
++   "failed",
+    "rejected",
+    "failed",
+  ]
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/playground.test.ts:114:35)
+(fail) native upload/no-marker are unsupported; required client/server rejection continues to later FF [16998.72ms]
+60 | const scan = (url: string, helper = true) => { const s = siteFor(url, helper); return scanPageForms(s, s.pages[0]!, { runDir: workspace, ...timing }); };
+61 | function confirmed(results: FormResult[]) {
+62 |   expect(results.map(f=>f.plugin)).toEqual(['gravity','fluent']);
+63 |   for (const f of results) {
+64 |     expect(f.outcome).toBe('failed');
+65 |     expect(f.detail).toContain('confirmation:');
+                          ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "confirmation:"
+Received: "No new form-associated confirmation before timeout; not retried."
+
+      at confirmed (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/playground.test.ts:65:22)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/playground.test.ts:128:3)
+(fail) native GF modern AJAX and FF AJAX retain separate confirmations and native cleanup [23545.31ms]
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-eef66755-81d0-42bc-8ff9-529fc899b767/summary.json
+
+ 1 pass
+ 2 filtered out
+ 2 fail
+ 10 expect() calls
+Ran 3 tests across 1 file. [99.87s]

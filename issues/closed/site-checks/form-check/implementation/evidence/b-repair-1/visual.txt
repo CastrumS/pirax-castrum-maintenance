@@ -1,0 +1,33 @@
+$ bun --env-file=.env scripts/visual-selftest.ts
+visual:selftest root test/visual-2026-09-26T18-18-25.650Z-57557b16/
+run  R2 credentials available by required names
+ok   R2 credentials available by required names
+run  real Node Playground boots and seeds WordPress via same-instance WP-CLI
+ok   real Node Playground boots and seeds WordPress via same-instance WP-CLI
+run  baseline both widths and exact real R2 PNG/health bytes
+ok   baseline both widths and exact real R2 PNG/health bytes
+run  same-instance WP-CLI update changes exactly alpha at both widths
+ok   same-instance WP-CLI update changes exactly alpha at both widths
+run  page approval preserves beta; new check and CLI pass
+ok   page approval preserves beta; new check and CLI pass
+run  remote-only whole-site approval ignores newer unrelated and partial runs
+ok   remote-only whole-site approval ignores newer unrelated and partial runs
+run  approval negative preflight leaves all real baselines unchanged
+ok   approval negative preflight leaves all real baselines unchanged
+run  isolated WordPress health failures and baseline-relative warnings
+ok   isolated WordPress health failures and baseline-relative warnings
+run  site/page mask union stabilizes large random regions; no mask fails
+ok   site/page mask union stabilizes large random regions; no mask fails
+run  height and horizontal overflow preserve dimensions and approve correctly
+ok   height and horizontal overflow preserve dimensions and approve correctly
+run  blocked unreachable/403/challenge sites continue to normal site
+ok   blocked unreachable/403/challenge sites continue to normal site
+run  GET-only browser policy prevents POST and beacon reaching WordPress
+ok   GET-only browser policy prevents POST and beacon reaching WordPress
+run  self-signed HTTPS blocked by default; internal fixture reports mixed content
+ok   self-signed HTTPS blocked by default; internal fixture reports mixed content
+run  CLI configuration errors and missing baseline leave baseline bytes intact
+ok   CLI configuration errors and missing baseline leave baseline bytes intact
+run  real check prunes more than ten report runs; baselines unchanged
+ok   real check prunes more than ten report runs; baselines unchanged
+visual:selftest PASS; cleanup empty; summary /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/visual-selftest-2026-09-26T18-18-25.650Z/summary.json

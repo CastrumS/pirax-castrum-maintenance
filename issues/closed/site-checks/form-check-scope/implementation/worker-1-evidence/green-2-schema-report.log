@@ -1,0 +1,112 @@
+bun test v1.4.2 (744846f84)
+
+tests/sites.test.ts:
+94 |     const sites = loadSites(join(import.meta.dir, "..", "sites.example.yaml"));
+95 |     expect(sites.length).toBeGreaterThan(0);
+96 |     for (const s of sites) expect(new URL(s.url).hostname).toMatch(/(^|\.)example\.(com|org|net)$|\.example$/);
+97 |     const pages = sites.flatMap((s) => s.pages);
+98 |     expect(pages.some((p) => p.mask.length > 0)).toBe(true);
+99 |     expect(sites.some((s) => s.test_form)).toBe(true);
+                                                ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:99:44)
+(fail) loadSites valid input > shipped sites.example.yaml loads [0.49ms]
+100 |   });
+101 | 
+102 |   test("committed sites.yaml designates exactly the operator's 12 test forms, offline", () => {
+103 |     const sites = loadSites(join(import.meta.dir, "..", "sites.yaml"));
+104 |     expect(sites).toHaveLength(13);
+105 |     expect(Object.fromEntries(sites.filter((s) => s.test_form).map((s) => [s.slug, s.test_form]))).toEqual({
+                                                                                                         ^
+error: expect(received).toEqual(expected)
+
+- {
+-   "alu-kon": {
+-     "id": 1,
+-     "page": "/kontakt/",
+-     "plugin": "gravity",
+-   },
+-   "baterije-akumulatori": {
+-     "id": 2,
+-     "page": "/kontakt/",
+-     "plugin": "gravity",
+-   },
+-   "bravarskiservis": {
+-     "id": 5,
+-     "page": "/kontakt/",
+-     "plugin": "fluent",
+-   },
+-   "centrum-panda": {
+-     "id": 3,
+-     "page": "/",
+-     "plugin": "gravity",
+-   },
+-   "epamalgradnja": {
+-     "id": 1,
+-     "page": "/kontakt/",
+-     "plugin": "gravity",
+-   },
+-   "instrukcijezasve": {
+-     "id": 4,
+-     "page": "/kontakt/",
+-     "plugin": "gravity",
+-   },
+-   "laris-tcb": {
+-     "id": 2,
+-     "page": "/",
+-     "plugin": "gravity",
+-   },
+-   "spok-ing": {
+-     "id": 6,
+-     "page": "/kontakt/",
+-     "plugin": "fluent",
+-   },
+-   "stolarijabanek": {
+-     "id": 1,
+-     "page": "/kontakt/",
+-     "plugin": "fluent",
+-   },
+-   "suntos": {
+-     "id": 4,
+-     "page": "/kontakt/",
+-     "plugin": "fluent",
+-   },
+-   "tara-garden": {
+-     "id": 1,
+-     "page": "/about-us/",
+-     "plugin": "gravity",
+-   },
+-   "teambuildinghrvatska": {
+-     "id": 1,
+-     "page": "/",
+-     "plugin": "gravity",
+-   },
+- }
++ {}
+
+- Expected  - 62
++ Received  + 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/tests/sites.test.ts:105:100)
+(fail) loadSites valid input > committed sites.yaml designates exactly the operator's 12 test forms, offline [1.16ms]
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check-scope/runs/2026-09-26T20-07-03.813Z/index.html
+
+ 40 pass
+ 2 fail
+ 550 expect() calls
+Ran 42 tests across 2 files. [492.00ms]
+EXIT=1
+bun test v1.4.2 (744846f84)
+
+ 8 pass
+ 3 filtered out
+ 0 fail
+ 71 expect() calls
+Ran 8 tests across 1 file. [211.00ms]
+EXIT=0

@@ -1,0 +1,13 @@
+{
+  "mutations": 1,
+  "capture": "captured",
+  "warnings": [],
+  "health": {
+    "status": 200,
+    "finalUrl": "http://127.0.0.1:42645/",
+    "criticalError": false,
+    "consoleErrors": [],
+    "failedRequests": [],
+    "mixedContent": []
+  }
+}

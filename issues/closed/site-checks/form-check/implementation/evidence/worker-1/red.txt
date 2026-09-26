@@ -1,0 +1,62 @@
+bun test v1.4.2 (744846f84)
+
+tests/commands.test.ts:
+4 | import { pageKey, type Site } from "../sites.ts";
+5 | import { isRunId } from "../store.ts";
+6 | import type { Manifest, PageResult, ViewportResult } from "./model.ts";
+7 | 
+8 | export class ReportError extends Error {}
+9 | const fail = (detail: string): never => { throw new ReportError(detail); };
+                                                    ^
+error: invalid check manifest; run a new check before approval
+      at fail (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/report/manifest.ts:9:49)
+      at newestSiteCheck (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/commands/approve.ts:18:22)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/tests/commands.test.ts:95:26)
+(fail) newer valid forms-only runs are skipped; a malformed newer forms manifest is still an error [0.22ms]
+
+tests/report.test.ts:
+54 |     const html = renderHtml(report, new Map());
+55 |     expect(html).toContain("<th>Forms</th>");
+56 |     for (const outcome of outcomes) expect(html).toContain(outcome);
+57 |     expect(html).toContain("&lt;detail&gt;");
+58 |     expect(html).toContain("&lt;form id=&quot;x&quot;&gt;");
+59 |     expect(reportStatus(report)).toBe("failure"); // rejected/failed forms gate the run.
+                                      ^
+error: expect(received).toBe(expected)
+
+Expected: "failure"
+Received: "pass"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/tests/report.test.ts:59:34)
+(fail) private report > renders exact future Forms outcomes only when supplied [0.75ms]
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/2026-09-26T10-35-12.226Z/index.html
+
+test/forms/config.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../../src/forms/config.ts' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/config.test.ts'
+-------------------------------
+
+
+test/forms/imap.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../../src/mail/imap.ts' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/imap.test.ts'
+-------------------------------
+
+
+test/forms/report.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+SyntaxError: Export named 'parsePublishedManifest' not found in module '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/report/manifest.ts'.
+-------------------------------
+
+
+ 16 pass
+ 5 fail
+ 3 errors
+ 87 expect() calls
+Ran 21 tests across 5 files. [1225.00ms]

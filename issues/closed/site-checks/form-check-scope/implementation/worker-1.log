@@ -1,0 +1,27 @@
+The designated-form scope is implemented. The resolved changed-test command passed on its final run: exit 0, 212 pass / 0 fail, 1238 s. Nothing is committed, nothing ran against a live site, and no `.env` file was opened.
+
+**What changed (16 files):**
+- **Schema** (`src/sites.ts`): new optional `test_form` with exactly `page`, `plugin` and `id`. The page must match a listed path exactly, the plugin must be gravity or fluent, and the id must be an integer. Anything else fails with the site slug and the failing field. Without `test_form`, nothing is filled in.
+- **Report**: new `skipped` outcome, accepted by both manifest modes. It counts as a pass for status but is shown neutrally, with a footer saying it is not delivery evidence. Unknown outcomes are still rejected.
+- **Runner** (`src/forms/runner.ts`, used by both `check` and `forms`):
+  - On the designated page only, the first form with a matching plugin and id is picked before any browser context, credential read or typing.
+  - Every other form is `skipped` with its reason, and there is no retry or fallback.
+  - If the designated form isn't on its page after a successful scan, one result says `failed` / `test form not found`.
+  - Navigation failures stay page-scan failures.
+- **Site list**: `sites.yaml` has the 12 designations uncommented verbatim; downstairs has none, and pages and helper flags are unchanged.
+- **Docs**: `README.md`, `sites.example.yaml` and `test/forms/README.md` are updated.
+- **Tests**: the rest of the 16 files.
+
+**Evidence** (worktree `runs/` and the leaf's `implementation/worker-1-evidence/`):
+- **Fail-first:** the new tests failed against the old code, 14 in `red-1` and 3 in `red-2`, for the right reasons. For example, the old runner submitted every form on both pages. After the change: browser 20/20, sites and report 42/42, typecheck exit 0.
+- **Native Playground:** final focused run 8/8. With the base form designated on the second page, the real CLI made exactly one submission and skipped five forms. It exited 1 after one real mailbox deadline (305,516 ms). The mail log showed exactly one tagged ID with two notifications, entries and feeds were unchanged after cleanup, and the scoped R2 prefix was left empty.
+- The no-designation, missing-ID and helper-false CLI runs produced zero submissions. `check` captured both widths as `same` with the same selection.
+- The offline load prints 13 sites, 12 designated, downstairs none. A value-free scan found no secrets in the evidence logs.
+
+**One failure along the way:** the first full-suite run was 211 pass / 1 fail. The failure was `tests/report.test.ts`, whose Chromium render stalled on loading a local file; this change didn't touch that test except for one footer string. The trace shows the page never finished loading within 30 s. It passed 6 of 6 reruns, alone and in suite order, and passed in the final full run, so I made no code change for it.
+
+**Not verified, because live-site runs were forbidden:**
+- I didn't check that each live page actually renders its designated form. A wrong designation shows up as `test form not found`, never as a different form being submitted.
+- Real mailbox delivery is unproven, because Playground only logs mail.
+
+The full report, with exact commands, argv/cwd and all artifact paths, is at `/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/form-check-scope/implementation/worker-1-report.md`.

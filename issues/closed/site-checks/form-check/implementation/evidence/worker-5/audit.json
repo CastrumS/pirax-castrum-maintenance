@@ -1,0 +1,72 @@
+{
+  "directories": [
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-1e6f4d56-c748-4859-9c4d-0cd25c1324b9",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-collision-3190b1f3-e753-4c67-88fc-f8ccd52ca3e2",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-c7fcc8cf-21f8-487d-837b-73ef5f97241b",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-36ebb611-b471-4c3d-bdf9-a1a0b7cafdd3",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-0bf5f3dc-83a5-4808-acb1-a78bb8c7d300",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-collision-df83e349-dfb9-4362-8a0f-efe44b1fa9a3",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-report-tests-130ed088-87e5-4bfa-b00c-e825d608f058",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-fbe1c9b3-3516-4ae4-a80f-f7916b253bcb",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/capture-test-2026-09-26T17-49-22.280Z",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/2026-09-26T17-49-58.053Z",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-collision-de25b553-a7be-470e-9147-fa8e0ec24e41",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-report-tests-c520b877-f30f-4092-ab57-76168214c932",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-2748a37e-6542-4885-93c7-37ca9961b649",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-playground-8449654a-3c1c-4603-8b9e-812f7e9372eb",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/artifacts/plugin/forms-checker-2026-09-26T17-42-06-799Z",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/artifacts/plugin/forms-checker-2026-09-26T17-43-36-788Z",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/artifacts/plugin/forms-checker-2026-09-26T17-47-26-821Z",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/artifacts/plugin/adapters-2026-09-26T17-49-58-367Z",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/artifacts/plugin/core-2026-09-26T17-55-06-547Z",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/artifacts/plugin/harness-smoke-2026-09-26T17-56-47-709Z",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/artifacts/plugin/review-regressions-2026-09-26T17-57-38-130Z",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/artifacts/plugin/safety-2026-09-26T17-58-25-190Z",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/artifacts/plugin/forms-checker-2026-09-26T18-01-33-859Z",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/form-check/implementation/evidence/worker-5",
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-worker5-audit/challenge"
+  ],
+  "files": 448,
+  "archives": 208,
+  "unsafe": 0,
+  "bad": [],
+  "cleanup": [
+    {
+      "root": "test/forms-collision-2026-09-26T17-40-53.814Z-645c7adc/",
+      "remaining": 0
+    },
+    {
+      "root": "test/forms-native-2026-09-26T17-42-06.797Z-32f2e983/",
+      "remaining": 0
+    },
+    {
+      "root": "test/forms-native-2026-09-26T17-43-36.786Z-93934509/",
+      "remaining": 0
+    },
+    {
+      "root": "test/forms-collision-2026-09-26T17-46-58.890Z-1cf760f6/",
+      "remaining": 0
+    },
+    {
+      "root": "test/forms-report-2026-09-26T17-47-01.132Z-490d3a9a/",
+      "remaining": 0
+    },
+    {
+      "root": "test/forms-native-2026-09-26T17-47-26.820Z-8abc38af/",
+      "remaining": 0
+    },
+    {
+      "root": "test/forms-collision-2026-09-26T18-00-31.403Z-a45614a1/",
+      "remaining": 0
+    },
+    {
+      "root": "test/forms-report-2026-09-26T18-00-34.298Z-7909a3b4/",
+      "remaining": 0
+    },
+    {
+      "root": "test/forms-native-2026-09-26T18-01-33.858Z-c96f0d3e/",
+      "remaining": 0
+    }
+  ],
+  "ok": true
+}

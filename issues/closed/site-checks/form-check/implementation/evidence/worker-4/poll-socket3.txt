@@ -1,0 +1,34 @@
+{"i":0,"live":0,"ends":1,"closes":1,"opens":[{"port":59028,"at":1790438262200}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":1,"live":0,"ends":1,"closes":1,"opens":[{"port":35966,"at":1790438263755}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":2,"live":0,"ends":1,"closes":1,"opens":[{"port":38408,"at":1790438265306}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":3,"live":0,"ends":1,"closes":1,"opens":[{"port":44776,"at":1790438266858}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":4,"live":0,"ends":1,"closes":1,"opens":[{"port":39514,"at":1790438268409}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":5,"live":0,"ends":1,"closes":1,"opens":[{"port":55758,"at":1790438269961}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":6,"live":0,"ends":1,"closes":1,"opens":[{"port":36856,"at":1790438271512}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":7,"live":0,"ends":1,"closes":1,"opens":[{"port":50168,"at":1790438273064}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":8,"live":0,"ends":1,"closes":1,"opens":[{"port":47290,"at":1790438274616}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":9,"live":0,"ends":1,"closes":1,"opens":[{"port":48126,"at":1790438276170}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":10,"live":0,"ends":1,"closes":1,"opens":[{"port":33444,"at":1790438277721}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":11,"live":0,"ends":1,"closes":1,"opens":[{"port":47736,"at":1790438279272}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":12,"live":0,"ends":1,"closes":1,"opens":[{"port":49438,"at":1790438280823}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":13,"live":0,"ends":1,"closes":1,"opens":[{"port":60618,"at":1790438282375}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":14,"live":0,"ends":1,"closes":1,"opens":[{"port":44364,"at":1790438283927}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":15,"live":0,"ends":1,"closes":1,"opens":[{"port":47090,"at":1790438285478}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":16,"live":0,"ends":1,"closes":1,"opens":[{"port":36940,"at":1790438287029}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":17,"live":0,"ends":1,"closes":1,"opens":[{"port":37386,"at":1790438288580}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":18,"live":0,"ends":1,"closes":1,"opens":[{"port":39748,"at":1790438290132}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":19,"live":0,"ends":1,"closes":1,"opens":[{"port":38626,"at":1790438291683}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":20,"live":0,"ends":1,"closes":1,"opens":[{"port":33548,"at":1790438293234}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":21,"live":0,"ends":1,"closes":1,"opens":[{"port":54798,"at":1790438294786}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":22,"live":0,"ends":1,"closes":1,"opens":[{"port":37088,"at":1790438296337}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":23,"live":0,"ends":1,"closes":1,"opens":[{"port":57068,"at":1790438297888}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":24,"live":0,"ends":1,"closes":1,"opens":[{"port":54042,"at":1790438299439}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":25,"live":0,"ends":1,"closes":1,"opens":[{"port":50128,"at":1790438300991}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":26,"live":1,"ends":1,"closes":1,"opens":[{"port":59492,"at":1790438302542},{"port":59500,"at":1790438303714}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+State     Recv-Q Send-Q Local Address:Port  Peer Address:Port Process
+LISTEN    0      512        127.0.0.1:33309      0.0.0.0:*     users:(("bun",pid=1315404,fd=8))
+TIME-WAIT 0      0          127.0.0.1:59492    127.0.0.1:33309
+ESTAB     0      0          127.0.0.1:59500    127.0.0.1:33309 users:(("moshi-hook",pid=1265,fd=22))
+ESTAB     0      0          127.0.0.1:33309    127.0.0.1:59500 users:(("bun",pid=1315404,fd=12))
+
+{"afterPeerEnd":1,"closes":1}

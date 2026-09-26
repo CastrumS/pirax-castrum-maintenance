@@ -1,0 +1,21 @@
+I fixed most of the review findings, but I couldn't do the folder-marker part of criterion 3. Bun 1.4.2's S3 client has no way to reach an R2 key that ends in `/`, so that part goes back to you as a scope mismatch. The report is at `/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/checker-foundation/implementation/worker-3.md`.
+
+**Fixed:**
+- **A F1 (test isolation):** a new `bunfig.toml` makes bare `bun test` skip `issues/**`. In a small sandbox with one failing test in a nested worktree, it failed before (2 pass, 1 fail, exit 1) and passes after (2 pass, exit 0). The new `tests/discovery.test.ts` checks the same thing against the repo's own `bunfig.toml`.
+- **B F1 / A N1 (page paths):** `src/sites.ts` now rejects page paths containing backslashes, spaces, tabs, CR/LF, other control characters or DEL, as a `SitesConfigError` on `pages[i].path`. This covers both page forms, and all four review examples fail. Percent-encoded paths still load, and so does the real `sites.yaml` from `main` (13 sites, 120 pages).
+- **B N2:** report keys are now appended to each run's list instead of copying the list every time.
+- **A N4 / B N1:** the three test files now delete their temp folders after the tests. A test run leaves no new folders in `/tmp`, but the 35 left by earlier runs are still there; I didn't delete them.
+- **A N5:** the missing-config test now compares the repo's real `runs/` folder before and after. I checked it can fail: a temporary change that wrote an artifact there made it fail, and I then reverted that change.
+- **A N2 and README:** setup uses `cp -n`, and the README now covers the test exclusion and the new path rule.
+
+**Results:** the targeted command, including `tests/discovery.test.ts`, gives 47 pass, 0 fail. The new tests failed on the old code first. Typecheck and `git diff --check` are clean. The real selftest passed with all 11 checks, and its test root was fully cleaned up. Artifact: `runs/store-selftest-2026-09-25T15-22-29.070Z.json`.
+
+**The marker problem:**
+- **Tried:** probes on real R2, each in its own unique `test/` root that listed empty afterwards.
+- **What happens:** Bun removes a trailing `/` from the key on write, delete and presign. The only workaround, adding a `.` segment, is rejected by R2 as a bad signature (`SignatureDoesNotMatch` / 403).
+- **Why I reverted:** I had first let `delete` accept marker keys. But `delete("reports/<id>/")` really sends DELETE `reports/<id>`. That silently leaves the marker in place, or deletes a different object if one has exactly that name.
+- **Current state:** store key checking is exactly as reviewed. A marker still makes the prune fail loudly, and `scripts/store-selftest.ts` is unchanged. A first selftest run with markers failed as expected but still cleaned up its root; its artifact is `runs/store-selftest-2026-09-25T15-20-29.208Z.json`.
+
+**Decision for you on the marker part:** I recommend keeping the prune's current fail-loud behaviour and adding a README limitation telling operators to delete such markers with the tool that created them. That would drop the requirement for a real marker test. The alternatives are skipping markers during pruning, which the brief forbids, or hand-writing about 40 lines of signed-request code outside Bun's client. Either needs a revised brief.
+
+Nothing was committed, no akrogon commands were run, and no `.env` files were opened. I didn't run the full `bun test`; that stays with you.

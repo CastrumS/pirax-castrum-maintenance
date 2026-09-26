@@ -1,0 +1,10 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+(pass) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [24779.00ms]
+
+ 1 pass
+ 11 filtered out
+ 0 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [25.03s]

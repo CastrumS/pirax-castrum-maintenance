@@ -1,0 +1,34 @@
+{
+  "mailEnvelope": {
+    "sent": false,
+    "envelope": {
+      "to": [
+        [
+          "review-tests@operator.test",
+          ""
+        ]
+      ],
+      "cc": [
+        [
+          "cc@client.test",
+          ""
+        ]
+      ],
+      "bcc": [
+        [
+          "bcc@client.test",
+          ""
+        ]
+      ]
+    }
+  },
+  "sweepControlDeleted": true,
+  "formRename": 1,
+  "sweepEntryRetainedAfterFieldRename": true,
+  "versions": {
+    "gf": "3.1.2",
+    "ff": "6.2.14",
+    "wp": "7.1.2",
+    "php": "8.3"
+  }
+}

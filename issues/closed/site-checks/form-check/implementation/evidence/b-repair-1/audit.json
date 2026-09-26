@@ -1,0 +1,47 @@
+{
+  "directories": [
+    "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/form-check/implementation/evidence/b-repair-1",
+    "runs/capture-test-2026-09-26T18-18-25.644Z",
+    "runs/visual-selftest-2026-09-26T18-18-25.650Z",
+    "runs/2026-09-26T18-19-01.903Z",
+    "runs/forms-collision-e73a8cff-79ef-4919-a5e5-8e44f2da9e35",
+    "runs/forms-report-tests-42b9bfa9-50e2-41b2-8c64-0f51b88d49d5",
+    "runs/forms-browser-888be78f-7656-49ec-810c-0b2ad14e8fd3",
+    "runs/forms-playground-0d2d6e5c-0af8-47f2-bbf0-dcd984f65703",
+    "artifacts/plugin/adapters-2026-09-26T18-19-02-261Z",
+    "artifacts/plugin/core-2026-09-26T18-24-46-159Z",
+    "artifacts/plugin/harness-smoke-2026-09-26T18-26-37-516Z",
+    "artifacts/plugin/review-regressions-2026-09-26T18-27-34-425Z",
+    "artifacts/plugin/safety-2026-09-26T18-28-29-372Z",
+    "artifacts/plugin/forms-checker-2026-09-26T18-32-03-127Z"
+  ],
+  "files": 1039,
+  "archives": 308,
+  "uploadExclusionSentinels": 2,
+  "unsafe": 0,
+  "summaries": [
+    "runs/visual-selftest-2026-09-26T18-18-25.650Z/summary.json",
+    "runs/forms-collision-e73a8cff-79ef-4919-a5e5-8e44f2da9e35/synthetic-folder-collision/summary.json",
+    "runs/forms-report-tests-42b9bfa9-50e2-41b2-8c64-0f51b88d49d5/summary.json",
+    "runs/forms-playground-0d2d6e5c-0af8-47f2-bbf0-dcd984f65703/summary.json"
+  ],
+  "cleanup": [
+    {
+      "root": "test/visual-2026-09-26T18-18-25.650Z-57557b16/",
+      "remaining": 0
+    },
+    {
+      "root": "test/forms-collision-2026-09-26T18-31-01.607Z-ff3a08ea/",
+      "remaining": 0
+    },
+    {
+      "root": "test/forms-report-2026-09-26T18-31-02.857Z-d4cd84d4/",
+      "remaining": 0
+    },
+    {
+      "root": "test/forms-native-2026-09-26T18-32-03.126Z-a2e89153/",
+      "remaining": 0
+    }
+  ],
+  "ok": true
+}

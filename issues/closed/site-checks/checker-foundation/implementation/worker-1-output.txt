@@ -1,0 +1,20 @@
+Unit 1 is done and the targeted tests pass: 28 pass, 0 fail. The report is at `/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/checker-foundation/implementation/worker-1.md`.
+
+**What was added in the worktree** (nothing committed):
+- **Project setup:** `package.json` has the three scripts. `store:selftest` points at `scripts/store-selftest.ts`, which unit 2 still has to write. The only dev dependencies are `typescript` and `@types/bun`. `tsconfig.json` is strict with no output, `bun.lock` is added, and `.gitignore` keeps every existing entry and adds `runs/`.
+- **`src/sites.ts`:** exports `Site`, `Page`, `SitesConfigError`, `loadSites(path = "sites.yaml")` and `pageKey`.
+  - Errors carry `site` and `field` and read like `sites.yaml: acme: url: must not end with "/"`. When there's no valid slug, the site is named `site[i]`, or `<root>` for file-level problems. Read and YAML errors don't echo file contents.
+  - `pageKey` turns `/` into `home` and `/a/b/` into `a-b`. Other unsafe characters become `%XX`.
+  - Duplicate paths and key clashes within a site are rejected. That includes `/` vs `/home/`, `/a/b/` vs `/a-b/`, and paths that differ only by letter case.
+- **`src/env.ts`:** `readR2Config(env = process.env)` returns `{accessKeyId, secretAccessKey, endpoint, bucket, region: "auto"}`. If anything is missing or blank it throws `EnvError`, which lists every such name and never the values. Nothing is read when the module is imported.
+- **`sites.example.yaml`:** the design's schema on an example domain, showing both ways to list a page.
+- **Tests:** `tests/sites.test.ts` and `tests/env.test.ts` use only temp files and made-up env values. They launch Bun sub-processes from a temp folder with `--no-env-file`, so the local `.env` can't leak into them.
+
+**Test runs:** before `src/` existed, the targeted command failed with "Cannot find module" (exit 1). After implementing, it passed (exit 0). As an extra check, `tsc --noEmit` and `git diff --check` both pass. Git confirms `.env` and `runs/` are ignored, and `sites.yaml`, the example file and `.env.example` are not.
+
+**Limitations:**
+- Masks are only checked as non-blank strings, since checking CSS selectors needs a browser.
+- A `sites:` line with nothing under it is an error; an empty list has to be written as `sites: []`.
+- `%` can appear in page keys, so any URL built from a key must be encoded.
+
+`.env`, `.env.example` and any other `.env.*` file were never opened or changed. The full `bun test` and `bun run typecheck` runs are still yours at the final check, as the brief says.

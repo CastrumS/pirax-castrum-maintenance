@@ -1,0 +1,53 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+(pass) detects actual distinct plugin forms once and preserves unknown identities [153.31ms]
+(pass) fills basic controls with full random marker, preserving hidden/honeypot data [283.28ms]
+(pass) preinspects whole form: hidden upload, marker constraints and custom flows never type [1025.79ms]
+(pass) no-helper blocks autonomous input/change GET/POST/image/navigation and sockets [5771.38ms]
+killed 1 dangling process
+(fail) specific new GF and associated FF confirmations; errors sanitized; no retry [30000.34ms]
+  ^ this test timed out after 30000ms.
+53 | function html(body: string, status = 200) { return new Response(`<!doctype html><meta charset="utf-8">${body}`, { status, headers: { "content-type": "text/html" } }); }
+54 | beforeAll(async () => { await mkdir(runDir, { recursive: true }); browser = await chromium.launch(); });
+55 | afterAll(async () => { await browser?.close(); server.stop(true); });
+56 | let sequence = 0;
+57 | async function visit(path: string, fn: (page: import("playwright").Page, policy: Awaited<ReturnType<typeof installFormPolicy>>) => Promise<void>, content?: string) {
+58 |   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: "block" });
+                                     ^
+error: async newContext: Protocol error (Target.createBrowserContext): Failed to create browser context.
+  log: [],
+
+      at visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:58:33)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:126:9
+      at processTicksAndRejections (native:7:39)
+(fail) marker changed after preparation is never submitted; native invalidity is rejection [3.57ms]
+
+# Unhandled error between tests
+-------------------------------
+87 |   const dir = await mkdtemp(join(tmpdir(), "pirax-forms-raw-"));
+88 |   try {
+89 |     const raw = join(dir, "trace.zip");
+90 |     await context.tracing.stop({ path: raw });
+91 |     await sanitizeTrace(raw, destination, redact);
+92 |   } catch { await rm(destination, { force: true }); throw new Error("Trace sanitation failed; unsafe evidence deleted."); }
+                                                                   ^
+error: Trace sanitation failed; unsafe evidence deleted.
+      at retainTrace (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/src/forms/evidence.ts:92:63)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:62:19)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:114:11)
+-------------------------------
+
+(pass) scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, later forms continue [3277.85ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-9c8e8ba9-2492-4950-8f74-99f568eedfd0
+(pass) retained action traces are secret-free with no image/DOM/source payloads [564.52ms]
+
+test/forms/evidence.test.ts:
+(pass) sanitizer removes raw, percent, JSON/unicode, HTML and nested encodings [1.82ms]
+(pass) trace sanitation fails closed, deletes raw and unsafe output on invalid archive [3.10ms]
+
+ 8 pass
+ 2 fail
+ 1 error
+ 50 expect() calls
+Ran 10 tests across 2 files. [41.35s]

@@ -1,0 +1,20 @@
+Unit 8 is finished: `bun run typecheck` now exits 0 and the plugin suites pass. The tsconfig scope and strict settings, including `noUncheckedIndexedAccess`, are unchanged. The report is in `implementation/worker-8.md`, nothing is committed, and I didn't run the full suite.
+
+**Typecheck:** at `67ab9bd` I reproduced the 28 errors; they matched `merge-repair-typecheck-red.log` exactly. After the fix: `$ tsc --noEmit`, exit 0. Six files under `test/plugin/` changed. There are no changes to production PHP, dependencies, the lockfile, bunfig, the README, `.gitignore` or any documented interface. No `ts-ignore` and no new `any` or `unknown` casts.
+
+**Tests:** I ran the brief's command with no `--timeout`. Result: 38 pass, 0 fail, 680 `expect()` calls across 5 files, exit 0, 644.68 s. That is the same test and assertion count as your round-1 plugin run, so no assertion was lost or added. I renamed one variable in `core.test.ts` after that suite had already loaded, so I re-ran core alone: 9 pass, 0 fail, exit 0.
+
+**Secrets:** `findSecret()` found 0 hits for either credential in the six new `artifacts/plugin/*` directories, and 0 matches in the console logs. I opened no `.env` file.
+
+**Fixes, by kind:**
+- **`h.php()` expectations (6 errors):** with no explicit type, TypeScript picked Bun's `expect(actual?: never)` overload, so matchers expected `undefined`. They now carry the type the PHP returns (`boolean`, `string`, or the `parse()` result from `marker.php`). The `T = unknown` default on `h.php` is kept.
+- **Indexed rows:** each gets `!` only where an earlier assertion already pins the array length (for example `toHaveLength(1)`), or where `ok` is asserted before `insertId` is used.
+- **FF job `b`:** that test checks no job count first, so it now has an explicit `throw` guard. This is the only change that can affect runtime, and only when it fails.
+- **Seeded ids:** I didn't use `!` here. In the sweep test, a misspelled label would reach PHP as id 0 and `toEqual([])` would pass without checking anything. `seed()` now returns a type keyed by its item labels, which also removed the old `items as any`. A test edit with a misspelled label failed to compile, so the typing does catch it; I reverted that edit.
+- **Nonce cases (core):** now an annotated `const badNonces: Record<string, string>[]`, the same pattern as the `invalid` list above it.
+- **`harness.ts`:** `eachLine` now takes `ReadableStream<BufferSource>`, which is what `TextDecoderStream` accepts; Bun's stdout type still fits. The decoding code is unchanged, so the compiler result is the evidence, as the brief allows.
+- **`playground.ts`:** `process.argv[2]!`, since `startHarness()` always passes that argument. Node's type stripping ran the file in every suite.
+
+**Limitations:** the new guard's `throw` has never actually run; its normal path passed. The `!` sites rely on the invariants listed in the report.
+
+**Next for you:** run `bun run typecheck` and the full `bun --env-file=<registered-repo>/.env test`, then commit.

@@ -1,0 +1,10 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+(pass) capture in real Chromium > navigation triggered by readiness scrolling reconciles the final document [1990.98ms]
+
+ 1 pass
+ 18 filtered out
+ 0 fail
+ 5 expect() calls
+Ran 1 test across 1 file. [2.29s]

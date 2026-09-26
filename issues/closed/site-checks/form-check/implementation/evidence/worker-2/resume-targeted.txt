@@ -1,0 +1,66 @@
+bun test v1.4.2 (744846f84)
+
+tests/commands.test.ts:
+(pass) command preflight without browser or storage > parses selection, optional sites and approve page; retains list order [0.17ms]
+(pass) command preflight without browser or storage > rejects missing, extra, unsupported flags and approve all [0.06ms]
+(pass) command preflight without browser or storage > exit 2 for configuration before work; empty all is zero with no credentials [0.86ms]
+(pass) command preflight without browser or storage > CLI imports have no credential reads or exits and missing env is sanitized exit 2 [671.85ms]
+(pass) only canonical completed run IDs qualify, in descending order [0.26ms]
+(pass) latest containing site is selected, incomplete/unrelated evidence never replaces it [0.50ms]
+(pass) latest valid containing site wins over unrelated newer history without falling back from blocked pages [0.91ms]
+(pass) direct approval rejects an unlisted page before touching its real lazy Store [0.53ms]
+(pass) newer valid forms-only runs are skipped; a malformed newer forms manifest is still an error [1.16ms]
+
+tests/report.test.ts:
+(pass) private report > embeds images and escapes all untrusted text without external assets [3.95ms]
+(pass) private report > renders exact future Forms outcomes only when supplied [0.16ms]
+(pass) private report > aggregates blocked, failures and warnings while keeping capture separate [0.04ms]
+(pass) manifest and exact approval evidence > accepts canonical manifest and derives safe encoded page keys [0.14ms]
+(pass) manifest and exact approval evidence > rejects malformed schemas, shapes, duplicate sites, run mismatch and arbitrary artifact paths [0.22ms]
+(pass) manifest and exact approval evidence > requires current URL, requested pages and both complete captures from the selected run [0.23ms]
+(pass) manifest and exact approval evidence > validates actual PNG and raw health bytes against recorded dimensions [3.61ms]
+(pass) manifest and exact approval evidence > approval accepts full-page horizontal overflow using recorded dimensions [1.52ms]
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/2026-09-26T14-22-11.137Z/index.html
+(pass) local report renders all embedded images and inert hostile text in real Chromium [946.49ms]
+
+test/forms/config.test.ts:
+(pass) readFormConfig > returns the exact token and single address without trimming or transforming [0.25ms]
+(pass) readFormConfig > missing or blank names are EnvError naming each variable [0.12ms]
+(pass) readFormConfig > invalid token and address formats are value-free configuration errors [0.31ms]
+(pass) readImapConfig > 993 is implicit TLS, other ports require STARTTLS; password and folders are literal [0.25ms]
+(pass) readImapConfig > missing or blank names list every variable [0.08ms]
+(pass) readImapConfig > invalid host, port, user and non-literal folders are value-free errors [0.27ms]
+(pass) importing readers needs no environment; process.env default reads lazily [78.23ms]
+
+test/forms/imap.test.ts:
+(pass) pollDelivery input and deadline > rejects non-canonical IDs and deadlines before any network access [0.61ms]
+(pass) pollDelivery input and deadline > a silent server cannot outlive the deadline; the connection is closed and not reported as absent mail [1553.48ms]
+(pass) pollDelivery input and deadline > STARTTLS is required off port 993: no credentials are ever sent in plaintext [56.80ms]
+(pass) pollDelivery input and deadline > refused and dropped connections are explicit sanitized failures [1.88ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: startup discovery is opt-in suppressed, including no-NAMESPACE LIST fallback [0.89ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: literal EXAMINE skips metadata LIST, preserves encoding and has no failed-open fallback [7.62ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: installed fetch compiler requests only candidate UID and Subject PEEK [0.59ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: startup discovery is opt-in suppressed, including no-NAMESPACE LIST fallback [6.73ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: literal EXAMINE skips metadata LIST, preserves encoding and has no failed-open fallback [1.61ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: installed fetch compiler requests only candidate UID and Subject PEEK [0.92ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > unfolds and MIME-decodes one Subject, rejecting malformed/duplicate fields and near tags [0.70ms]
+(pass) tag matching and folder policy > rechecks the exact tag because IMAP SUBJECT search is a case-insensitive substring match [0.05ms]
+(pass) tag matching and folder policy > equal configured names are opened once and treated conservatively as spam [0.03ms]
+(pass) tag matching and folder policy > a match in both folders favors spam; no match waits [0.05ms]
+(pass) tag matching and folder policy > protocol evidence keeps only command names and fetch data items [0.11ms]
+
+test/forms/report.test.ts:
+(pass) forms-only manifest > parsePublishedManifest returns either validated mode; parseManifest stays check-only [0.24ms]
+(pass) forms-only manifest > rejects fabricated viewports, missing forms, mixed discriminators and malformed identity [0.82ms]
+(pass) form outcome gating > failed/rejected fail, spam/not-verified/unsupported warn, delivered passes [0.13ms]
+(pass) form outcome gating > existing visual/health failures still fail with passing forms [0.03ms]
+(pass) form outcome gating > forms-only HTML has page Forms data without image panels and escapes hostile text [0.17ms]
+(pass) form outcome gating > check pages show form-aware page and site status [0.08ms]
+(pass) forms-only local and published reports > local report has only HTML and manifest, excludes traces, and renders in real Chromium [131.98ms]
+(pass) forms-only local and published reports > real R2: manifest last, traces excluded, approval still selects the older check [6096.28ms]
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-report-tests-fbd107e1-331c-4e78-af5d-1b5a6c7fd737/summary.json
+
+ 48 pass
+ 0 fail
+ 627 expect() calls
+Ran 48 tests across 5 files. [9.83s]

@@ -1,0 +1,5 @@
+Fixed the port-order-dependent expectation and removed timing debug output. Production code unchanged.
+
+Validation: **24 tests passed**, typecheck passed, and 22 trace archives verified.
+
+Full handoff, export signatures, artifact paths, and limitations: [worker-2.md](/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/site-checks/visual-health-check/implementation/worker-2.md).

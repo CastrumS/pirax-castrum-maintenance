@@ -1,0 +1,17 @@
+{"i":0,"live":0,"ends":1,"closes":1,"opens":[{"port":35466,"at":1790438159453}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":1,"live":0,"ends":1,"closes":1,"opens":[{"port":60142,"at":1790438161006}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":2,"live":0,"ends":1,"closes":1,"opens":[{"port":37812,"at":1790438162557}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":3,"live":0,"ends":1,"closes":1,"opens":[{"port":51044,"at":1790438164108}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+{"i":4,"live":1,"ends":1,"closes":1,"opens":[{"port":53644,"at":1790438165660},{"port":53648,"at":1790438165767}],"facts":[{"destroyed":true,"closed":true,"pending":true},{"clientEnd":true},{"clientClose":true}],"outcome":"failed"}
+ 7 |  facts=[];const live=new Set<any>();let ends=0, closes=0;let ended:any;const opens:any[]=[];
+ 8 |  const server=Bun.listen({hostname:'127.0.0.1',port:0,socket:{open(s){live.add(s);opens.push({port:s.remotePort,at:Date.now()})},data(){},end(s){ends++;ended=s},close(s){closes++;live.delete(s)}}});
+ 9 |  const result=await pollDelivery({id:'abc123def456',config:{host:'127.0.0.1',port:server.port,secure:false,user:'synthetic-user',password:'synthetic-secret',folder:'Tests',spamFolder:'Spam'},timeoutMs:1500});
+10 |  for(let j=0;j<40&&live.size;j++)await Bun.sleep(50);
+11 |  console.log(JSON.stringify({i,live:live.size,ends,closes,opens,facts,outcome:result.outcome}));
+12 |  if(live.size){console.log(await Bun.$`ss -tanp ( sport = ${server.port} or dport = ${server.port} )`.text());if(ended){ended.end();await Bun.sleep(100);console.log(JSON.stringify({afterPeerEnd:live.size,closes}));}server.stop(true);break;}
+                                        ^
+error: Unexpected token: `(`
+      at BunShell2 (191:36)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-worker4-diagnostic/poll-socket.ts:12:38
+
+Bun v1.4.2 (Linux x64)

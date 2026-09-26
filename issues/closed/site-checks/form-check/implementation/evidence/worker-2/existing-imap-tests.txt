@@ -1,0 +1,18 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/imap.test.ts:
+(pass) pollDelivery input and deadline > rejects non-canonical IDs and deadlines before any network access [0.76ms]
+(pass) pollDelivery input and deadline > a silent server cannot outlive the deadline; the connection is closed and not reported as absent mail [1554.79ms]
+(pass) pollDelivery input and deadline > STARTTLS is required off port 993: no credentials are ever sent in plaintext [57.42ms]
+(pass) pollDelivery input and deadline > refused and dropped connections are explicit sanitized failures [2.03ms]
+(pass) tag matching and folder policy > rechecks the exact tag because IMAP SUBJECT search is a case-insensitive substring match [0.06ms]
+(pass) tag matching and folder policy > equal configured names are opened once and treated conservatively as spam [0.03ms]
+(pass) tag matching and folder policy > a match in both folders favors spam; no match waits [0.05ms]
+(pass) tag matching and folder policy > protocol evidence keeps only command names and fetch data items [0.12ms]
+
+ 8 pass
+ 0 fail
+ 56 expect() calls
+Ran 8 tests across 1 file. [1.68s]
+
+exit 0

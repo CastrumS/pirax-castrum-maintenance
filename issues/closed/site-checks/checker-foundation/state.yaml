@@ -1,0 +1,32 @@
+slug: checker-foundation
+phase: merged
+created: 2026-09-25
+repo: Pirax-Castrum-Maintenance
+debate: "no"
+blocked-by: 
+  []
+sources: 
+  []
+busy_since: 
+  {}
+busy_notified: 
+  {}
+attempts: 
+  A: 0
+  B: 0
+done: 
+  []
+fix_rounds: 1
+verdict: 
+  {}
+tab: wM:t2
+worktree: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-foundation
+pane: 
+  A: wM:p2
+  B: wM:p3
+prompted: 
+  {}
+prompted_at: 
+  {}
+delivery_error: 
+  {}

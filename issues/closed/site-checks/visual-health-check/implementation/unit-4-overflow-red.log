@@ -1,0 +1,38 @@
+bun test v1.4.2 (744846f84)
+
+tests/report.test.ts:
+(pass) private report > embeds images and escapes all untrusted text without external assets [4.02ms]
+(pass) private report > renders exact future Forms outcomes only when supplied [0.15ms]
+(pass) private report > aggregates blocked, failures and warnings while keeping capture separate [0.03ms]
+(pass) manifest and exact approval evidence > accepts canonical manifest and derives safe encoded page keys [0.52ms]
+(pass) manifest and exact approval evidence > rejects malformed schemas, shapes, duplicate sites, run mismatch and arbitrary artifact paths [0.44ms]
+(pass) manifest and exact approval evidence > requires current URL, requested pages and both complete captures from the selected run [0.43ms]
+(pass) manifest and exact approval evidence > validates actual PNG and raw health bytes against recorded dimensions [3.21ms]
+4 | import { pageKey, type Site } from "../sites.ts";
+5 | import { isRunId } from "../store.ts";
+6 | import type { Manifest, PageResult, ViewportResult } from "./model.ts";
+7 | 
+8 | export class ReportError extends Error {}
+9 | const fail = (detail: string): never => { throw new ReportError(detail); };
+                                                                          ^
+error: actual PNG dimensions differ from captured dimensions; run check first
+      at fail (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/src/report/manifest.ts:9:71)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/tests/report.test.ts:110:14)
+(fail) manifest and exact approval evidence > approval accepts full-page horizontal overflow using recorded dimensions [0.57ms]
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/runs/2026-09-25T16-34-04.871Z/index.html
+(pass) local report renders all embedded images and inert hostile text in real Chromium [923.16ms]
+
+tests/commands.test.ts:
+(pass) command preflight without browser or storage > parses selection, optional sites and approve page; retains list order [0.24ms]
+(pass) command preflight without browser or storage > rejects missing, extra, unsupported flags and approve all [0.10ms]
+(pass) command preflight without browser or storage > exit 2 for configuration before work; empty all is zero with no credentials [0.94ms]
+(pass) command preflight without browser or storage > CLI imports have no credential reads or exits and missing env is sanitized exit 2 [596.07ms]
+(pass) only canonical completed run IDs qualify, in descending order [0.14ms]
+(pass) latest containing site is selected, incomplete/unrelated evidence never replaces it [0.36ms]
+(pass) latest valid containing site wins over unrelated newer history without falling back from blocked pages [0.50ms]
+(pass) direct approval rejects an unlisted page before touching its real lazy Store [0.61ms]
+
+ 16 pass
+ 1 fail
+ 83 expect() calls
+Ran 17 tests across 2 files. [1.70s]

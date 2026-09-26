@@ -1,0 +1,82 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+(pass) detects actual distinct plugin forms once and preserves unknown identities [156.03ms]
+(pass) fills basic controls with full random marker, preserving hidden/honeypot data [257.97ms]
+(pass) preinspects whole form: hidden upload, marker constraints and custom flows never type [1011.99ms]
+killed 2 dangling processes
+(fail) no-helper blocks autonomous input/change GET/POST/image/navigation and sockets [30000.11ms]
+  ^ this test timed out after 30000ms.
+53 | function html(body: string, status = 200) { return new Response(`<!doctype html><meta charset="utf-8">${body}`, { status, headers: { "content-type": "text/html" } }); }
+54 | beforeAll(async () => { await mkdir(runDir, { recursive: true }); browser = await chromium.launch(); });
+55 | afterAll(async () => { await browser?.close(); server.stop(true); });
+56 | let sequence = 0;
+57 | async function visit(path: string, fn: (page: import("playwright").Page, policy: Awaited<ReturnType<typeof installFormPolicy>>) => Promise<void>, content?: string) {
+58 |   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: "block" });
+                                     ^
+error: async newContext: Target page, context or browser has been closed
+Browser logs:
+
+<launching> /home/rudi/.cache/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-linux64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/tmp/playwright_chromiumdev_profile-2Znr0E --remote-debugging-pipe --no-startup-window
+<launched> pid=1086604
+[pid=1086604][err] [0926/165324.079413:WARNING:components/dbus/xdg/portal.cc:126] Failed to register with org.freedesktop.host.portal.Registry
+[pid=1086604][err] [0926/165324.496293:INFO:CONSOLE:3] "--playwright--set--content--23a07457a3ee2d60062d93c129230325--", source:  (3)
+[pid=1086604][err] [0926/165324.642203:INFO:CONSOLE:3] "--playwright--set--content--c0afea0f398e042c265d007042f026b6--", source:  (3)
+[pid=1086604][err] [0926/165324.769980:INFO:CONSOLE:3] "--playwright--set--content--b2641fdf2bdd82c2edc4648431458973--", source:  (3)
+[pid=1086604][err] [0926/165324.888012:INFO:CONSOLE:3] "--playwright--set--content--19ef571035b9cd85c30bd78d1b263a96--", source:  (3)
+[pid=1086604][err] [0926/165324.980531:WARNING:sandbox/policy/linux/sandbox_linux.cc:405] InitializeSandbox() called with multiple threads in process gpu-process.
+[pid=1086604][err] [0926/165325.019875:INFO:CONSOLE:3] "--playwright--set--content--ff7c8e64aa29899859da8d703b2ba075--", source:  (3)
+[pid=1086604][err] [0926/165325.143074:INFO:CONSOLE:3] "--playwright--set--content--0e8ab52238d6698e40f9942f30677a0c--", source:  (3)
+[pid=1086604][err] [0926/165325.271377:INFO:CONSOLE:3] "--playwright--set--content--4d014f7f2280e5779c00814bd424c83c--", source:  (3)
+[pid=1086604][err] [0926/165325.385363:INFO:CONSOLE:3] "--playwright--set--content--4b6eb7fe18ef915a388a8f2d023137a9--", source:  (3)
+ log: [],
+
+      at visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:58:33)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:114:11
+      at processTicksAndRejections (native:7:39)
+(fail) specific new GF and associated FF confirmations; errors sanitized; no retry [7.47ms]
+53 | function html(body: string, status = 200) { return new Response(`<!doctype html><meta charset="utf-8">${body}`, { status, headers: { "content-type": "text/html" } }); }
+54 | beforeAll(async () => { await mkdir(runDir, { recursive: true }); browser = await chromium.launch(); });
+55 | afterAll(async () => { await browser?.close(); server.stop(true); });
+56 | let sequence = 0;
+57 | async function visit(path: string, fn: (page: import("playwright").Page, policy: Awaited<ReturnType<typeof installFormPolicy>>) => Promise<void>, content?: string) {
+58 |   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: "block" });
+                                     ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:58:33)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:126:9
+      at processTicksAndRejections (native:7:39)
+(fail) marker changed after preparation is never submitted; native invalidity is rejection [0.60ms]
+
+# Unhandled error between tests
+-------------------------------
+102 |   const site = { slug: "local", url: base, form_helper: false, mask: [], max_diff_pixel_ratio: 0.01, pages: [{ path: "/traps", mask: [] }] };
+103 |   const old = { token: process.env.FORM_TEST_TOKEN, address: process.env.FORM_TEST_ADDRESS };
+104 |   process.env.FORM_TEST_TOKEN = config.token; process.env.FORM_TEST_ADDRESS = config.address;
+105 |   try {
+106 |     const results = await scanPageForms(site, site.pages[0]!, { runDir });
+107 |     expect(results[0]?.outcome).toBe("not-verified");
+                                      ^
+error: expect(received).toBe(expected)
+
+Expected: "not-verified"
+Received: "failed"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/browser.test.ts:107:33)
+-------------------------------
+
+(pass) scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, later forms continue [3244.20ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/runs/forms-browser-4f9a6aa4-6802-4c33-b6ae-adb8f9110a89
+(pass) retained action traces are secret-free with no image/DOM/source payloads [529.49ms]
+
+test/forms/evidence.test.ts:
+(pass) sanitizer removes raw, percent, JSON/unicode, HTML and nested encodings [1.81ms]
+(pass) trace sanitation fails closed, deletes raw and unsafe output on invalid archive [3.24ms]
+
+ 7 pass
+ 3 fail
+ 1 error
+ 47 expect() calls
+Ran 10 tests across 2 files. [35.68s]

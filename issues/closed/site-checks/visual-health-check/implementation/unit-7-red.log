@@ -1,0 +1,57 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"captured","health":{"status":200,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":true,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/runs/capture-test-2026-09-26T09-15-07.609Z
+241 |       expect(statSync(r.tracePath!).size).toBeGreaterThan(1000);
+242 |       expect(normal.state).toBe("captured");
+243 |       expect(normal.image).not.toBeNull();
+244 |       expect(normal.health).toMatchObject({ status: 200, finalUrl: base + "/plain" });
+245 |       expect(evaluateHealth(normal.health, null)).toEqual([]);
+246 |       expect({ state: r.state, status: r.health.status, hasImage: !!r.image }).toEqual({ state: "blocked", status: null, hasImage: false });
+                                                                                     ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "hasImage": false,
+-   "state": "blocked",
+-   "status": null,
++   "hasImage": true,
++   "state": "captured",
++   "status": 200,
+  }
+
+- Expected  - 3
++ Received  + 3
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/tests/capture.test.ts:246:80)
+(fail) capture in real Chromium > failed later main-document navigation from /delayed-unreachable cannot reuse HTTP 200 [1656.33ms]
+Failed navigation fixture: {"path":"/delayed-post","state":"captured","health":{"status":200,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":true,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/runs/capture-test-2026-09-26T09-15-07.609Z
+241 |       expect(statSync(r.tracePath!).size).toBeGreaterThan(1000);
+242 |       expect(normal.state).toBe("captured");
+243 |       expect(normal.image).not.toBeNull();
+244 |       expect(normal.health).toMatchObject({ status: 200, finalUrl: base + "/plain" });
+245 |       expect(evaluateHealth(normal.health, null)).toEqual([]);
+246 |       expect({ state: r.state, status: r.health.status, hasImage: !!r.image }).toEqual({ state: "blocked", status: null, hasImage: false });
+                                                                                     ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "hasImage": false,
+-   "state": "blocked",
+-   "status": null,
++   "hasImage": true,
++   "state": "captured",
++   "status": 200,
+  }
+
+- Expected  - 3
++ Received  + 3
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/visual-health-check/tests/capture.test.ts:246:80)
+(fail) capture in real Chromium > failed later main-document navigation from /delayed-post cannot reuse HTTP 200 [1612.89ms]
+
+ 0 pass
+ 19 filtered out
+ 2 fail
+ 15 expect() calls
+Ran 2 tests across 1 file. [3.61s]

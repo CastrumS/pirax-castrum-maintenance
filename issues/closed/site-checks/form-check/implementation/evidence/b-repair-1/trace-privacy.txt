@@ -1,0 +1,1 @@
+{"configuredUnicodePasswordAccepted":true,"sanitizeTraceRetainedArchive":true,"decodedRetainedParameterStillEqualsCredential":false,"findSecretsHits":0,"expected":"credential removed, or unsafe archive rejected"}

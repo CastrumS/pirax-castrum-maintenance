@@ -1,0 +1,106 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/imap.test.ts:
+(pass) pollDelivery input and deadline > rejects non-canonical IDs and deadlines before any network access [0.53ms]
+(pass) pollDelivery input and deadline > a silent server cannot outlive the deadline; the connection is closed and not reported as absent mail [1553.94ms]
+(pass) pollDelivery input and deadline > STARTTLS is required off port 993: no credentials are ever sent in plaintext [56.72ms]
+(pass) pollDelivery input and deadline > refused and dropped connections are explicit sanitized failures [1.66ms]
+109 |           capabilities: new Map(supported ? [["NAMESPACE", true]] : []), enabled: new Set(), log: { warn() {} },
+110 |           exec: async (verb: string) => { calls.push(verb); return { next() {} }; },
+111 |         };
+112 |         client.run = async () => namespace(client);
+113 |         await new AsyncFunction(block).call(client);
+114 |         expect(calls).toEqual(literalMailboxes ? [] : [supported ? "NAMESPACE" : "LIST"]);
+                            ^
+error: expect(received).toEqual(expected)
+
+- []
++ [
++   "NAMESPACE",
++ ]
+
+- Expected  - 1
++ Received  + 3
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/imap.test.ts:114:23)
+(fail) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: startup discovery is opt-in suppressed, including no-NAMESPACE LIST fallback [1.11ms]
+125 |           capabilities: new Map(), emit() {}, log: { warn() {} },
+126 |           run: async (verb: string) => { calls.push(verb); return []; },
+127 |           exec: async (verb: string, args: any[]) => {
+128 |             calls.push(verb);
+129 |             const expected = literalMailboxes ? path : path === "inbox" ? "INBOX" : `INBOX.${path}`;
+130 |             expect(decodePath(client, args[0].value)).toBe(expected);
+                                                            ^
+error: expect(received).toBe(expected)
+
+Expected: "Tests"
+Received: "INBOX.Tests"
+
+ response: false,
+
+      at exec (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/imap.test.ts:130:55)
+      at select (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/node_modules/imapflow/dist/esm/commands/select.js:115:37)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/imap.test.ts:134:27)
+(fail) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: literal EXAMINE skips metadata LIST, preserves encoding and has no failed-open fallback [1.03ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: installed fetch compiler requests only candidate UID and Subject PEEK [0.56ms]
+109 |           capabilities: new Map(supported ? [["NAMESPACE", true]] : []), enabled: new Set(), log: { warn() {} },
+110 |           exec: async (verb: string) => { calls.push(verb); return { next() {} }; },
+111 |         };
+112 |         client.run = async () => namespace(client);
+113 |         await new AsyncFunction(block).call(client);
+114 |         expect(calls).toEqual(literalMailboxes ? [] : [supported ? "NAMESPACE" : "LIST"]);
+                            ^
+error: expect(received).toEqual(expected)
+
+- []
++ [
++   "NAMESPACE",
++ ]
+
+- Expected  - 1
++ Received  + 3
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/imap.test.ts:114:23)
+(fail) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: startup discovery is opt-in suppressed, including no-NAMESPACE LIST fallback [3.09ms]
+125 |           capabilities: new Map(), emit() {}, log: { warn() {} },
+126 |           run: async (verb: string) => { calls.push(verb); return []; },
+127 |           exec: async (verb: string, args: any[]) => {
+128 |             calls.push(verb);
+129 |             const expected = literalMailboxes ? path : path === "inbox" ? "INBOX" : `INBOX.${path}`;
+130 |             expect(decodePath(client, args[0].value)).toBe(expected);
+                                                            ^
+error: expect(received).toBe(expected)
+
+Expected: "Tests"
+Received: "INBOX.Tests"
+
+ response: false,
+
+      at exec (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/imap.test.ts:130:55)
+      at select (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/node_modules/imapflow/dist/cjs/commands/select.js:118:37)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/imap.test.ts:134:27)
+(fail) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: literal EXAMINE skips metadata LIST, preserves encoding and has no failed-open fallback [0.68ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: installed fetch compiler requests only candidate UID and Subject PEEK [0.46ms]
+154 |       ]]]);
+155 |     });
+156 |   }
+157 |   test("unfolds and MIME-decodes one Subject, rejecting malformed/duplicate fields and near tags", () => {
+158 |     const decode = (mail as any).subjectFromHeaders;
+159 |     expect(typeof decode).toBe("function");
+                                ^
+error: expect(received).toBe(expected)
+
+Expected: "function"
+Received: "undefined"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/form-check/test/forms/imap.test.ts:159:27)
+(fail) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > unfolds and MIME-decodes one Subject, rejecting malformed/duplicate fields and near tags [0.09ms]
+(pass) tag matching and folder policy > rechecks the exact tag because IMAP SUBJECT search is a case-insensitive substring match [0.05ms]
+(pass) tag matching and folder policy > equal configured names are opened once and treated conservatively as spam [0.03ms]
+(pass) tag matching and folder policy > a match in both folders favors spam; no match waits [0.05ms]
+(pass) tag matching and folder policy > protocol evidence keeps only command names and fetch data items [0.10ms]
+
+ 10 pass
+ 5 fail
+ 65 expect() calls
+Ran 15 tests across 1 file. [1.67s]

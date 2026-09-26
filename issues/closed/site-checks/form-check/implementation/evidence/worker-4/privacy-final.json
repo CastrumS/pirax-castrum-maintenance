@@ -1,0 +1,172 @@
+{
+  "directories": [
+    "runs/forms-worker4-diagnostic",
+    "runs/capture-test-2026-09-26T15-51-12.562Z",
+    "runs/2026-09-26T15-51-49.028Z",
+    "runs/forms-playground-7fc24079-efde-470e-ab85-f4a22568cb4a",
+    "runs/forms-playground-eef66755-81d0-42bc-8ff9-529fc899b767",
+    "runs/forms-playground-79c1ecd2-a9fc-44d3-bd94-d93a4fd39443",
+    "runs/forms-playground-cf2cad4e-a8d5-4b35-9555-e2748017e8e0",
+    "runs/visual-selftest-2026-09-26T16-03-27.002Z",
+    "runs/forms-report-tests-67198782-495a-4ad5-83e9-5c9fd5e4ca67",
+    "runs/forms-browser-ee712aba-c683-431d-9b96-3d8237ba1cab",
+    "runs/forms-playground-9844c519-3267-4983-bff2-6c9450babcd7",
+    "runs/forms-playground-032e3bf8-3a10-4019-95ef-70b420611019",
+    "runs/forms-browser-004aa0d5-8a94-4c4a-b397-bcc20aa06746",
+    "runs/capture-test-2026-09-26T16-10-58.888Z",
+    "runs/visual-selftest-2026-09-26T16-11-06.276Z",
+    "runs/2026-09-26T16-11-34.855Z",
+    "runs/forms-playground-7a48680a-54be-47ba-badd-28377c20cc77",
+    "runs/forms-report-tests-8ab48341-881e-4f5d-bd5c-84ad34e74a21",
+    "runs/forms-browser-2e3dd7b4-e193-429d-9f55-3c1d83aab7e0",
+    "runs/forms-playground-05edfcf3-4915-47ad-a1c3-3ed8e794b338",
+    "artifacts/plugin/adapters-2026-09-26T15-51-49-348Z",
+    "artifacts/plugin/forms-checker-2026-09-26T15-55-31-686Z",
+    "artifacts/plugin/core-2026-09-26T15-57-26-939Z",
+    "artifacts/plugin/forms-checker-2026-09-26T15-57-42-402Z",
+    "artifacts/plugin/harness-smoke-2026-09-26T15-59-23-413Z",
+    "artifacts/plugin/review-regressions-2026-09-26T16-00-17-561Z",
+    "artifacts/plugin/forms-checker-2026-09-26T16-00-29-722Z",
+    "artifacts/plugin/safety-2026-09-26T16-01-13-832Z",
+    "artifacts/plugin/forms-checker-2026-09-26T16-03-21-153Z",
+    "artifacts/plugin/forms-checker-2026-09-26T16-07-22-758Z",
+    "artifacts/plugin/forms-checker-2026-09-26T16-08-04-965Z",
+    "artifacts/plugin/adapters-2026-09-26T16-11-35-164Z",
+    "artifacts/plugin/core-2026-09-26T16-16-53-829Z",
+    "artifacts/plugin/harness-smoke-2026-09-26T16-18-38-355Z",
+    "artifacts/plugin/review-regressions-2026-09-26T16-19-29-258Z",
+    "artifacts/plugin/safety-2026-09-26T16-20-17-303Z",
+    "artifacts/plugin/forms-checker-2026-09-26T16-20-31-065Z",
+    "artifacts/plugin/forms-checker-2026-09-26T16-23-30-795Z"
+  ],
+  "files": 2224,
+  "archives": 675,
+  "unsafe": 0,
+  "hits": [],
+  "summaries": [
+    {
+      "directory": "runs/forms-playground-7fc24079-efde-470e-ab85-f4a22568cb4a",
+      "root": "test/forms-native-2026-09-26T15-55-31.684Z-0cbc8126/",
+      "cleanup": {
+        "ok": true,
+        "deleted": 0,
+        "remaining": 0,
+        "stopped": false
+      }
+    },
+    {
+      "directory": "runs/forms-playground-eef66755-81d0-42bc-8ff9-529fc899b767",
+      "root": "test/forms-native-2026-09-26T15-57-42.400Z-572e1c6b/",
+      "cleanup": {
+        "ok": true,
+        "deleted": 2,
+        "remaining": 0,
+        "stopped": true
+      }
+    },
+    {
+      "directory": "runs/forms-playground-79c1ecd2-a9fc-44d3-bd94-d93a4fd39443",
+      "root": "test/forms-native-2026-09-26T16-00-29.720Z-7b41bc5a/",
+      "cleanup": {
+        "ok": true,
+        "deleted": 2,
+        "remaining": 0,
+        "stopped": true
+      }
+    },
+    {
+      "directory": "runs/forms-playground-cf2cad4e-a8d5-4b35-9555-e2748017e8e0",
+      "root": "test/forms-native-2026-09-26T16-03-21.152Z-ac530944/",
+      "cleanup": {
+        "ok": true,
+        "deleted": 0,
+        "remaining": 0,
+        "stopped": true
+      }
+    },
+    {
+      "directory": "runs/visual-selftest-2026-09-26T16-03-27.002Z",
+      "root": "test/visual-2026-09-26T16-03-27.002Z-798cc57a/",
+      "cleanup": {
+        "remote": true,
+        "remaining": 0,
+        "deleted": 198,
+        "wordpress": true,
+        "https": true,
+        "errors": []
+      },
+      "result": "pass"
+    },
+    {
+      "directory": "runs/forms-report-tests-67198782-495a-4ad5-83e9-5c9fd5e4ca67",
+      "root": "test/forms-report-2026-09-26T16-03-35.539Z-377df802/",
+      "cleanup": {
+        "ok": true,
+        "deleted": 13,
+        "remaining": 0
+      }
+    },
+    {
+      "directory": "runs/forms-playground-9844c519-3267-4983-bff2-6c9450babcd7",
+      "root": "test/forms-native-2026-09-26T16-07-22.756Z-783e6436/",
+      "cleanup": {
+        "ok": true,
+        "deleted": 16,
+        "remaining": 0,
+        "stopped": true
+      }
+    },
+    {
+      "directory": "runs/forms-playground-032e3bf8-3a10-4019-95ef-70b420611019",
+      "root": "test/forms-native-2026-09-26T16-08-04.963Z-60df4afe/",
+      "cleanup": {
+        "ok": true,
+        "deleted": 2,
+        "remaining": 0,
+        "stopped": true
+      }
+    },
+    {
+      "directory": "runs/visual-selftest-2026-09-26T16-11-06.276Z",
+      "root": "test/visual-2026-09-26T16-11-06.276Z-f1a5b72d/",
+      "cleanup": {
+        "remote": true,
+        "remaining": 0,
+        "deleted": 198,
+        "wordpress": true,
+        "https": true,
+        "errors": []
+      },
+      "result": "pass"
+    },
+    {
+      "directory": "runs/forms-playground-7a48680a-54be-47ba-badd-28377c20cc77",
+      "root": "test/forms-native-2026-09-26T16-20-31.063Z-c3cc2b45/",
+      "cleanup": {
+        "ok": true,
+        "deleted": 20,
+        "remaining": 0,
+        "stopped": true
+      }
+    },
+    {
+      "directory": "runs/forms-report-tests-8ab48341-881e-4f5d-bd5c-84ad34e74a21",
+      "root": "test/forms-report-2026-09-26T16-22-36.318Z-1514534b/",
+      "cleanup": {
+        "ok": true,
+        "deleted": 13,
+        "remaining": 0
+      }
+    },
+    {
+      "directory": "runs/forms-playground-05edfcf3-4915-47ad-a1c3-3ed8e794b338",
+      "root": "test/forms-native-2026-09-26T16-23-30.794Z-763c54d7/",
+      "cleanup": {
+        "ok": true,
+        "deleted": 20,
+        "remaining": 0,
+        "stopped": true
+      }
+    }
+  ]
+}

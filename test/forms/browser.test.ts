@@ -41,6 +41,10 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
   }
   switch (url.pathname) {
     case "/empty": return html("No forms");
+    case "/challenge": return html('<title>Just a moment...</title><script>window._cf_chl_opt={};</script>');
+    case "/challenge-header": return new Response('Checking browser', { headers: { 'cf-mitigated': 'challenge' } });
+    case "/firewall": return html('<title>Sucuri Website Firewall</title>');
+    case "/ordinary-mentions": return html('<title>Cloudflare setup</title>CAPTCHA protects our contact form.');
     case "/missing": return html("Missing", 404);
     case "/traps": return html(gf() + trapScript);
     case "/multi": return html(gf() + gf(3) + ff + '<form><input name="search"></form>');
@@ -92,6 +96,37 @@ test("fills basic controls with full random marker, preserving hidden/honeypot d
     expect(await page.locator('[name="nonce"]').inputValue()).toBe("untouched");
   });
 });
+test("native required checkbox groups choose one usable option; individual required and optional choices are preserved", async () => {
+  const boxes = `<div class="gfield gfield_contains_required">
+    <input type="checkbox" name="input_4.1" disabled><input type="checkbox" name="input_4.2" hidden>
+    <input type="checkbox" name="input_4.3"><input type="checkbox" name="input_4.4"></div>
+    <div class="gfield"><input type="checkbox" name="input_5.1" aria-required="true"></div>
+    <div class="gfield"><input type="checkbox" name="input_6.1"></div>
+    <div class="gfield gfield_contains_required"><input type="checkbox" name="input_7.1"><input type="checkbox" name="input_7.2" required><input type="checkbox" name="input_7.3" required></div>`;
+  const ffBoxes = `<div class="ff-el-group"><input type="checkbox" name="choices[]" disabled aria-required="true"><input type="checkbox" name="choices[]" aria-required="true"><input type="checkbox" name="choices[]" aria-required="true"></div>
+    <div class="ff-el-group"><input type="checkbox" name="terms" aria-required="true"></div>
+    <div class="ff-el-group"><input type="checkbox" name="optional[]" aria-required="false"></div>`;
+  for (const [markup, expected] of [[gf(1, '<textarea name="input_3"></textarea>' + boxes), [false,false,true,false,true,false,false,true,true]], [ff.replace('<textarea', ffBoxes + '<textarea'), [false,true,false,true,false]]] as const) {
+    await visit('/plain', async (page, policy) => {
+      policy.freeze(); const before = writes;
+      expect((await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId())).state).toBe('prepared');
+      expect(await page.locator('input[type=checkbox]').evaluateAll(es => es.map(e => (e as HTMLInputElement).checked))).toEqual([...expected]);
+      expect(writes).toBe(before);
+    }, markup);
+  }
+});
+
+test("HTTP-200 explicit challenges fail discovery, ordinary CAPTCHA/Cloudflare mentions remain empty", async () => {
+  const site = { slug: 'local', url: base, form_helper: false, mask: [], max_diff_pixel_ratio: 0.01, pages: [] };
+  for (const path of ['/challenge', '/challenge-header', '/firewall']) {
+    const results = await scanPageForms(site, { path, mask: [] }, { runDir });
+    expect(results).toHaveLength(1);
+    expect(results[0]?.selector).toBe('page-scan');
+    expect(results[0]?.outcome).toBe('failed');
+  }
+  expect(await scanPageForms(site, { path: '/ordinary-mentions', mask: [] }, { runDir })).toEqual([]);
+});
+
 test("preinspects whole form: hidden upload, marker constraints and custom flows never type", async () => {
   const cases = [
     '<textarea name="input_3"></textarea><input type="file" style="display:none">',

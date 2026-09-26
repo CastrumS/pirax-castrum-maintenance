@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { chromium, type Browser, type Page } from "playwright";
+import { challengeReason } from "../capture.ts";
 import { EnvError, EnvFormatError } from "../env.ts";
 import { readImapConfig } from "../mail/config.ts";
 import { pollDelivery } from "../mail/imap.ts";
@@ -36,6 +37,7 @@ export async function scanPageForms(site: Site, listedPage: SitePage, options: F
       // A bounded post-load window for ordinary plugin initialization. No submit authorization exists.
       await page.waitForTimeout(200);
       if (!/^https?:/.test(page.url()) || new URL(page.url()).origin !== new URL(site.url).origin) throw new Error('Page changed during discovery.');
+      if (challengeReason(await response.allHeaders(), await page.content())) throw new Error('Page challenge/interstitial; forms were not verified.');
       return await work(page, policy);
     } finally {
       try { if (tracing) await retainTrace(context, `${prefix}-${label}.trace.zip`, redact); }

@@ -109,6 +109,7 @@ A site whose form-plugin versions or integrations differ from the audited set re
 ## Known limitations
 
 - **After `wp_mail`:** anything that changes recipients after `wp_mail` (for example in `phpmailer_init` or an SMTP plugin's transport), or arbitrary PHP outside the audited hooks, is out of reach. This includes a callback that registers a new FF feed-type filter after the pre-dispatch move. No plugin can prove safety against all other code.
+- **Checker browser limits:** invisible/reCAPTCHA v3 client flows are unverified and may time out under the checker's frozen request policy despite this helper's server-side bypass. Specialized GF phone formats/widgets are also unverified by the checker and may reject its fixed data; basic telephone filling is not proof of support.
 - **Delivery is not verified here:** the local tests log `wp_mail()` arguments; they do not verify SMTP delivery or mailbox arrival.
 - **GF save and continue** (`gform_save`) skips validation, so a marker in a saved draft is not detected.
 - **GF prune race:** a GF worker that starts between the sweep's `is_processing()` check and its batch update can write a removed task back. GF has no compare-and-set batch API.

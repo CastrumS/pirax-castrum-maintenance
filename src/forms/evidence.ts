@@ -8,16 +8,17 @@ const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const html = (s: string) => s.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 /** Match mixed encodings too (e.g. a URL with only '/' escaped), without decoding unrelated text. */
 export function secretRedactor(token = process.env.FORM_TEST_TOKEN ?? "", secrets: string[] = []): Redactor {
-  const envNames = /^(?:FORM_TEST_ADDRESS|IMAP_(?:HOST|USER|PASSWORD|FOLDER|SPAM_FOLDER)|SMTP_(?:HOST|USER|PASSWORD)|S3_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY|ENDPOINT|BUCKET)|GRAVITY_FORMS_ZIP)$/;
+  const envNames = /^(?:FORM_TEST_ADDRESS|IMAP_(?:USER|PASSWORD)|SMTP_(?:USER|PASSWORD)|S3_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY))$/;
   const pairs = [...new Set([token, ...secrets, ...Object.entries(process.env).filter(([k]) => envNames.test(k)).map(([, v]) => v ?? "")].filter(Boolean))]
     .sort((a, b) => b.length - a.length).map(s => {
       const variants = new Set([s, html(s), s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!), s.replace(/\//g, "\\/")]);
       for (let i = 0; i < 2; i++) for (const v of [...variants]) { variants.add(encodeURIComponent(v)); variants.add(new URLSearchParams({ v }).toString().slice(2)); variants.add(JSON.stringify(v).slice(1, -1)); }
       const mixed = [...s].map(c => {
-        const hex = c.charCodeAt(0).toString(16).padStart(4, "0");
+        // JSON escapes UTF-16 code units, not code points: astral characters need both halves.
+        const json = c.split('').map(unit => '\\\\u' + [...unit.charCodeAt(0).toString(16).padStart(4, '0')].map(h => /[a-f]/.test(h) ? `[${h}${h.toUpperCase()}]` : h).join('')).join('');
         const percent = [...Buffer.from(c)].map(b => '%' + b.toString(16).padStart(2, '0').toUpperCase()).join('');
-        const choices = [c, encodeURIComponent(c), percent, encodeURIComponent(percent), `\\u${hex}`, `\\u${hex.toUpperCase()}`, `&#${c.charCodeAt(0)};`, `&#x${c.charCodeAt(0).toString(16)};`];
-        return `(?:${[...new Set(choices)].map(v => escape(v).replace(/%([0-9A-F]{2})/g, (_, h: string) => '%' + [...h].map(c => /[A-F]/.test(c) ? `[${c}${c.toLowerCase()}]` : c).join(''))).join("|")})`;
+        const choices = [c, JSON.stringify(c).slice(1, -1), encodeURIComponent(c), percent, encodeURIComponent(percent), `&#${c.codePointAt(0)};`, `&#x${c.codePointAt(0)!.toString(16)};`];
+        return `(?:${[...new Set(choices)].map(v => escape(v).replace(/%([0-9A-F]{2})/g, (_, h: string) => '%' + [...h].map(c => /[A-F]/.test(c) ? `[${c}${c.toLowerCase()}]` : c).join(''))).join("|")}|${json})`;
       }).join("");
       return { replacement: s === token ? "<token>" : "<redacted>", variants: [...variants].sort((a,b) => b.length-a.length), mixed: new RegExp(mixed, "g") };
     });
@@ -64,6 +65,9 @@ export async function sanitizeTrace(raw: string, destination: string, redact: Re
       if (redact(clean) !== clean) throw new Error("Trace verification failed.");
       if (name.endsWith(".trace")) for (const line of clean.split("\n").filter(Boolean)) {
         const event = JSON.parse(line);
+        // Re-serialize decoded values too: raw-text idempotence alone cannot verify JSON escapes.
+        const decoded = JSON.stringify(event);
+        if (redact(decoded) !== decoded) throw new Error("Decoded trace verification failed.");
         if (["screencast-frame", "frame-snapshot", "resource-snapshot"].includes(event.type)) throw new Error("Snapshots forbidden.");
       }
       await writeFile(file, clean, { mode: 0o600 });

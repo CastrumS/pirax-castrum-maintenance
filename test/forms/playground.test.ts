@@ -120,6 +120,34 @@ test('native upload/no-marker are unsupported; required client/server rejection 
   cases.negativeCleanup = await redirected(before, forms.slice(4));
 });
 
+test('native required GF checkbox/consent and FF checkbox/terms confirm, redirect and clean entries; helper false never submits', async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const context = await browser.newContext();
+    await context.tracing.start({ screenshots: false, snapshots: false, sources: false });
+    try {
+      const page = await context.newPage(); await page.goto(harness.fixtures.pages.required);
+      const markers = await page.locator('input[type=checkbox]').evaluateAll(es => es.map(e => ({
+        required: (e as HTMLInputElement).required, aria: e.getAttribute('aria-required'),
+        gravityRequired: !!e.closest('.gfield_contains_required'), name: (e as HTMLInputElement).name,
+      })));
+      expect(markers.length).toBe(7); // GF two choices + consent; FF three choices + terms.
+      expect(markers.every(m => !m.required)).toBe(true);
+      expect(markers.every(m => m.gravityRequired || m.aria === 'true')).toBe(true);
+      cases.requiredMarkup = markers;
+    } finally { await retainTrace(context, join(workspace, 'required-markup.trace.zip'), secretRedactor()); await context.close(); }
+  } finally { await browser.close(); }
+  const before = await observe();
+  const noHelper = await scan(harness.fixtures.pages.required, false);
+  expect(noHelper.map(f => f.outcome)).toEqual(['not-verified', 'not-verified']);
+  expect(await observe()).toEqual(before);
+  const forms = await scan(harness.fixtures.pages.required);
+  cases.required = { forms, noHelper, helperFalseUnchanged: true };
+  await Bun.write(join(workspace, 'required.json'), safe(JSON.stringify(forms, null, 2)));
+  confirmed(forms);
+  cases.requiredCleanup = await redirected(before, forms);
+});
+
 test('native GF modern AJAX and FF AJAX retain separate confirmations and native cleanup', async () => {
   const before = await observe();
   const browser = await chromium.launch({ headless: true });

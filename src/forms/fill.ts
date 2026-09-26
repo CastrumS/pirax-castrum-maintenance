@@ -65,6 +65,20 @@ export async function inspectForm(form: Locator, marker?: string): Promise<Inspe
     }
     const controls: Control[] = [];
     const radios = new Set<string>();
+    // GF choice names differ per option; FF choices share a name (including []).
+    // Native required groups need one choice, unlike HTML required on an individual box.
+    const checkboxGroups = new Map<Element | string, HTMLInputElement[]>();
+    for (const e of all) if (e instanceof HTMLInputElement && e.type === 'checkbox' && writable(e)) {
+      const key = f.closest('.gform_wrapper') ? e.closest('.gfield') ?? e.name : e.name;
+      const group = checkboxGroups.get(key) ?? [];
+      group.push(e); checkboxGroups.set(key, group);
+    }
+    const checkboxes = new Set<HTMLInputElement>();
+    for (const group of checkboxGroups.values()) {
+      const required = group.filter(e => e.required);
+      required.forEach(e => checkboxes.add(e));
+      if (!required.length && group.some(e => e.getAttribute('aria-required') === 'true' || !!f.closest('.gform_wrapper') && !!e.closest('.gfield_contains_required'))) checkboxes.add(group.find(e => e.checked) ?? group[0]!);
+    }
     for (const [index, e] of all.entries()) {
       if (!writable(e) || e.type === 'hidden' || e.type === 'submit' || e.type === 'button' || e.type === 'reset') continue;
       if (e === candidate) { controls.push({ index, kind: "text", name: e.name, value: marker ?? "" }); continue; }
@@ -77,7 +91,7 @@ export async function inspectForm(form: Locator, marker?: string): Promise<Inspe
       }
       if (!(e instanceof HTMLInputElement)) return unsupported("Unsupported form control.");
       if (e.type === 'radio') { if (radios.has(e.name)) continue; radios.add(e.name); controls.push({ index, kind: 'check', name: e.name, value: '' }); continue; }
-      if (e.type === 'checkbox') { if (e.required) controls.push({ index, kind: 'check', name: e.name, value: '' }); continue; }
+      if (e.type === 'checkbox') { if (checkboxes.has(e)) controls.push({ index, kind: 'check', name: e.name, value: '' }); continue; }
       const values: Record<string, string> = { text: "Pirax Test", email: "", tel: "+12025550123", url: "https://example.test", number: e.min || String(Math.min(e.max ? Math.floor(Number(e.max) / (Number(e.step) || 1)) * (Number(e.step) || 1) : Infinity, Number(e.step) || 1)), date: e.min || (e.max && e.max < "2026-01-15" ? e.max : "2026-01-15") };
       if (!(e.type in values)) return unsupported("Only basic text/email/tel/url/number/date and native choice controls are supported.");
       let value = values[e.type]!;

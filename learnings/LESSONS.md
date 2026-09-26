@@ -1,5 +1,7 @@
 # Lessons
 
+- **Own the connection, not the listening port — 2026-09-26:** local service discovery can open unrelated sockets on a test listener. Assert cleanup against the real client's endpoint and close event; never weaken deadlines to accommodate unrelated peers. [Case and evidence](history/2026-09-26-form-check.md).
+
 - Return-only generic defaults can be overridden by contextual inference from overloaded test matchers; specify the bridge result shape rather than weakening the matcher or default to `any` (2026-09-26, [evidence](history/2026-09-26-form-helper-types.md)).
 
 - When installing a text fixture through a process bridge, verify exact readback and a served marker before trusting screenshots: this Playground bridge malformed Node Buffer input; UTF-8 text plus both checks fixed the false fixture. [Evidence and scope](history/2026-09-25-visual-health-check.md).

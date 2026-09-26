@@ -43,6 +43,31 @@ function pirax_checker_seed($base_gf, $ff) {
         'choices'=>[['text'=>'Consent','value'=>'yes','isSelected'=>false]],
         'inputs'=>[['id'=>'4.1','label'=>'Consent','name'=>'']]];
     $ids['server'] = $make('server', array_merge($basic, [$checkbox]));
+    // Positive native required group + consent: never invent HTML required attributes.
+    $checkbox['choices'][] = ['text'=>'Alternative','value'=>'other','isSelected'=>false];
+    $checkbox['inputs'][] = ['id'=>'4.2','label'=>'Alternative','name'=>''];
+    $consent = ['id'=>5,'type'=>'consent','label'=>'Required consent','isRequired'=>true,
+        'checkboxLabel'=>'I agree','description'=>'Disposable test consent',
+        'inputs'=>[['id'=>'5.1','label'=>'Consent'],['id'=>'5.2','label'=>'Text'],['id'=>'5.3','label'=>'Description']]];
+    $ids['requiredgf'] = $make('required', array_merge($basic, [$checkbox, $consent]));
+    // Clone the native FF row/settings/notifications, using the installed editor defaults.
+    global $wpdb;
+    $original = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->prefix}fluentform_forms WHERE id = %d", $ff), ARRAY_A);
+    $fields = json_decode($original['form_fields'], true);
+    $defaults = require WP_PLUGIN_DIR . '/fluentform/app/Services/FormBuilder/DefaultElements.php';
+    foreach ([$defaults['general']['input_checkbox'], $defaults['advanced']['terms_and_condition']] as $field) {
+        $field['settings']['validation_rules']['required']['value'] = true;
+        $fields['fields'][] = $field;
+    }
+    unset($original['id']);
+    $original['title'] = 'Checker required FF';
+    $original['form_fields'] = wp_json_encode($fields);
+    if (!$wpdb->insert("{$wpdb->prefix}fluentform_forms", $original)) throw new RuntimeException('Native FF fixture creation failed');
+    $ids['requiredff'] = (int) $wpdb->insert_id;
+    foreach ($wpdb->get_results($wpdb->prepare("SELECT meta_key, value FROM {$wpdb->prefix}fluentform_form_meta WHERE form_id = %d", $ff), ARRAY_A) as $meta) {
+        $meta['form_id'] = $ids['requiredff'];
+        if (!$wpdb->insert("{$wpdb->prefix}fluentform_form_meta", $meta)) throw new RuntimeException('Native FF fixture meta failed');
+    }
     // A hidden-by-CSS but enabled required input is not filled; HTML validity rejects it before POST.
     $ids['client'] = $make('client', array_merge($basic, [['id'=>4,'type'=>'text','label'=>'Required client input','isRequired'=>true]]));
     update_option('pirax_checker_ajax', $ids['ajax']);
@@ -53,6 +78,7 @@ function pirax_checker_seed($base_gf, $ff) {
     $contents = [
         'primary'=>$gf($base_gf)."\n\n".$ff_code,
         'ajax'=>$gf($ids['ajax'])."\n\n".$ff_code,
+        'required'=>$gf($ids['requiredgf'])."\n\n".'[fluentform id="'.$ids['requiredff'].'"]',
         'negative'=>$gf($ids['upload']).$gf($ids['nomarker']).$gf($ids['client']).$gf($ids['server']).$ff_code,
     ];
     $pages = [];

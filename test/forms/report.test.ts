@@ -3,6 +3,8 @@ import { mkdirSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "playwright";
+import { runForms } from "../../src/commands/forms.ts";
+import { findSecrets, secretRedactor } from "../../src/forms/evidence.ts";
 import { runApprove } from "../../src/commands/approve.ts";
 import { renderHtml, reportStatus } from "../../src/report/html.ts";
 import { parseManifest, parsePublishedManifest } from "../../src/report/manifest.ts";
@@ -32,6 +34,46 @@ function formsReport(forms: FormResult[] = [form("delivered")], id = "2026-09-25
   return { mode: "forms", runId: id, sites: [{ slug: "acme", url: "https://example.test", pages: [{ path: "/", pageKey: "home", forms }, { path: "/about/", pageKey: "about", forms: [] }] }] };
 }
 const envelope = (report = formsReport()) => ({ schemaVersion: 1, command: "forms", report });
+
+test("production forms command publishes with a nonsecret folder in both run and site paths", async () => {
+  const label = 'synthetic-folder-collision';
+  const dir = resolve('runs', `forms-collision-${crypto.randomUUID()}`, label);
+  const root = `test/forms-collision-${runId()}-${crypto.randomUUID().slice(0, 8)}/`;
+  const real = createStore({ root });
+  const logs: string[] = [], requests: string[] = [];
+  const evidence: Record<string, unknown> = { root, directory: dir };
+  const server = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch(req) { requests.push(new URL(req.url).pathname); return new Response('No forms', { headers: { 'content-type': 'text/html' } }); } });
+  const old = process.env.IMAP_FOLDER;
+  try {
+    process.env.IMAP_FOLDER = label;
+    const selected: Site = { ...site, slug: 'local', url: `http://127.0.0.1:${server.port}`, form_helper: false, pages: [{ path: `/${label}/`, mask: [] }] };
+    const result = await runForms([selected], real, { runsDir: dir, log: line => logs.push(line) });
+    evidence.exitCode = result.exitCode;
+    evidence.logs = logs;
+    expect(result.exitCode).toBe(0);
+    expect(requests).toContain(`/${label}/`);
+    expect(result.report?.sites[0]?.pages[0]?.forms).toEqual([]);
+    expect(logs).toContain(`Local report: ${result.localPath}`);
+    expect(logs.some(l => l.includes('<redacted>'))).toBe(false);
+    expect(await Bun.file(result.localPath!).exists()).toBe(true);
+    const keys = await real.list('');
+    expect(keys).toEqual([`reports/${result.report!.runId}/index.html`, `reports/${result.report!.runId}/manifest.json`]);
+    expect(await real.get(keys[0]!)).toEqual(await Bun.file(result.localPath!).bytes());
+    evidence.publication = { keys, localPath: result.localPath, fetchedBytesEqual: true };
+    expect(await findSecrets(dir, secretRedactor())).toEqual([]);
+  } finally {
+    if (old === undefined) delete process.env.IMAP_FOLDER; else process.env.IMAP_FOLDER = old;
+    server.stop(true);
+    let deleted = 0;
+    for (const key of await real.list('')) { await real.delete(key); deleted++; }
+    const remaining = await real.list('');
+    evidence.cleanup = { deleted, remaining: remaining.length, serverStopped: true };
+    mkdirSync(dir, { recursive: true });
+    await Bun.write(join(dir, 'summary.json'), JSON.stringify(evidence, null, 2) + '\n');
+    expect(remaining).toEqual([]);
+    console.log(`Forms collision evidence: ${join(dir, 'summary.json')}`);
+  }
+}, 120_000);
 
 describe("forms-only manifest", () => {
   test("parsePublishedManifest returns either validated mode; parseManifest stays check-only", () => {

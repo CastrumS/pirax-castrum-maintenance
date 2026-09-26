@@ -10,7 +10,7 @@ import type { Site } from '../../src/sites.ts';
 
 export const ROOT = resolve(import.meta.dir, '../..');
 export const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', true)`;
-export type Fixtures = { ids: Record<'gf'|'ff'|'ajax'|'upload'|'nomarker'|'client'|'server', number>; pages: Record<'primary'|'ajax'|'negative', string> };
+export type Fixtures = { ids: Record<'gf'|'ff'|'ajax'|'upload'|'nomarker'|'client'|'server'|'requiredgf'|'requiredff', number>; pages: Record<'primary'|'ajax'|'negative'|'required', string> };
 export const safe = secretRedactor();
 export function assert(ok: unknown, message: string): asserts ok { if (!ok) throw new Error(message); }
 

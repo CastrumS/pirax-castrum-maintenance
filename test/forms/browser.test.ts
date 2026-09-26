@@ -5,8 +5,10 @@ import { mkdir, readdir } from "node:fs/promises";
 import { detectForms } from "../../src/forms/detect.ts";
 import { fillForm, newSubmissionId } from "../../src/forms/fill.ts";
 import { installFormPolicy, submitForm } from "../../src/forms/submit.ts";
-import { scanPageForms } from "../../src/forms/runner.ts";
+import { populateForms, scanPageForms } from "../../src/forms/runner.ts";
 import { findSecrets, retainTrace, secretRedactor } from "../../src/forms/evidence.ts";
+import type { FormResult, FormsRunReport } from "../../src/report/model.ts";
+import { pageKey, type Site, type TestForm } from "../../src/sites.ts";
 
 // Several fresh Chromium launches plus trace repacking; allow contention with the full plugin suite.
 setDefaultTimeout(60_000);
@@ -26,6 +28,11 @@ const f=document.querySelector('form');
 f.addEventListener('input',()=>{fetch('/trap?'+new URLSearchParams(new FormData(f))).catch(()=>{});fetch('/trap',{method:'POST',body:new FormData(f)}).catch(()=>{});const img=new Image();img.src='/trap?image='+encodeURIComponent(f.querySelector('textarea')?.value);});
 f.addEventListener('change',()=>{f.method='get';f.action='/trap';f.submit();f.requestSubmit();location.assign('/trap?navigation=1');});
 </script>`;
+// Scope fixtures: same-number GF #2/FF #2, a search form, a GF account form and an unnumbered GF #0 login.
+const scopeForms = gf() + gf(2) + ff + '<form role="search"><input name="s"></form>' + gf(5, '<input name="input_1"><input type="password" name="input_2"><textarea name="input_3"></textarea>') + '<div class="gform_wrapper"><form id="gform_0" method="post"><input name="log"><input type="password" name="pwd"><button type="submit">Log in</button></form></div>';
+// Console-only browser observation of every input/change event, by document form index and id.
+const recorder = `<script>for(const t of ['input','change'])document.addEventListener(t,e=>{const f=e.target.form;console.log('pirax-event '+t+' '+(f?'form-'+[...document.forms].indexOf(f)+':'+f.id:'none'))},true);</script>`;
+let shifting = 0;
 const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv) {
   const url = new URL(req.url);
   if (url.pathname === "/socket") { sockets++; return srv.upgrade(req, { data: undefined }) ? undefined : new Response(); }
@@ -34,7 +41,7 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
   if (req.method === "POST") {
     writes++;
     const data = await req.formData();
-    if (url.pathname === "/reject") return html(`<div id="gform_wrapper_1"><div id="gform_1_validation_container">Refused ${config.token} ${encodeURIComponent(config.address)}</div></div>`, 400);
+    if (url.pathname === "/reject" || url.pathname === "/reject-duplicates") return html(`<div id="gform_wrapper_1"><div id="gform_1_validation_container">Refused ${config.token} ${encodeURIComponent(config.address)}</div></div>`, 400);
     if (url.pathname === "/foreign") return html('<div id="gform_confirmation_message_99">Wrong form</div>');
     if (url.pathname === "/no-confirmation") return html("HTTP 200 is not confirmation");
     return html(`<div id="gform_confirmation_message_${data.get("gform_submit")}">GF accepted</div>`);
@@ -60,11 +67,48 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
     case "/ff-stale": return html(ff + '<div class="ff-message-success">Foreign success</div>');
     case "/ff-foreign": return html(ff + `<script>document.querySelector('form').onsubmit=e=>{e.preventDefault();document.body.insertAdjacentHTML('beforeend','<div class="ff-message-success">Foreign</div>')}</script>`);
     case "/captcha": return html(ff.replace('<textarea', '<div class="cf-turnstile"></div><textarea'));
+    case "/scope-a": case "/scope-b": return html(scopeForms + ffScript.replace("querySelector('form')", "querySelector('#fluentform_2')") + recorder);
+    case "/duplicates": case "/reject-duplicates": return html(gf() + gf() + recorder);
+    // The first instance changes shape between discovery and its fresh form context.
+    case "/shifting": return html(gf(1, `<textarea name="input_3"></textarea>${shifting++ % 2 ? '<input name="input_4">' : ''}`) + gf() + recorder);
     default: return html(gf());
   }
 }, websocket: { message() {} } });
 const base = `http://127.0.0.1:${server.port}`;
 function html(body: string, status = 200) { return new Response(`<!doctype html><meta charset="utf-8">${body}`, { status, headers: { "content-type": "text/html" } }); }
+const local = (paths: string[], form_helper: boolean, test_form: TestForm | undefined, slug = "local"): Site =>
+  ({ slug, url: base, form_helper, mask: [], max_diff_pixel_ratio: 0.01, pages: paths.map(path => ({ path, mask: [] })), ...(test_form ? { test_form } : {}) });
+const emptyReport = (...sites: Site[]): FormsRunReport => ({ mode: "forms", runId: "2026-09-26T00-00-00.000Z", sites: sites.map(s => ({ slug: s.slug, url: s.url, pages: s.pages.map(p => ({ path: p.path, pageKey: pageKey(p.path), forms: [] })) })) });
+const shape = (forms: FormResult[] | undefined) => (forms ?? []).map(f => `${f.plugin}:${f.outcome}`);
+const allSkipped = ["gravity:skipped", "gravity:skipped", "fluent:skipped", "unknown:skipped", "gravity:skipped", "gravity:skipped"];
+const notDesignated = "Not the designated test form on this page; not filled or submitted.";
+const missing = (plugin: TestForm["plugin"], id: number): FormResult => ({ selector: `test-form:${plugin}:${id}`, plugin, outcome: "failed", detail: "test form not found" });
+// An unreachable loopback mailbox: confirmed submissions truthfully end as failed IMAP connections.
+const refused = Bun.listen({ hostname: "127.0.0.1", port: 0, socket: { data() {} } });
+const refusedPort = refused.port; refused.stop(true);
+const fill = { FORM_TEST_TOKEN: config.token, FORM_TEST_ADDRESS: config.address };
+const mailbox = { ...fill, IMAP_HOST: "127.0.0.1", IMAP_PORT: String(refusedPort), IMAP_USER: "fixture-imap-user", IMAP_PASSWORD: "fixture-imap-password", IMAP_FOLDER: "Tests", IMAP_SPAM_FOLDER: "Spam" };
+const credentialNames = ["FORM_TEST_TOKEN", "FORM_TEST_ADDRESS", "IMAP_HOST", "IMAP_PORT", "IMAP_USER", "IMAP_PASSWORD", "IMAP_FOLDER", "IMAP_SPAM_FOLDER"];
+/** Exactly these form/mail variables for the duration of `fn`; `{}` means none at all. */
+async function withEnv<T>(values: Record<string, string>, fn: () => Promise<T>): Promise<T> {
+  const old = credentialNames.map(name => process.env[name]);
+  credentialNames.forEach(name => delete process.env[name]);
+  Object.assign(process.env, values);
+  try { return await fn(); } finally { credentialNames.forEach((name, i) => restore(name, old[i])); }
+}
+/** Production scanner on a dedicated browser whose contexts only listen to the recorder's console events. */
+async function watched(site: Site, path: string) {
+  const own = await chromium.launch({ headless: true });
+  const events: string[] = [];
+  const make = own.newContext.bind(own);
+  own.newContext = async options => {
+    const context = await make(options);
+    context.on("console", m => { if (m.text().startsWith("pirax-event ")) events.push(m.text().slice(12)); });
+    return context;
+  };
+  try { return { results: await scanPageForms(site, { path, mask: [] }, { runDir, deliveryTimeoutMs: 2_000 }, own), events }; }
+  finally { await own.close(); }
+}
 beforeAll(async () => { await mkdir(runDir, { recursive: true }); browser = await chromium.launch(); });
 afterAll(async () => { await browser?.close(); server.stop(true); });
 let sequence = 0;
@@ -144,7 +188,7 @@ test("preinspects whole form: hidden upload, marker constraints and custom flows
 });
 test("no-helper blocks autonomous input/change GET/POST/image/navigation and sockets", async () => {
   const before = { writes, traps, sockets };
-  const site = { slug: "local", url: base, form_helper: false, mask: [], max_diff_pixel_ratio: 0.01, pages: [{ path: "/traps", mask: [] }] };
+  const site = local(["/traps"], false, { page: "/traps", plugin: "gravity", id: 1 });
   const old = { token: process.env.FORM_TEST_TOKEN, address: process.env.FORM_TEST_ADDRESS };
   process.env.FORM_TEST_TOKEN = config.token; process.env.FORM_TEST_ADDRESS = config.address;
   try {
@@ -186,15 +230,18 @@ test("marker changed after preparation is never submitted; native invalidity is 
     expect(result.state).toBe("rejected"); expect(result.detail).not.toContain(config.address); expect(writes).toBe(before);
   });
 });
-test("scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, later forms continue", async () => {
-  const site = { slug: "local", url: base, form_helper: false, mask: [], max_diff_pixel_ratio: 0.01, pages: [] };
+test("scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, each designation is filled in its own scan", async () => {
+  const site = local([], false, undefined);
   expect(await scanPageForms(site, { path: "/empty", mask: [] }, { runDir })).toEqual([]);
   expect((await scanPageForms(site, { path: "/missing", mask: [] }, { runDir }))[0]?.outcome).toBe("failed");
-  expect((await scanPageForms({ ...site, form_helper: true }, { path: "/captcha", mask: [] }, { runDir }))[0]?.outcome).toBe("not-verified");
-  const old = { token: process.env.FORM_TEST_TOKEN, address: process.env.FORM_TEST_ADDRESS };
-  process.env.FORM_TEST_TOKEN = config.token; process.env.FORM_TEST_ADDRESS = config.address;
-  try { const results = await scanPageForms(site, { path: "/multi", mask: [] }, { runDir }); expect(results.map(r => r.outcome)).toEqual(["not-verified", "not-verified", "not-verified", "unsupported"]); }
-  finally { restore("FORM_TEST_TOKEN", old.token); restore("FORM_TEST_ADDRESS", old.address); }
+  expect(shape(await scanPageForms(local(["/captcha"], true, { page: "/captcha", plugin: "fluent", id: 2 }), { path: "/captcha", mask: [] }, { runDir }))).toEqual(["fluent:not-verified"]);
+  await withEnv(fill, async () => {
+    for (const [test_form, expected] of [
+      [{ page: "/multi", plugin: "gravity", id: 1 }, ["gravity:not-verified", "gravity:skipped", "fluent:skipped", "unknown:skipped"]],
+      [{ page: "/multi", plugin: "gravity", id: 3 }, ["gravity:skipped", "gravity:not-verified", "fluent:skipped", "unknown:skipped"]],
+      [{ page: "/multi", plugin: "fluent", id: 2 }, ["gravity:skipped", "gravity:skipped", "fluent:not-verified", "unknown:skipped"]],
+    ] as const) expect(shape(await scanPageForms(local(["/multi"], false, test_form), { path: "/multi", mask: [] }, { runDir }))).toEqual([...expected]);
+  });
 });
 test("selected submit blocks unrelated same-origin writes/GETs and autonomous native GET submit", async () => {
   const before = traps;
@@ -212,17 +259,148 @@ test("selected submit blocks unrelated same-origin writes/GETs and autonomous na
 test("no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST", async () => {
   const names = ['FORM_TEST_TOKEN', 'FORM_TEST_ADDRESS', 'IMAP_HOST'];
   const old = names.map(name => process.env[name]);
-  const site = { slug: 'local', url: base, form_helper: true, mask: [], max_diff_pixel_ratio: 0.01, pages: [] };
+  // Each scan explicitly designates its form, so these reach the selected-form gates rather than a skip.
+  const site = (path: string, plugin: TestForm['plugin'] = 'gravity', id = 1) => local([path], true, { page: path, plugin, id });
   const before = writes;
   try {
     names.forEach(name => delete process.env[name]);
-    expect((await scanPageForms(site, { path: '/upload', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
-    expect((await scanPageForms(site, { path: '/ambiguous-ff', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+    expect((await scanPageForms(site('/upload'), { path: '/upload', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+    expect((await scanPageForms(site('/ambiguous-ff', 'fluent', 2), { path: '/ambiguous-ff', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
     process.env.FORM_TEST_TOKEN = config.token; process.env.FORM_TEST_ADDRESS = config.address;
-    expect((await scanPageForms(site, { path: '/constrained', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
-    await expect(scanPageForms(site, { path: '/plain', mask: [] }, { runDir })).rejects.toThrow('IMAP_HOST');
+    expect((await scanPageForms(site('/constrained'), { path: '/constrained', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+    await expect(scanPageForms(site('/plain'), { path: '/plain', mask: [] }, { runDir })).rejects.toThrow('IMAP_HOST');
     expect(writes).toBe(before);
   } finally { names.forEach((name, i) => restore(name, old[i])); }
+});
+
+test("omitted designation skips every form, helper true or false, with no credentials, typing or POST", async () => {
+  const before = { writes, traps };
+  for (const helper of [true, false]) await withEnv({}, async () => {
+    const { results, events } = await watched(local(["/scope-a"], helper, undefined), "/scope-a");
+    expect(shape(results)).toEqual(allSkipped);
+    expect(results.map(r => r.detail)).toEqual(Array(6).fill("No test form configured; not filled or submitted."));
+    expect(events).toEqual([]);
+    const site = local(["/scope-a", "/scope-b"], helper, undefined);
+    const report = emptyReport(site);
+    await populateForms([site], report, { runDir: join(runDir, `scope-omitted-${helper}`) });
+    expect(report.sites[0]!.pages.map(p => shape(p.forms))).toEqual([allSkipped, allSkipped]);
+    // Skips get no browser context at all: only the two discovery traces exist.
+    expect((await readdir(join(runDir, `scope-omitted-${helper}`, "traces", "forms"))).map(f => f.replace(/^[0-9a-f]{20}-/, "")).sort()).toEqual(["scan.trace.zip", "scan.trace.zip"]);
+  });
+  expect({ writes, traps }).toEqual(before);
+});
+
+test("the designated form on the second listed page is the only attempt, in either page order", async () => {
+  const test_form: TestForm = { page: "/scope-b", plugin: "gravity", id: 2 };
+  for (const paths of [["/scope-a", "/scope-b"], ["/scope-b", "/scope-a"]]) await withEnv(mailbox, async () => {
+    const site = local(paths, true, test_form);
+    const report = emptyReport(site);
+    const dir = join(runDir, `scope-${paths.join("").replaceAll("/", "")}`);
+    const before = { writes, traps };
+    await populateForms([site], report, { runDir: dir, deliveryTimeoutMs: 2_000 });
+    const page = (path: string) => report.sites[0]!.pages.find(p => p.path === path)!.forms;
+    expect(shape(page("/scope-a"))).toEqual(allSkipped);
+    expect(page("/scope-a").every(f => f.detail === notDesignated)).toBe(true);
+    expect(shape(page("/scope-b"))).toEqual(["gravity:skipped", "gravity:failed", "fluent:skipped", "unknown:skipped", "gravity:skipped", "gravity:skipped"]);
+    const selected = page("/scope-b")[1]!;
+    expect(selected.selector).toBe("#gform_2");
+    // A real confirmed submission; the unreachable mailbox is reported, never inferred as delivery.
+    expect(selected.detail).toMatch(/^Native Gravity Forms confirmation: GF accepted Submission [a-z0-9]{12}\. IMAP connect failed/);
+    expect(writes - before.writes).toBe(1);
+    expect(traps).toBe(before.traps);
+    const traces = (await readdir(join(dir, "traces", "forms"))).map(f => f.replace(/^[0-9a-f]{20}-/, "")).sort();
+    expect(traces).toEqual(["form-2.trace.zip", "scan.trace.zip", "scan.trace.zip"]);
+  });
+});
+
+test("helper false fills only the designated plugin/id: same-number GF/FF differ, other forms get no events or POST", async () => {
+  const before = { writes, traps };
+  await withEnv(fill, async () => {
+    for (const [test_form, index, form] of [
+      [{ page: "/scope-a", plugin: "gravity", id: 2 }, 1, "form-1:gform_2"],
+      [{ page: "/scope-a", plugin: "fluent", id: 2 }, 2, "form-2:fluentform_2"],
+      [{ page: "/scope-a", plugin: "gravity", id: 1 }, 0, "form-0:gform_1"],
+    ] as const) {
+      const { results, events } = await watched(local(["/scope-a"], false, test_form), "/scope-a");
+      expect(shape(results)).toEqual(allSkipped.map((s, i) => i === index ? s.replace("skipped", "not-verified") : s));
+      expect(results[index]!.detail).toContain("Helper not enabled; filled without submission.");
+      expect(results.filter((_, i) => i !== index).every(f => f.detail === notDesignated)).toBe(true);
+      // Positive control: the recorder sees the designated form's typing, and nothing else.
+      expect(events.length).toBeGreaterThan(0);
+      expect(new Set(events.map(e => e.split(" ")[1]))).toEqual(new Set([form]));
+    }
+  });
+  expect({ writes, traps }).toEqual(before);
+});
+
+test("missing, wrong-plugin, elsewhere-only, GF #0 and empty-page designations fail once on their page; scan failures stay scan failures", async () => {
+  const before = writes;
+  await withEnv({}, async () => {
+    const cases: [TestForm, string[][]][] = [
+      [{ page: "/scope-a", plugin: "gravity", id: 9 }, [[...allSkipped, "gravity:failed"], ["gravity:skipped"], []]],
+      [{ page: "/scope-a", plugin: "fluent", id: 1 }, [[...allSkipped, "fluent:failed"], ["gravity:skipped"], []]],
+      [{ page: "/scope-a", plugin: "gravity", id: 0 }, [[...allSkipped, "gravity:failed"], ["gravity:skipped"], []]],
+      [{ page: "/plain", plugin: "fluent", id: 2 }, [allSkipped, ["gravity:skipped", "fluent:failed"], []]],
+      [{ page: "/empty", plugin: "gravity", id: 1 }, [allSkipped, ["gravity:skipped"], ["gravity:failed"]]],
+    ];
+    for (const [test_form, expected] of cases) {
+      // Helper true with no form/mail credentials: nothing selected, so nothing needs them.
+      const site = local(["/scope-a", "/plain", "/empty"], true, test_form);
+      const report = emptyReport(site);
+      await populateForms([site], report, { runDir });
+      const pages = report.sites[0]!.pages;
+      expect(pages.map(p => shape(p.forms))).toEqual(expected);
+      const target = pages.find(p => p.path === test_form.page)!.forms;
+      expect(target.at(-1)).toEqual(missing(test_form.plugin, test_form.id));
+      expect(pages.flatMap(p => p.forms).filter(f => f.outcome === "failed")).toHaveLength(1);
+    }
+    for (const path of ["/challenge", "/missing"]) {
+      const site = local([path], true, { page: path, plugin: "gravity", id: 1 });
+      const results = await scanPageForms(site, site.pages[0]!, { runDir });
+      expect(results).toHaveLength(1);
+      expect(results[0]).toMatchObject({ selector: "page-scan", outcome: "failed" });
+    }
+  });
+  expect(writes).toBe(before);
+});
+
+test("duplicate designated instances: only the first is attempted; rejected, unsupported and changed selections never fall through", async () => {
+  await withEnv(mailbox, async () => {
+    for (const [path, test_form, expected, posts, form] of [
+      ["/duplicates", { page: "/duplicates", plugin: "gravity", id: 1 }, ["gravity:failed", "gravity:skipped"], 1, "form-0:gform_1"],
+      ["/reject-duplicates", { page: "/reject-duplicates", plugin: "gravity", id: 1 }, ["gravity:rejected", "gravity:skipped"], 1, "form-0:gform_1"],
+      ["/shifting", { page: "/shifting", plugin: "gravity", id: 1 }, ["gravity:failed", "gravity:skipped"], 0, null],
+      ["/scope-a", { page: "/scope-a", plugin: "gravity", id: 5 }, ["gravity:skipped", "gravity:skipped", "fluent:skipped", "unknown:skipped", "gravity:unsupported", "gravity:skipped"], 0, null],
+    ] as const) {
+      const before = { writes, traps };
+      const { results, events } = await watched(local([path], true, test_form), path);
+      expect(shape(results)).toEqual([...expected]);
+      expect(writes - before.writes).toBe(posts);
+      expect(traps).toBe(before.traps);
+      expect(new Set(events.map(e => e.split(" ")[1]))).toEqual(new Set(form ? [form] : []));
+      const skipped = results.filter(r => r.outcome === "skipped");
+      if (path === "/scope-a") expect(skipped.every(r => r.detail === notDesignated)).toBe(true);
+      else expect(skipped.map(r => r.detail)).toEqual(["Duplicate of the designated test form (only the first is attempted); not filled or submitted."]);
+      if (path === "/duplicates") expect(results[0]!.detail).toMatch(/Submission [a-z0-9]{12}\. IMAP connect failed/);
+      if (path === "/shifting") expect(results[0]!.detail).toBe("Form identity changed since discovery; not submitted.");
+      if (path === "/scope-a") expect(results[4]!.detail).toMatch(/password/);
+    }
+  });
+});
+
+test("distinct sites and a second invocation each keep their own single attempt", async () => {
+  await withEnv(mailbox, async () => {
+    const test_form: TestForm = { page: "/plain", plugin: "gravity", id: 1 };
+    const sites = [local(["/plain"], true, test_form, "alpha"), local(["/plain"], true, test_form, "beta")];
+    for (let invocation = 0; invocation < 2; invocation++) {
+      const before = writes;
+      const report = emptyReport(...sites);
+      await populateForms(sites, report, { runDir, deliveryTimeoutMs: 2_000 });
+      expect(report.sites.map(s => shape(s.pages[0]!.forms))).toEqual([["gravity:failed"], ["gravity:failed"]]);
+      expect(report.sites.every(s => /Submission [a-z0-9]{12}\./.test(s.pages[0]!.forms[0]!.detail))).toBe(true);
+      expect(writes - before).toBe(2);
+    }
+  });
 });
 
 test("encoded URLs and browser exceptions are scrubbed from retained action traces", async () => {

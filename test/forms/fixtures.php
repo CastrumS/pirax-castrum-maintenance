@@ -70,6 +70,8 @@ function pirax_checker_seed($base_gf, $ff) {
     }
     // A hidden-by-CSS but enabled required input is not filled; HTML validity rejects it before POST.
     $ids['client'] = $make('client', array_merge($basic, [['id'=>4,'type'=>'text','label'=>'Required client input','isRequired'=>true]]));
+    // Second distinct GF (native notifications cloned from the base form) for the repeated scope pages.
+    $ids['scope'] = $make('scope', $basic);
     update_option('pirax_checker_ajax', $ids['ajax']);
     update_option('pirax_checker_server', $ids['server']);
     update_option('pirax_checker_client', $ids['client']);
@@ -80,6 +82,9 @@ function pirax_checker_seed($base_gf, $ff) {
         'ajax'=>$gf($ids['ajax'])."\n\n".$ff_code,
         'required'=>$gf($ids['requiredgf'])."\n\n".'[fluentform id="'.$ids['requiredff'].'"]',
         'negative'=>$gf($ids['upload']).$gf($ids['nomarker']).$gf($ids['client']).$gf($ids['server']).$ff_code,
+        // Two listed pages repeating the same two GF forms and one FF form.
+        'scopeA'=>$gf($base_gf).$gf($ids['scope']).$ff_code,
+        'scopeB'=>$gf($base_gf).$gf($ids['scope']).$ff_code,
     ];
     $pages = [];
     foreach ($contents as $name=>$content) {

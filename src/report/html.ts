@@ -11,8 +11,10 @@ export function viewportStatus(v: ViewportResult): ResultStatus {
 export function aggregateStatus(states: ResultStatus[]): ResultStatus {
   return states.includes("failure") ? "failure" : states.includes("blocked") ? "blocked" : states.includes("warning") ? "warning" : "pass";
 }
-/** Rejected/failed forms fail; spam, not-verified and unsupported are warnings, never passes. */
-export const formStatus = (f: FormResult): ResultStatus => f.outcome === "delivered" ? "pass" : ["failed", "rejected"].includes(f.outcome) ? "failure" : "warning";
+/** Rejected/failed forms fail; spam, not-verified and unsupported are warnings, never passes. Skipped is
+ * neutral: nothing was attempted, so it passes aggregation without being delivery evidence. */
+export const formStatus = (f: FormResult): ResultStatus => ["delivered", "skipped"].includes(f.outcome) ? "pass" : ["failed", "rejected"].includes(f.outcome) ? "failure" : "warning";
+const skippedNote = "Skipped forms were intentionally not filled or submitted: neutral for status, not delivery evidence.";
 export const pageStatus = (page: PageResult | FormsPageResult): ResultStatus => aggregateStatus([...("viewports" in page ? Object.values(page.viewports).map(viewportStatus) : []), ...(page.forms ?? []).map(formStatus)]);
 export const reportStatus = (report: AnyRunReport): ResultStatus => aggregateStatus(report.sites.flatMap(s => s.pages.map(pageStatus)));
 
@@ -26,7 +28,7 @@ function renderForms(report: FormsRunReport): string {
   return `${head("Form check", report.runId)}<body><h1>Form check</h1><p>Run ${e(report.runId)} · <strong class="${reportStatus(report)}">${reportStatus(report)}</strong></p>${report.sites.map(site =>
     `<section><h2>${e(site.slug)} — ${aggregateStatus(site.pages.map(pageStatus))}</h2><p>${e(site.url)}</p>${site.pages.map(page =>
       `<h3>${e(page.path)} — ${pageStatus(page)}</h3>${page.forms.length ? `<table><thead><tr><th>Outcome</th><th>Plugin</th><th>Form</th><th>Detail</th></tr></thead><tbody>${page.forms.map(f =>
-        `<tr><td class="${formStatus(f)}"><strong>${e(f.outcome)}</strong></td><td>${e(f.plugin)}</td><td>${e(f.selector)}</td><td>${e(f.detail)}</td></tr>`).join("")}</tbody></table>` : "<p>No forms found.</p>"}`).join("")}</section>`).join("")}<p><small>Desktop 1440 × 900 form pass only; no screenshots or visual comparison. Failed/rejected forms fail the run; spam, not-verified and unsupported are warnings.</small></p></body></html>`;
+        `<tr><td class="${f.outcome === "skipped" ? "skipped" : formStatus(f)}"><strong>${e(f.outcome)}</strong></td><td>${e(f.plugin)}</td><td>${e(f.selector)}</td><td>${e(f.detail)}</td></tr>`).join("")}</tbody></table>` : "<p>No forms found.</p>"}`).join("")}</section>`).join("")}<p><small>Desktop 1440 × 900 form pass only; no screenshots or visual comparison. Failed/rejected forms fail the run; spam, not-verified and unsupported are warnings. ${skippedNote}</small></p></body></html>`;
 }
 
 /** Pure renderer: only caller-supplied PNG bytes become image sources. No remote URLs or scripts. */
@@ -48,5 +50,5 @@ export function renderHtml(report: AnyRunReport, images: ReadonlyMap<string, Uin
         return `<tr><td class="details"><strong>${name} · <span class="${viewportStatus(v)}">${viewportStatus(v)}</span></strong><p>Capture: ${e(v.capture.state)}${v.capture.detail ? ` — ${e(v.capture.detail)}` : ""}</p><p>Visual: ${e(v.visual.state)}${v.visual.detail ? ` — ${e(v.visual.detail)}` : ""}</p><p>Baseline: ${dims(v.visual.baseline)}<br>Actual: ${dims(v.visual.actual)}<br>Diff ratio: ${v.visual.ratio ?? "unavailable"}<br>Allowance: ${v.visual.allowance}</p><ul>${v.health.map(h => `<li class="${h.severity}">${e(h.severity)} · ${e(h.kind)}: ${e(h.detail)}</li>`).join("")}${v.warnings.map(w => `<li class="warning">warning: ${e(w)}</li>`).join("")}</ul></td><td><div class="panels">${picture("Baseline", v.artifacts.baselinePng)}${picture("Actual", v.artifacts.actualPng)}${picture("Diff", v.artifacts.diffPng)}</div></td>${forms && i === 0 ? `<td rowspan="2">${page.forms?.map(f => `<p><strong>${e(f.outcome)}</strong><br>${e(f.plugin)} · ${e(f.selector)}<br>${e(f.detail)}</p>`).join("") || "—"}</td>` : ""}</tr>`;
       }).join("")}</tbody></table>`;
     }).join("")}</section>`;
-  }).join("")}<p><small>Approval accepts images and baseline-relative console/request findings. HTTP failures, critical errors and mixed content remain failures.</small></p></body></html>`;
+  }).join("")}<p><small>Approval accepts images and baseline-relative console/request findings. HTTP failures, critical errors and mixed content remain failures.${forms ? ` ${skippedNote}` : ""}</small></p></body></html>`;
 }

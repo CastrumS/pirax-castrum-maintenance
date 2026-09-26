@@ -6,11 +6,11 @@ import { readFormConfig } from '../../src/forms/config.ts';
 import { readImapConfig } from '../../src/mail/config.ts';
 import { readR2Config } from '../../src/env.ts';
 import { findSecrets, retainTrace, sanitizeTrace, secretRedactor } from '../../src/forms/evidence.ts';
-import type { Site } from '../../src/sites.ts';
+import type { Site, TestForm } from '../../src/sites.ts';
 
 export const ROOT = resolve(import.meta.dir, '../..');
 export const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', true)`;
-export type Fixtures = { ids: Record<'gf'|'ff'|'ajax'|'upload'|'nomarker'|'client'|'server'|'requiredgf'|'requiredff', number>; pages: Record<'primary'|'ajax'|'negative'|'required', string> };
+export type Fixtures = { ids: Record<'gf'|'ff'|'ajax'|'upload'|'nomarker'|'client'|'server'|'requiredgf'|'requiredff'|'scope', number>; pages: Record<'primary'|'ajax'|'negative'|'required'|'scopeA'|'scopeB', string> };
 export const safe = secretRedactor();
 export function assert(ok: unknown, message: string): asserts ok { if (!ok) throw new Error(message); }
 
@@ -84,15 +84,20 @@ export async function startFormsHarness(workspace: string): Promise<{ h: Harness
   } catch (error) { await stop(); throw new Error(secretRedactor(undefined, [h.users.admin.password])(error instanceof Error ? error.message : 'Harness startup failed')); }
 }
 
-export function siteFor(url: string, helper = true): Site {
-  const u = new URL(url);
-  return { slug: 'local', url: u.origin, form_helper: helper, mask: [], max_diff_pixel_ratio: 0.01, pages: [{ path: u.pathname, mask: [] }] };
+/** Explicit designation only: `undefined` means no test_form (every form skipped), never a guessed default. */
+export function siteFor(urls: string | string[], helper: boolean, test_form: TestForm | undefined): Site {
+  const pages = [urls].flat().map(url => new URL(url));
+  assert(pages.every(u => u.origin === pages[0]!.origin), 'One site origin required');
+  return { slug: 'local', url: pages[0]!.origin, form_helper: helper, mask: [], max_diff_pixel_ratio: 0.01, pages: pages.map(u => ({ path: u.pathname, mask: [] })), ...(test_form ? { test_form } : {}) };
 }
+export const designate = (url: string, plugin: TestForm['plugin'], id: number): TestForm => ({ page: new URL(url).pathname, plugin, id });
 
-/** Real package-script invocation, differing only in scoped storage/evidence and muted bearer URL. */
-export async function cli(workspace: string, root: string, site: Site) {
-  const cwd = join(workspace, 'package'); await mkdir(cwd, { recursive: true });
-  const runsDir = join(workspace, 'cli'); const list = join(cwd, 'sites.json');
+/** Real package-script invocation, differing only in scoped storage/evidence and muted bearer URL.
+ * Each scenario gets its own package/runs directory, so exactly one report belongs to it. */
+export async function cli(workspace: string, root: string, site: Site, scenario: string) {
+  const dir = join(workspace, 'cli', scenario);
+  const cwd = join(dir, 'package'); await mkdir(cwd, { recursive: true });
+  const runsDir = join(dir, 'runs'); const list = join(cwd, 'sites.json');
   await Bun.write(list, JSON.stringify({ sites: [site] }));
   await Bun.write(join(cwd, 'package.json'), JSON.stringify({ private: true, scripts: {
     forms: [process.execPath, '--no-env-file', join(ROOT, 'test/fixtures/cli.ts'), root, runsDir, 'forms'].map(s => JSON.stringify(s)).join(' '),
@@ -101,7 +106,7 @@ export async function cli(workspace: string, root: string, site: Site) {
   const started = performance.now();
   const child = Bun.spawn(argv, { cwd, stdout: 'pipe', stderr: 'pipe' });
   const [out, err, exitCode] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
-  await Bun.write(join(workspace, 'cli.log'), safe(out + err));
+  await Bun.write(join(dir, 'cli.log'), safe(out + err));
   const ids = (await readdir(runsDir)).filter(n => /^\d{4}-/.test(n));
   assert(ids.length === 1, 'CLI must retain exactly one report');
   const runDir = join(runsDir, ids[0]!);

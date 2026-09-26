@@ -82,6 +82,19 @@ describe("forms-only manifest", () => {
     expect(parsePublishedManifest(check)).toEqual(check);
     expect(() => parseManifest(envelope())).toThrow(/check manifest/);
   });
+  test("both manifest modes accept skipped; unknown outcomes still reject", () => {
+    const skipped = envelope(formsReport([form("skipped", "No test form configured; not filled or submitted."), form("failed", "test form not found")]));
+    expect(parsePublishedManifest(skipped)).toEqual(skipped as never);
+    const check: Manifest = { schemaVersion: 1, command: "check", report: fixture() };
+    check.report.sites[0]!.pages[0]!.forms = [form("skipped")];
+    expect(parsePublishedManifest(check)).toEqual(check);
+    for (const outcome of ["skip", "Skipped", "passed", ""]) {
+      const bad = structuredClone(skipped) as any; bad.report.sites[0].pages[0].forms[0].outcome = outcome;
+      expect(() => parsePublishedManifest(bad)).toThrow(/manifest/);
+      const badCheck = structuredClone(check) as any; badCheck.report.sites[0].pages[0].forms[0].outcome = outcome;
+      expect(() => parsePublishedManifest(badCheck)).toThrow(/manifest/);
+    }
+  });
   test("rejects fabricated viewports, missing forms, mixed discriminators and malformed identity", () => {
     const mutations: ((v: any) => void)[] = [
       v => v.command = "visual", v => v.schemaVersion = 2, v => delete v.report.mode, v => v.report.mode = "check",
@@ -101,13 +114,15 @@ describe("forms-only manifest", () => {
 });
 
 describe("form outcome gating", () => {
-  test("failed/rejected fail, spam/not-verified/unsupported warn, delivered passes", () => {
-    const expected: Record<FormResult["outcome"], string> = { delivered: "pass", "delivered-spam": "warning", "not-verified": "warning", unsupported: "warning", rejected: "failure", failed: "failure" };
+  test("failed/rejected fail, spam/not-verified/unsupported warn, delivered passes, skipped is neutral", () => {
+    const expected: Record<FormResult["outcome"], string> = { delivered: "pass", "delivered-spam": "warning", "not-verified": "warning", unsupported: "warning", rejected: "failure", failed: "failure", skipped: "pass" };
     for (const [outcome, status] of Object.entries(expected)) {
       expect(reportStatus(formsReport([form(outcome as FormResult["outcome"])]))).toBe(status as never);
       const check = fixture();
       check.sites[0]!.pages[0]!.forms = [form("delivered"), form(outcome as FormResult["outcome"])];
       expect(reportStatus(check)).toBe(status as never);
+      // Mixed with skips, every other outcome keeps its own effect.
+      expect(reportStatus(formsReport([form("skipped"), form(outcome as FormResult["outcome"]), form("skipped")]))).toBe(status as never);
     }
     expect(reportStatus(formsReport([]))).toBe("pass");
   });
@@ -129,6 +144,15 @@ describe("form outcome gating", () => {
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toMatch(/<img|<figure|Viewport|Baseline|<script/);
     expect(html).toContain("default-src 'none'");
+  });
+  test("forms-only HTML renders skipped literally as neutral and explains it", () => {
+    const report = formsReport([form("skipped", "No test form configured; not filled or submitted.")]);
+    const html = renderHtml(report, new Map());
+    expect(html).toContain("acme — pass");
+    expect(html).toContain("<strong>skipped</strong>");
+    expect(html).not.toMatch(/class="(?:pass|warning|failure)"><strong>skipped/);
+    expect(html).toContain("No test form configured; not filled or submitted.");
+    expect(html).toMatch(/[Ss]kipped forms were intentionally not filled or submitted[^<]*not delivery evidence/);
   });
   test("check pages show form-aware page and site status", () => {
     const check = fixture();
@@ -171,7 +195,7 @@ describe("forms-only local and published reports", () => {
   });
 
   test("local report has only HTML and manifest, excludes traces, and renders in real Chromium", async () => {
-    const report = formsReport([form("failed", '<b onclick="window.injected=1">timeout</b>'), form("not-verified")], runId());
+    const report = formsReport([form("failed", '<b onclick="window.injected=1">timeout</b>'), form("not-verified"), form("skipped", "Not the designated test form on this page; not filled or submitted.")], runId());
     const runDir = join(dir, report.runId);
     mkdirSync(runDir, { recursive: true });
     await saveArtifact(runDir, "traces/acme/forms/home.trace.zip", "local trace");
@@ -191,6 +215,8 @@ describe("forms-only local and published reports", () => {
       expect(await page.locator("img, figure").count()).toBe(0);
       expect(await page.locator("th").allTextContents()).toEqual(["Outcome", "Plugin", "Form", "Detail"]);
       expect(await page.locator("body").textContent()).toContain("not-verified");
+      expect(await page.locator("tr", { hasText: "Not the designated test form" }).locator("td").first().innerText()).toBe("skipped");
+      expect(await page.locator("body").innerText()).toMatch(/[Ss]kipped forms were intentionally not filled or submitted[^\n]*not delivery evidence/);
       await page.locator("b").count().then(n => expect(n).toBe(0));
       expect(await page.evaluate(() => (window as unknown as Record<string, unknown>).injected)).toBeUndefined();
       expect(network).toEqual([]);
@@ -214,6 +240,8 @@ describe("forms-only local and published reports", () => {
     try {
       const check = fixture();
       check.runId = "2026-09-25T12-00-00.000Z";
+      // A check carrying skipped forms stays valid approval evidence.
+      check.sites[0]!.pages[0]!.forms = [form("skipped", "Not the designated test form on this page; not filled or submitted.")];
       const checkDir = join(dir, check.runId);
       for (const v of Object.values(check.sites[0]!.pages[0]!.viewports)) {
         await saveArtifact(checkDir, v.artifacts.actualPng!, png(v.visual.actual!.width));
@@ -221,7 +249,7 @@ describe("forms-only local and published reports", () => {
       }
       await writeLocalReport(check, checkDir);
       await publishReport(check, checkDir, store);
-      const forms = formsReport([form("failed")], "2026-09-25T13-00-00.000Z");
+      const forms = formsReport([form("failed"), form("skipped")], "2026-09-25T13-00-00.000Z");
       const formsDir = join(dir, forms.runId);
       await saveArtifact(formsDir, "traces/acme/forms/home.trace.zip", "local trace");
       await writeLocalReport(forms, formsDir);

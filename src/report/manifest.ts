@@ -22,7 +22,7 @@ export function artifactPath(kind: ArtifactKind, slug: string, viewport: Viewpor
   return `${kind}/${slug}/${viewport}/${key}.${extension}`;
 }
 
-const formsOk = (v: unknown) => Array.isArray(v) && v.every(f => object(f) && typeof f.selector === "string" && typeof f.detail === "string" && oneOf(f.plugin, ["gravity", "fluent", "unknown"]) && oneOf(f.outcome, ["delivered", "delivered-spam", "not-verified", "rejected", "unsupported", "failed"]));
+const formsOk = (v: unknown) => Array.isArray(v) && v.every(f => object(f) && typeof f.selector === "string" && typeof f.detail === "string" && oneOf(f.plugin, ["gravity", "fluent", "unknown"]) && oneOf(f.outcome, ["delivered", "delivered-spam", "not-verified", "rejected", "unsupported", "failed", "skipped"]));
 const urlOk = (v: unknown) => {
   if (typeof v !== "string") return false;
   try { const url = new URL(v); return /^https?:$/.test(url.protocol) && !url.username && !url.password && !/[?#]/.test(v) && !v.endsWith("/") && v.trim() === v; } catch { return false; }

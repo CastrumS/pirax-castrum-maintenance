@@ -6,7 +6,8 @@ import type { HealthFinding } from "../health.ts";
 export type FormResult = {
   selector: string;
   plugin: "gravity" | "fluent" | "unknown";
-  outcome: "delivered" | "delivered-spam" | "not-verified" | "rejected" | "unsupported" | "failed";
+  /** `skipped`: not the site's designated test form, so never filled or submitted. */
+  outcome: "delivered" | "delivered-spam" | "not-verified" | "rejected" | "unsupported" | "failed" | "skipped";
   detail: string;
 };
 

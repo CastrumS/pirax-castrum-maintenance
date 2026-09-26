@@ -96,6 +96,68 @@ describe("loadSites valid input", () => {
     for (const s of sites) expect(new URL(s.url).hostname).toMatch(/(^|\.)example\.(com|org|net)$|\.example$/);
     const pages = sites.flatMap((s) => s.pages);
     expect(pages.some((p) => p.mask.length > 0)).toBe(true);
+    expect(sites.some((s) => s.test_form)).toBe(true);
+  });
+
+  test("committed sites.yaml designates exactly the operator's 12 test forms, offline", () => {
+    const sites = loadSites(join(import.meta.dir, "..", "sites.yaml"));
+    expect(sites).toHaveLength(13);
+    expect(Object.fromEntries(sites.filter((s) => s.test_form).map((s) => [s.slug, s.test_form]))).toEqual({
+      suntos: { page: "/kontakt/", plugin: "fluent", id: 4 },
+      stolarijabanek: { page: "/kontakt/", plugin: "fluent", id: 1 },
+      "centrum-panda": { page: "/", plugin: "gravity", id: 3 },
+      "tara-garden": { page: "/about-us/", plugin: "gravity", id: 1 },
+      epamalgradnja: { page: "/kontakt/", plugin: "gravity", id: 1 },
+      "alu-kon": { page: "/kontakt/", plugin: "gravity", id: 1 },
+      "baterije-akumulatori": { page: "/kontakt/", plugin: "gravity", id: 2 },
+      bravarskiservis: { page: "/kontakt/", plugin: "fluent", id: 5 },
+      "spok-ing": { page: "/kontakt/", plugin: "fluent", id: 6 },
+      "laris-tcb": { page: "/", plugin: "gravity", id: 2 },
+      teambuildinghrvatska: { page: "/", plugin: "gravity", id: 1 },
+      // The contact form, never the listed login/registration page.
+      instrukcijezasve: { page: "/kontakt/", plugin: "gravity", id: 4 },
+    });
+    expect("test_form" in sites.find((s) => s.slug === "downstairs")!).toBe(false);
+    expect(sites.every((s) => s.form_helper === false)).toBe(true);
+  });
+});
+
+describe("test_form designation", () => {
+  const pages = "    pages:\n      - /\n      - path: /kontakt/\n        mask: ['.cookie']";
+  const designate = (value: string, slug = "acme") => `sites:\n${site(`    test_form: ${value}\n`, slug, pages)}`;
+
+  test("string-page and object-page designations load; absence stays absent", () => {
+    const [a, b, c, d] = loadSites(write(`sites:\n${site("    test_form: { page: /, plugin: gravity, id: 3 }\n", "acme", pages)}${site("    test_form:\n      page: /kontakt/\n      plugin: fluent\n      id: 4\n", "beta", pages)}${site("", "gamma", pages)}${site("    test_form: { page: /, plugin: gravity, id: 0 }\n", "delta", pages)}`));
+    expect(a?.test_form).toEqual({ page: "/", plugin: "gravity", id: 3 });
+    expect(b?.test_form).toEqual({ page: "/kontakt/", plugin: "fluent", id: 4 });
+    expect("test_form" in c!).toBe(false);
+    // Integer schema only; detection alone decides whether such an id can match a rendered form.
+    expect(d?.test_form).toEqual({ page: "/", plugin: "gravity", id: 0 });
+  });
+  test("page must exactly match a listed normalized path", () => {
+    for (const page of ["/about/", "/kontakt", "kontakt/", "/Kontakt/", "'/kontakt/?x=1'", "3", "null"]) {
+      expectError(designate(`{ page: ${page}, plugin: gravity, id: 1 }`), "acme", "test_form.page");
+    }
+    expectError(designate("{ plugin: gravity, id: 1 }"), "acme", "test_form.page");
+  });
+  test("plugin must be gravity or fluent", () => {
+    for (const plugin of ["contact7", "Gravity", "unknown", "3", "null"]) {
+      expectError(designate(`{ page: /kontakt/, plugin: ${plugin}, id: 1 }`), "acme", "test_form.plugin");
+    }
+    expectError(designate("{ page: /kontakt/, id: 1 }"), "acme", "test_form.plugin");
+  });
+  test("id must be a numeric integer, never a coerced string", () => {
+    for (const id of ["1.5", "'4'", "null", "true", ".inf", "[4]", "9007199254740993"]) {
+      expectError(designate(`{ page: /kontakt/, plugin: fluent, id: ${id} }`), "acme", "test_form.id");
+    }
+    expectError(designate("{ page: /kontakt/, plugin: fluent }"), "acme", "test_form.id");
+  });
+  test("unknown member and malformed shape name the site", () => {
+    expectError(designate("{ page: /kontakt/, plugin: fluent, id: 1, submit: true }"), "acme", "test_form.submit");
+    for (const bad of ["null", "''", "[]", "/kontakt/", "4", "[{ page: /kontakt/, plugin: fluent, id: 1 }]"]) {
+      expectError(designate(bad), "acme", "test_form");
+    }
+    expectError(designate("{ page: /about/, plugin: fluent, id: 1 }", "beta-2"), "beta-2", "test_form.page");
   });
 });
 

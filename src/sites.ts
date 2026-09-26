@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 
 export type Page = { path: string; mask: string[] };
 
+/** The one form per site that may be filled/attempted: plugin id as rendered, on one listed page. */
+export type TestForm = { page: string; plugin: "gravity" | "fluent"; id: number };
+
 export type Site = {
   slug: string;
   url: string;
@@ -9,6 +12,8 @@ export type Site = {
   mask: string[];
   max_diff_pixel_ratio: number;
   pages: Page[];
+  /** Absent: every discovered form is skipped. */
+  test_form?: TestForm;
 };
 
 export class SitesConfigError extends Error {
@@ -23,8 +28,9 @@ export class SitesConfigError extends Error {
   }
 }
 
-const SITE_KEYS = ["slug", "url", "form_helper", "mask", "max_diff_pixel_ratio", "pages"];
+const SITE_KEYS = ["slug", "url", "form_helper", "mask", "max_diff_pixel_ratio", "pages", "test_form"];
 const PAGE_KEYS = ["path", "mask"];
+const TEST_FORM_KEYS = ["page", "plugin", "id"];
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const TRAVERSAL = /^(\.|%2e){1,2}$/i;
 
@@ -123,6 +129,7 @@ export function loadSites(path = "sites.yaml"): Site[] {
       return { path, mask };
     });
 
+    const test_form = testForm(raw.test_form, normalized, err);
     return {
       slug,
       url,
@@ -130,8 +137,21 @@ export function loadSites(path = "sites.yaml"): Site[] {
       mask: masks(raw.mask, "mask", err),
       max_diff_pixel_ratio: ratio,
       pages: normalized,
+      ...(test_form ? { test_form } : {}),
     };
   });
+}
+
+// Literal designation only: no default, coercion or discovery-based choice.
+function testForm(value: unknown, pages: Page[], err: (field: string, detail: string) => never): TestForm | undefined {
+  if (value === undefined) return undefined;
+  if (!isObj(value)) return err("test_form", "must be a {page, plugin, id} mapping");
+  for (const key of Object.keys(value)) if (!TEST_FORM_KEYS.includes(key)) err(`test_form.${key}`, "unknown key");
+  const { page, plugin, id } = value;
+  if (typeof page !== "string" || !pages.some((p) => p.path === page)) return err("test_form.page", "must exactly match one of this site's listed page paths");
+  if (plugin !== "gravity" && plugin !== "fluent") return err("test_form.plugin", "must be gravity or fluent");
+  if (typeof id !== "number" || !Number.isSafeInteger(id)) return err("test_form.id", "must be an integer form id");
+  return { page, plugin, id };
 }
 
 // Only shape is checked; whether a selector is valid CSS or matches the page needs a browser.

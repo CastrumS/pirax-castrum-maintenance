@@ -49,8 +49,15 @@ export async function scanPageForms(site: Site, listedPage: SitePage, options: F
     let descriptors: FormDescriptor[];
     try { descriptors = await visit('scan', page => detectForms(page)); }
     catch { return [scanFailure('Page navigation/discovery or trace sanitation failed; forms were not verified.')]; }
+    // Listed pages are unique and each is scanned once per invocation, so selecting the first match on the
+    // one designated page bounds a site to one attempt per run. Duplicates never become retries/fallbacks.
+    const target = site.test_form?.page === listedPage.path ? site.test_form : undefined;
+    const designated = (d: FormDescriptor) => !!target && d.plugin === target.plugin && d.pluginId === String(target.id);
+    const selected = descriptors.findIndex(designated);
     for (const [index, descriptor] of descriptors.entries()) {
       const result = (outcome: FormResult['outcome'], detail: string): FormResult => ({ selector: redact(descriptor.selector), plugin: descriptor.plugin, outcome, detail: redact(detail).slice(0, 3000) });
+      // Before any per-form context, inspection, credential read or typing.
+      if (index !== selected) { results.push(result('skipped', `${!site.test_form ? 'No test form configured' : designated(descriptor) ? 'Duplicate of the designated test form (only the first is attempted)' : 'Not the designated test form on this page'}; not filled or submitted.`)); continue; }
       if (descriptor.plugin === 'unknown' || !descriptor.pluginId) { results.push(result('unsupported', 'Unknown or ambiguous form plugin identity; not filled or submitted.')); continue; }
       try {
         results.push(await visit(`form-${index + 1}`, async (page, policy) => {
@@ -78,6 +85,8 @@ export async function scanPageForms(site: Site, listedPage: SitePage, options: F
         results.push(result('failed', 'Browser/form operation or trace sanitation failed; unsafe evidence deleted.'));
       }
     }
+    // Only after a successful scan of the designated page; the same identity elsewhere does not count.
+    if (target && selected < 0) results.push({ selector: `test-form:${target.plugin}:${target.id}`, plugin: target.plugin, outcome: 'failed', detail: 'test form not found' });
   } catch (error) {
     if (isConfig(error)) throw error;
     results.push(scanFailure('Forms browser operation failed.'));

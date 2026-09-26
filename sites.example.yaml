@@ -5,6 +5,10 @@ sites:
     form_helper: false         # true once pirax-form-test is installed and configured on this site
     mask: ['#hero-slider']     # optional, CSS selectors masked on every page
     max_diff_pixel_ratio: 0.01 # optional, default 0.01
+    # optional: the only form ever filled on this site, attempted at most once per run (submitted
+    # only when form_helper is true). Omit it and every form is skipped. Pick a contact/inquiry form,
+    # never login/registration. page is one of the pages below; id as rendered (gform_1 / data-form_id="1").
+    test_form: { page: /contact/, plugin: gravity, id: 1 }   # plugin: gravity | fluent
     pages:                     # operator-listed; order preserved
       - /
       - /services/

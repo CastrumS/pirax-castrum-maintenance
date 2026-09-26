@@ -49,16 +49,35 @@ describe("private report", () => {
   });
   test("renders exact future Forms outcomes only when supplied", () => {
     const report = fixture();
-    const outcomes: FormResult["outcome"][] = ["delivered", "delivered-spam", "not-verified", "rejected", "unsupported", "failed"];
+    const outcomes: FormResult["outcome"][] = ["delivered", "delivered-spam", "not-verified", "rejected", "unsupported", "failed", "skipped"];
     report.sites[0]!.pages[0]!.forms = outcomes.map(outcome => ({ selector: '<form id="x">', plugin: "gravity", outcome, detail: "<detail>" }));
     const html = renderHtml(report, new Map());
     expect(html).toContain("<th>Forms</th>");
-    for (const outcome of outcomes) expect(html).toContain(outcome);
+    for (const outcome of outcomes) expect(html).toContain(`<strong>${outcome}</strong>`);
     expect(html).toContain("&lt;detail&gt;");
     expect(html).toContain("&lt;form id=&quot;x&quot;&gt;");
     expect(reportStatus(report)).toBe("failure"); // rejected/failed forms gate the run.
     report.sites[0]!.pages[0]!.forms = report.sites[0]!.pages[0]!.forms!.filter(f => !["rejected", "failed"].includes(f.outcome));
     expect(reportStatus(report)).toBe("warning");
+  });
+  test("skipped forms are neutral, explained, and accepted by check manifests and approval", () => {
+    const report = fixture();
+    report.sites[0]!.pages[0]!.forms = [
+      { selector: "#gform_2", plugin: "gravity", outcome: "skipped", detail: "Not the designated test form on this page; not filled or submitted." },
+      { selector: "form >> nth=1", plugin: "unknown", outcome: "skipped", detail: "Not the designated test form on this page; not filled or submitted." },
+    ];
+    expect(reportStatus(report)).toBe("pass"); // never a warning/failure by itself
+    const html = renderHtml(report, new Map());
+    expect(html).toContain("<strong>skipped</strong>");
+    expect(html).toContain("Not the designated test form on this page; not filled or submitted.");
+    expect(html).toMatch(/[Ss]kipped forms were intentionally not filled or submitted[^<]*not delivery evidence/);
+    expect(parseManifest(manifest(report), report.runId)).toEqual(manifest(report));
+    expect(validateApproval(parseManifest(manifest(report)), site)).toHaveLength(1);
+    report.sites[0]!.pages[0]!.forms.push({ selector: "#gform_1", plugin: "gravity", outcome: "not-verified", detail: "filled" });
+    expect(reportStatus(report)).toBe("warning");
+    const unknown = manifest(report) as any;
+    unknown.report.sites[0].pages[0].forms[0].outcome = "passed";
+    expect(() => parseManifest(unknown)).toThrow();
   });
   test("aggregates blocked, failures and warnings while keeping capture separate", () => {
     const report = fixture();

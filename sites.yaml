@@ -4,14 +4,15 @@
 # category...), and one page per distinct form. Comments note forms found
 # (GF = Gravity Forms, Fluent = Fluent Forms, id in the plugin).
 # form_helper stays false until the pirax-form-test plugin is installed on that site.
-# test_form (commented until the form-check-scope part merges): the one form per site
-# that gets a test submission each run; no other form is filled or submitted.
+# test_form: the one form per site that is filled each run (and, with form_helper: true,
+# submitted at most once); every other form is reported skipped, never filled or submitted.
+# A site without test_form has all its forms skipped. Never designate a login/registration form.
 
 sites:
   - slug: suntos
     url: https://suntos.de
     form_helper: false
-    # test_form: { page: /kontakt/, plugin: fluent, id: 4 }
+    test_form: { page: /kontakt/, plugin: fluent, id: 4 }
     pages:
       - /
       - /shop/
@@ -28,7 +29,7 @@ sites:
   - slug: stolarijabanek
     url: https://stolarijabanek.com
     form_helper: false
-    # test_form: { page: /kontakt/, plugin: fluent, id: 1 }
+    test_form: { page: /kontakt/, plugin: fluent, id: 1 }
     pages:
       - /
       - /o-nama/
@@ -40,7 +41,7 @@ sites:
   - slug: centrum-panda
     url: https://centrum-panda.pl
     form_helper: false
-    # test_form: { page: /, plugin: gravity, id: 3 }   # child enrollment (GF #1 is general contact)
+    test_form: { page: /, plugin: gravity, id: 3 }   # child enrollment (GF #1 is general contact)
     pages:
       - /                               # GF #1 and GF #3 appear site-wide
       - /organizacja/
@@ -55,7 +56,7 @@ sites:
   - slug: tara-garden
     url: https://www.tara.garden
     form_helper: false
-    # test_form: { page: /about-us/, plugin: gravity, id: 1 }
+    test_form: { page: /about-us/, plugin: gravity, id: 1 }
     pages:
       - /
       - /about/
@@ -74,7 +75,7 @@ sites:
   - slug: epamalgradnja
     url: https://epamalgradnja.hr
     form_helper: false
-    # test_form: { page: /kontakt/, plugin: gravity, id: 1 }
+    test_form: { page: /kontakt/, plugin: gravity, id: 1 }
     pages:
       - /                               # GF #1 + reCAPTCHA, site-wide
       - /o-nama/
@@ -88,7 +89,7 @@ sites:
   - slug: alu-kon
     url: https://www.alu-kon.hr
     form_helper: false
-    # test_form: { page: /kontakt/, plugin: gravity, id: 1 }
+    test_form: { page: /kontakt/, plugin: gravity, id: 1 }
     pages:
       - /                               # GF #1, site-wide
       - /o-nama/
@@ -107,7 +108,7 @@ sites:
   - slug: baterije-akumulatori
     url: https://baterije-akumulatori.com
     form_helper: false
-    # test_form: { page: /kontakt/, plugin: gravity, id: 2 }
+    test_form: { page: /kontakt/, plugin: gravity, id: 2 }
     pages:
       - /                               # GF #2 + reCAPTCHA
       - /o-nama/
@@ -132,7 +133,7 @@ sites:
   - slug: bravarskiservis
     url: https://bravarskiservis.hr
     form_helper: false
-    # test_form: { page: /kontakt/, plugin: fluent, id: 5 }
+    test_form: { page: /kontakt/, plugin: fluent, id: 5 }
     pages:
       - /
       - /hitne-intervencije/
@@ -150,7 +151,7 @@ sites:
   - slug: spok-ing
     url: https://spok-ing.hr
     form_helper: false
-    # test_form: { page: /kontakt/, plugin: fluent, id: 6 }
+    test_form: { page: /kontakt/, plugin: fluent, id: 6 }
     pages:
       - /                               # Fluent #6
       - /o-nama/
@@ -162,7 +163,7 @@ sites:
   - slug: laris-tcb
     url: https://laris-tcb.hr
     form_helper: false
-    # test_form: { page: /, plugin: gravity, id: 2 }   # site-wide inquiry (GF #4 is on /kontakt/)
+    test_form: { page: /, plugin: gravity, id: 2 }   # site-wide inquiry (GF #4 is on /kontakt/)
     pages:
       - /                               # GF #2 + reCAPTCHA, site-wide
       - /o-nama/
@@ -184,7 +185,7 @@ sites:
   - slug: teambuildinghrvatska
     url: https://teambuildinghrvatska.hr
     form_helper: false
-    # test_form: { page: /, plugin: gravity, id: 1 }
+    test_form: { page: /, plugin: gravity, id: 1 }
     pages:
       - /                               # GF #1, site-wide
       - /hvala-vam/
@@ -192,7 +193,7 @@ sites:
   - slug: instrukcijezasve
     url: https://instrukcijezasve.hr
     form_helper: false
-    # test_form: { page: /kontakt/, plugin: gravity, id: 4 }
+    test_form: { page: /kontakt/, plugin: gravity, id: 4 }
     pages:
       - /                               # GF #6
       - /predmeti/

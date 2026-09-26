@@ -2,7 +2,7 @@
 
 Visual, health and form checks for a hand-maintained list of WordPress sites, run from the operator's machine.
 
-The checker captures full-page desktop/mobile screenshots, compares them with accepted R2 baselines, and reports visual changes and browser health findings. Baseline creation and approval are explicit operator actions. `check` also fills forms and **submits supported forms on helper-opted-in sites**; `forms` runs that pass without screenshots. It does not discover pages, update WordPress or schedule runs. See [Form checks](#form-checks) before enabling submission.
+The checker captures full-page desktop/mobile screenshots, compares them with accepted R2 baselines, and reports visual changes and browser health findings. Baseline creation and approval are explicit operator actions. `check` also fills each site's one designated `test_form` and, **on helper-opted-in sites, submits it at most once per run**; every other form is reported `skipped`. `forms` runs that pass without screenshots. It does not discover pages, update WordPress or schedule runs. See [Form checks](#form-checks) before enabling submission.
 
 ## Pirax Form Test plugin
 
@@ -51,7 +51,7 @@ Create `.env` in the repository root with the four names from `.env.example`:
 | `bun run forms <slug\|all> [--sites file]` | Desktop forms-only check; no visual capture/comparison or baseline access. | Yes |
 | `bun run approve <slug> [pagePath] [--sites file]` | Promote exact actual PNG/health bytes from the latest completed remote check containing that site. | Yes |
 | `bun --no-env-file test tests` | Credential-free unit/helper, CLI and local browser tests; browser cases require installed Chromium. `bunfig.toml` excludes `issues/**` worktrees from discovery. | No |
-| `bun --env-file=.env test` | Full suite, including native [plugin](test/plugin/README.md) and [forms](test/forms/README.md) integration and scoped real R2; budget 25–35 minutes. Needs licensed GF ZIP, forms/IMAP and R2 configuration. Missing prerequisites fail, never skip. | Yes |
+| `bun --env-file=.env test` | Full suite, including native [plugin](test/plugin/README.md) and [forms](test/forms/README.md) integration and scoped real R2; budget 20–30 minutes. Needs licensed GF ZIP, forms/IMAP and R2 configuration. Missing prerequisites fail, never skip. | Yes |
 | `bun --env-file=.env run test:forms` | Browser/config/mail helpers, native Playground checker and scoped report tests. | Yes |
 | `bun --env-file=.env run mail:selftest` | Independent real SMTP/IMAP proof; sends one message and leaves it in the dedicated mailbox. | No |
 | `bun run typecheck` | `tsc --noEmit` over `src`, `scripts`, `tests` and `test` fixtures. | No |
@@ -117,9 +117,10 @@ The **visual capture** browser blocks service workers, page-originated non-GET H
 sites:
   - slug: acme                 # lowercase letters/digits, single internal hyphens, unique
     url: https://acme.example.com  # http(s), absolute, no trailing slash
-    form_helper: false         # fill only; true authorizes supported form submissions
+    form_helper: false         # fill only; true authorizes submitting the designated test_form
     mask: ['#hero-slider']     # optional, CSS selectors masked on every page (default [])
     max_diff_pixel_ratio: 0.01 # optional, 0–1 (default 0.01)
+    test_form: { page: /contact/, plugin: gravity, id: 1 }  # optional; omitted = every form skipped
     pages:                     # required, nonempty; order preserved
       - /
       - /services/
@@ -129,11 +130,14 @@ sites:
 
 `sites: []` is allowed. Unknown keys at any level are rejected.
 
+`test_form` designates the one form per site that the form pass may fill (see [Designated test form](#designated-test-form)). It is a mapping with exactly `page`, `plugin` and `id`: `page` must equal one of this site's listed page paths exactly as written (trailing slash included), `plugin` is `gravity` or `fluent`, and `id` is the form id as a YAML number, as rendered in `gform_<id>` or `data-form_id="<id>"`. A quoted `'4'`, a fraction, a missing or extra member, or a page not in `pages` is a `SitesConfigError`. There is no default: a site without `test_form` has every form skipped.
+
 `loadSites(path = "sites.yaml"): Site[]` reads the file synchronously and returns:
 
 ```ts
 type Page = { path: string; mask: string[] };
-type Site = { slug: string; url: string; form_helper: boolean; mask: string[]; max_diff_pixel_ratio: number; pages: Page[] };
+type TestForm = { page: string; plugin: "gravity" | "fluent"; id: number };
+type Site = { slug: string; url: string; form_helper: boolean; mask: string[]; max_diff_pixel_ratio: number; pages: Page[]; test_form?: TestForm };
 ```
 
 Site and page masks stay separate in the loader; capture combines them. The loader checks nonblank strings; browser preflight checks CSS syntax.
@@ -146,7 +150,7 @@ Any problem throws `SitesConfigError` with `.site` and `.field`, and a message `
 sites.yaml: acme: url: must not end with "/"
 ```
 
-`site` is the slug, or `site[<index>]` when the slug is missing or invalid, or `<root>` for file-level problems. `field` is the failing part, such as `url`, `mask[1]`, `pages[2].path` or `pages[0].mask[0]`. Read errors report only the error code, and YAML errors report only the parser message, never file contents.
+`site` is the slug, or `site[<index>]` when the slug is missing or invalid, or `<root>` for file-level problems. `field` is the failing part, such as `url`, `mask[1]`, `pages[2].path`, `pages[0].mask[0]`, `test_form` or `test_form.page`. Read errors report only the error code, and YAML errors report only the parser message, never file contents.
 
 Page paths must start with a single `/` and must not contain a query, fragment, `.`/`..` segments (including `%2e` forms) or empty segments. Backslashes, spaces, tabs, newlines and other ASCII control characters are rejected too, because URL parsing turns `\` into `/` and drops tabs, newlines and trailing spaces, which could hide an off-site `//host` or a `..`. Percent-encode such characters instead, for example `/a%20b/`. A trailing slash is kept as written.
 
@@ -197,28 +201,41 @@ Open `runs/<runId>/index.html` in a browser. View a retained trace with the inst
 bunx playwright show-trace runs/<runId>/traces/<slug>/desktop/<pageKey>.trace.zip
 ```
 
-`check` attaches `PageResult.forms` after visual capture; no forms is `[]`, while discovery failures (including positively identified HTTP-200 challenge/interstitial pages) are explicit failed results. Form outcomes participate in page/site/run status (see below). `forms` writes `{schemaVersion: 1, command: "forms", report: FormsRunReport}` with `mode: "forms"`, no viewports or fictitious images. Forms-only uploads are HTML then manifest, with the same global last-ten pruning; they never become approval evidence. A malformed manifest still fails selection rather than being skipped.
+`check` attaches `PageResult.forms` after visual capture; no forms is `[]`, while discovery failures (including positively identified HTTP-200 challenge/interstitial pages) are explicit failed results. Every discovered form is listed, including `skipped` ones with their reason. Form outcomes participate in page/site/run status (see below). `forms` writes `{schemaVersion: 1, command: "forms", report: FormsRunReport}` with `mode: "forms"`, no viewports or fictitious images. Forms-only uploads are HTML then manifest, with the same global last-ten pruning; they never become approval evidence. A malformed manifest still fails selection rather than being skipped.
 
 ## Form checks
 
 **`form_helper: true` is operator attestation, not proof of installation, matching token or audited versions.** Verify the built helper ZIP, settings, notification path and integrations before opting in. A missing/mismatched helper can process a marker as ordinary data and involve clients. Keep unverified sites false. Roll out one site, then a group, then all, with explicit operator go-ahead at every stage; tests do not authorize a rollout. Follow the [helper install/rollout guide](plugin/pirax-form-test/README.md#rollout).
 
-Both commands scan each listed page once for forms at desktop 1440×900, separately from visual desktop/mobile contexts. Supported Gravity Forms and Fluent Forms get deterministic test data, `FORM_TEST_ADDRESS` in email fields, and an intact `<FORM_TEST_TOKEN>-<id>` in the first usable textarea or plain text input. Each attempt has a fresh cryptographic 12-character lowercase alphanumeric ID. Hidden nonces/honeypots are preserved. Required checkbox groups use native GF/FF markers (`aria-required` and GF required-field containers): one usable choice per group, plus every individually HTML-required checkbox; optional groups are left unchanged. Unknown forms, uploads (even hidden), missing/constrained marker fields, external actions, custom/multistep/payment/password flows and GF drafts are unsupported. FF hCaptcha/Turnstile is not verified; no CAPTCHA solving is attempted. Invisible/reCAPTCHA v3 browser flows remain unverified: their client-side execution may be blocked by the frozen request policy and time out as `failed`, even when the helper bypasses server CAPTCHA validation. Specialized GF phone formats/widgets (US Standard and International formatted) are also unverified and may falsely reject fixed test data; do not infer support from basic telephone-input filling.
+Both commands scan each listed page once for forms at desktop 1440×900, separately from visual desktop/mobile contexts. Only the site's [designated test form](#designated-test-form) is ever filled. If it is a supported Gravity Forms or Fluent Forms form, it gets deterministic test data, `FORM_TEST_ADDRESS` in email fields, and an intact `<FORM_TEST_TOKEN>-<id>` in the first usable textarea or plain text input. Each attempt has a fresh cryptographic 12-character lowercase alphanumeric ID. Hidden nonces/honeypots are preserved. Required checkbox groups use native GF/FF markers (`aria-required` and GF required-field containers): one usable choice per group, plus every individually HTML-required checkbox; optional groups are left unchanged. A designated form with uploads (even hidden), missing/constrained marker fields, external actions, custom/multistep/payment/password flows or GF drafts is unsupported. Unknown or unnumbered forms (such as a GF `gform_0`) cannot match a designation and are always skipped. FF hCaptcha/Turnstile is not verified; no CAPTCHA solving is attempted. Invisible/reCAPTCHA v3 browser flows remain unverified: their client-side execution may be blocked by the frozen request policy and time out as `failed`, even when the helper bypasses server CAPTCHA validation. Specialized GF phone formats/widgets (US Standard and International formatted) are also unverified and may falsely reject fixed test data; do not infer support from basic telephone-input filling.
 
-With helper false, supported forms are filled/client-validated but never submitted. With helper true, the checker permits one selected, marker-bearing native GF/FF browser submission on its audited same-origin route. No direct submission API or automatic retry is used. Initial GET/assets are allowed; requests during filling and unrelated submissions/WebSockets are blocked. This cannot prove arbitrary site JavaScript or GET endpoints side-effect-free. Discovery has a bounded initialization window; indefinitely delayed forms/custom widgets are not covered.
+With helper false, a supported designated form is filled/client-validated but never submitted (`not-verified`). With helper true, the checker permits one selected, marker-bearing native GF/FF browser submission on its audited same-origin route. No direct submission API or automatic retry is used. Initial GET/assets are allowed; requests during filling and unrelated submissions/WebSockets are blocked. This cannot prove arbitrary site JavaScript or GET endpoints side-effect-free. Discovery has a bounded initialization window; indefinitely delayed forms/custom widgets are not covered.
 
-A new, form-associated native confirmation is required before polling. GF postback/modern AJAX and FF AJAX are supported; GF 3.1.2's exact default-path DOMPurify script may load only after its authorized AJAX POST. Relocated/custom chunks and redirect-only or unfamiliar confirmations fail rather than infer success. Client/native server validation refusals are `rejected`; later forms/pages still run. Per-page navigation and confirmation normally allow 30 seconds each. Each confirmed ID then gets **at most five minutes** for real mailbox verification, including connection/command waits; multiple forms run sequentially. Delayed queues can arrive after a failed result. There is no public polling-shortcut flag.
+A new, form-associated native confirmation is required before polling. GF postback/modern AJAX and FF AJAX are supported; GF 3.1.2's exact default-path DOMPurify script may load only after its authorized AJAX POST. Relocated/custom chunks and redirect-only or unfamiliar confirmations fail rather than infer success. Client/native server validation refusals are `rejected`; later pages and sites still run, but no other form of that site is tried instead. Per-page navigation and confirmation normally allow 30 seconds each. The one confirmed ID per site then gets **at most five minutes** for real mailbox verification, including connection/command waits; sites run sequentially. Delayed queues can arrive after a failed result. There is no public polling-shortcut flag.
 
 | Outcome | Run effect |
 | --- | --- |
 | `delivered` | Pass: exact tagged Subject found in configured inbox folder. |
 | `delivered-spam` | Warning: spam match wins even if also found in inbox. |
 | `not-verified`, `unsupported` | Warning, not proof of delivery. |
-| `rejected`, `failed` | Failure, exit 1 (including missing confirmation or delivery timeout). |
+| `skipped` | Neutral (counts as pass): not the designated test form, or no `test_form`; never filled or submitted, and not delivery evidence. |
+| `rejected`, `failed` | Failure, exit 1 (including missing confirmation, delivery timeout or `test form not found`). |
+
+### Designated test form
+
+Each site submits at most one form per `check` or `forms` invocation: its `test_form`, however many listed pages show that form. After a page's discovery succeeds:
+
+- On the designated page only, the first discovered form in document order whose plugin and rendered id both match is selected, before any per-form browser context, inspection, credential read or typing. Every other discovered form is `skipped`: other GF/FF forms, unknown forms, the same form on other listed pages and further instances of the same plugin/id on that page. Skipped forms are listed with their reason and never filled or submitted.
+- A selected form that is unsupported, rejected, changed since discovery or failed is reported as such. There is no retry, and nothing else on the site is filled instead.
+- Without `test_form`, every form of that site is `skipped` and no form or mail credentials are read.
+- If the designated plugin/id is not on its page after a successful scan, the discovered forms are skipped and one `failed` result (selector `test-form:<plugin>:<id>`) says exactly `test form not found`. The same form on another page does not count. Navigation, discovery or challenge failures stay page-scan failures rather than evidence of absence.
+- With `form_helper: false` the designated form is filled but not submitted (`not-verified`).
+
+The limit is per invocation: two separate runs are two attempts, and there is no cross-run lock. A designation names a plugin/id, not a purpose: choose a contact or inquiry form, **never a login/registration or account form**. Password and custom flows stay unsupported if designated, but an ordinary-looking account integration cannot be recognized from the page. Skipped means only that the checker did not fill or submit that form; page scripts and asset GETs during discovery still run.
 
 ### Forms/mail configuration
 
-Obtain a **new dedicated mailbox**, not anyone's personal inbox. Enable IMAP/app-password access, create a plus-address or alias, and configure its filter to file tests in a dedicated existing folder. Confirm the provider's exact spam folder name. Add the following names to your private environment; no values belong in the site list or logs. Configuration is lazy: imports/empty selection need none; unsupported/no-form pages need no forms/mail credentials; supported filling needs token/address, and eligible opted-in submission validates IMAP configuration before clicking. Nonempty published commands still need R2. SMTP is only for the independent selftest. A late forms-configuration error during `check` returns 2 after the visual captures: local capture artifacts remain, but no completed HTML/manifest report is written or published.
+Obtain a **new dedicated mailbox**, not anyone's personal inbox. Enable IMAP/app-password access, create a plus-address or alias, and configure its filter to file tests in a dedicated existing folder. Confirm the provider's exact spam folder name. Add the following names to your private environment; no values belong in the site list or logs. Configuration is lazy: imports/empty selection need none; skipped forms, sites without `test_form`, and unsupported/no-form pages need no forms/mail credentials; filling the designated form needs token/address, and eligible opted-in submission validates IMAP configuration before clicking. Nonempty published commands still need R2. SMTP is only for the independent selftest. A late forms-configuration error during `check` returns 2 after the visual captures: local capture artifacts remain, but no completed HTML/manifest report is written or published.
 
 | Name | Acquisition and format |
 | --- | --- |

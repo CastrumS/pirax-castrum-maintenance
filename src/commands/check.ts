@@ -69,4 +69,5 @@ async function executeCheck(sites: Site[], store: Store, options: RunOptions): P
   return result;
 }
 
-if (import.meta.main) process.exitCode = await dispatch("check", process.argv.slice(2));
+// No top-level await: dispatch dynamically imports this module, which would deadlock while it is still evaluating.
+if (import.meta.main) void dispatch("check", process.argv.slice(2)).then(code => { process.exitCode = code; });

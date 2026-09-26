@@ -38,4 +38,5 @@ export async function runForms(sites: Site[], store: Store, options: RunOptions 
   }
   return result;
 }
-if (import.meta.main) process.exitCode = await dispatch('forms', process.argv.slice(2));
+// No top-level await: dispatch dynamically imports this module, which would deadlock while it is still evaluating.
+if (import.meta.main) void dispatch('forms', process.argv.slice(2)).then(code => { process.exitCode = code; });

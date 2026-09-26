@@ -60,4 +60,5 @@ export async function runApprove(site: Site, store: Store, options: { pagePath?:
   }
 }
 
-if (import.meta.main) process.exitCode = await dispatch("approve", process.argv.slice(2));
+// No top-level await: dispatch dynamically imports this module, which would deadlock while it is still evaluating.
+if (import.meta.main) void dispatch("approve", process.argv.slice(2)).then(code => { process.exitCode = code; });

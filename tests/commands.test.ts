@@ -125,3 +125,17 @@ test("newer valid forms-only runs are skipped; a malformed newer forms manifest 
   await expect(newestSiteCheck([checkId, newest], "acme", async id => id === newest ? malformed : check(id))).rejects.toThrow(/manifest/);
   await expect(newestSiteCheck([newest], "acme", async id => forms(id))).rejects.toThrow(/no completed check/);
 });
+
+test("baseline/check entrypoints finish after the lazy command import instead of deadlocking", () => {
+  const unreachable = join(dir, "unreachable.yaml");
+  require("node:fs").writeFileSync(unreachable, 'sites:\n  - slug: down\n    url: http://127.0.0.1:9\n    form_helper: false\n    pages: [/]\n');
+  const env = { PATH: process.env.PATH!, HOME: process.env.HOME!, S3_ACCESS_KEY_ID: "id", S3_SECRET_ACCESS_KEY: "secret", S3_ENDPOINT: "http://127.0.0.1:9", S3_BUCKET: "bucket" };
+  for (const command of ["baseline", "check"]) {
+    const child = Bun.spawnSync([process.execPath, "--no-env-file", "run", command, "down", "--sites", unreachable], { cwd: resolve("."), env, timeout: 90_000 });
+    const out = child.stdout.toString();
+    for (const [, runDir] of out.matchAll(/artifacts: (\S+)/g)) rmSync(runDir!, { recursive: true, force: true });
+    expect(child.exitedDueToTimeout).toBeFalsy();
+    expect(child.exitCode).toBe(1);
+    expect(out).toContain("down / desktop");
+  }
+}, 120_000);

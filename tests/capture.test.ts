@@ -68,6 +68,13 @@ function routes(req: Request, origin: () => string): Response | Promise<Response
     return new Response("written");
   }
   switch (url.pathname) {
+    case "/delayed-unreachable":
+      return page(`<p>Initial HTTP 200</p><script>setTimeout(() => location.replace("http://127.0.0.1:${closedPort}/gone"), 100)</script>`);
+    case "/delayed-post":
+      return page(`<p>Initial HTTP 200</p><form method="post" action="/write"><input name="value" value="x"></form>
+        <script>setTimeout(() => document.forms[0].submit(), 100)</script>`);
+    case "/plain":
+      return page("<h1>Plain page</h1>");
     case "/delayed":
       return page(`<p>Initial HTTP 200</p><script>setTimeout(() => location.replace(${JSON.stringify(url.searchParams.get("to"))}), 100)</script>`);
     case "/redirect":
@@ -221,6 +228,31 @@ test("locked viewports and readiness limits", () => {
 });
 
 describe("capture in real Chromium", () => {
+  for (const path of ["/delayed-unreachable", "/delayed-post"]) {
+    test(`failed later main-document navigation from ${path} cannot reuse HTTP 200`, async () => {
+      const before = counts.writes;
+      const r = await shoot(session, path);
+      const normal = await shoot(session, "/plain");
+      const observed = { writes: counts.writes - before };
+      writeFileSync(join(runDir, `${path.slice(1)}-counts.json`), JSON.stringify(observed, null, 2));
+      console.log("Failed navigation fixture:", JSON.stringify({ path, state: r.state, health: r.health, hasImage: !!r.image, ...observed }), "artifacts:", runDir);
+      expect(observed.writes).toBe(0);
+      if (path === "/delayed-post") expect(r.warnings).toContain(`read-only policy blocked POST ${base}/write`);
+      expect(statSync(r.tracePath!).size).toBeGreaterThan(1000);
+      expect(normal.state).toBe("captured");
+      expect(normal.image).not.toBeNull();
+      expect(normal.health).toMatchObject({ status: 200, finalUrl: base + "/plain" });
+      expect(evaluateHealth(normal.health, null)).toEqual([]);
+      expect({ state: r.state, status: r.health.status, hasImage: !!r.image }).toEqual({ state: "blocked", status: null, hasImage: false });
+      expect(r.detail).toContain("navigation failed");
+      for (const baseline of [null, r.health]) {
+        expect(evaluateHealth(r.health, baseline)).toContainEqual({
+          kind: "status", severity: "failure", detail: `no HTTP response for ${r.health.finalUrl}`,
+        });
+      }
+    }, 60_000);
+  }
+
   for (const [destination, status, criticalError, detail] of [
     ["/missing", 404, false, null],
     ["/critical", 500, true, null],

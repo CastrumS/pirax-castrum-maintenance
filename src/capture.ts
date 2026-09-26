@@ -196,6 +196,7 @@ async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean
     page.on("request", (r) => {
       if (isMainDocument(r)) {
         mainRequest = r;
+        mainResponse = null;
         navigating = true;
         navigationVersion++;
       }
@@ -240,7 +241,7 @@ async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean
       if ((await locator.count()) === 0) warnings.add(`mask ${JSON.stringify(req.masks[i])} matched nothing`);
     }
     // Read headers from this exact response, not an async listener that can finish out of order.
-    const response = mainResponse;
+    const response = mainResponse?.request() === mainRequest ? mainResponse : null;
     const version = navigationVersion;
     const [observation, headers] = await Promise.all([
       page.evaluate((phrase) => ({
@@ -250,9 +251,13 @@ async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean
       }), CRITICAL_ERROR_PHRASE.toLowerCase()),
       response?.allHeaders() ?? {},
     ]);
-    status = response?.status() ?? null;
+    const browserError = observation.url.startsWith("chrome-error:");
+    status = browserError ? null : response?.status() ?? null;
     finalUrl = observation.url;
     criticalError = observation.critical;
+    if (!response || browserError) {
+      return { state: "blocked", detail: `navigation failed: ${mainRequest?.failure()?.errorText ?? "no HTTP response for the current document"}`, image: null };
+    }
     const changed = () => navigating || navigationVersion !== version || mainResponse !== response;
     const unstable = { state: "blocked", detail: "main document changed during capture; retry the page", image: null } as const;
     if (changed()) return unstable;

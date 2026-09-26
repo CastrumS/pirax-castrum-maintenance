@@ -1,8 +1,8 @@
 # Pirax Castrum Maintenance
 
-Visual and health checks for a hand-maintained list of WordPress sites, run from the operator's machine.
+Visual, health and form checks for a hand-maintained list of WordPress sites, run from the operator's machine.
 
-The checker captures full-page desktop/mobile screenshots, compares them with accepted R2 baselines, and reports visual changes and browser health findings. Baseline creation and approval are explicit operator actions. It does not discover pages, update WordPress, submit forms or schedule runs.
+The checker captures full-page desktop/mobile screenshots, compares them with accepted R2 baselines, and reports visual changes and browser health findings. Baseline creation and approval are explicit operator actions. `check` also fills forms and **submits supported forms on helper-opted-in sites**; `forms` runs that pass without screenshots. It does not discover pages, update WordPress or schedule runs. See [Form checks](#form-checks) before enabling submission.
 
 ## Pirax Form Test plugin
 
@@ -23,7 +23,7 @@ The plugin suites need `GRAVITY_FORMS_ZIP` and `FORM_TEST_TOKEN`. From a worktre
 
 ## Setup
 
-Production commands require [Bun](https://bun.sh) 1.4 or newer, Playwright Chromium with its system libraries, and private Cloudflare R2 access. Node 24, OpenSSL and WordPress downloads are additional integration-selftest requirements only; see [Visual selftest](#visual-selftest).
+Production commands require [Bun](https://bun.sh) 1.4 or newer, Playwright Chromium with its system libraries, and private Cloudflare R2 access. The forms pass additionally requires `zip`/`unzip` for private trace sanitation. Node 24, OpenSSL and WordPress downloads are additional integration-selftest requirements only; see [Visual selftest](#visual-selftest).
 
 ```sh
 bun install
@@ -47,21 +47,24 @@ Create `.env` in the repository root with the four names from `.env.example`:
 | Command | What it does | Needs R2 |
 | --- | --- | --- |
 | `bun run baseline <slug\|all> [--sites file]` | Capture and replace PNG/raw-health baseline pairs at both widths. | Yes |
-| `bun run check <slug\|all> [--sites file]` | Compare with baselines and publish a private report, including expected failures. Never changes baselines. | Yes |
+| `bun run check <slug\|all> [--sites file]` | Capture/compare, then check forms; publish a private report, including expected failures. Never changes baselines. | Yes |
+| `bun run forms <slug\|all> [--sites file]` | Desktop forms-only check; no visual capture/comparison or baseline access. | Yes |
 | `bun run approve <slug> [pagePath] [--sites file]` | Promote exact actual PNG/health bytes from the latest completed remote check containing that site. | Yes |
 | `bun --no-env-file test tests` | Credential-free unit/helper, CLI and local browser tests; browser cases require installed Chromium. `bunfig.toml` excludes `issues/**` worktrees from discovery. | No |
-| `bun test` | Everything above plus the Playground-backed [plugin suites](#pirax-form-test-plugin) under `test/plugin/` (about 10 minutes). Those need `GRAVITY_FORMS_ZIP` and `FORM_TEST_TOKEN`, which Bun loads from `.env`, and fail by name when they are missing. | No |
+| `bun --env-file=.env test` | Full suite, including native [plugin](test/plugin/README.md) and [forms](test/forms/README.md) integration and scoped real R2; budget 25–35 minutes. Needs licensed GF ZIP, forms/IMAP and R2 configuration. Missing prerequisites fail, never skip. | Yes |
+| `bun --env-file=.env run test:forms` | Browser/config/mail helpers, native Playground checker and scoped report tests. | Yes |
+| `bun --env-file=.env run mail:selftest` | Independent real SMTP/IMAP proof; sends one message and leaves it in the dedicated mailbox. | No |
 | `bun run typecheck` | `tsc --noEmit` over `src`, `scripts`, `tests` and `test` fixtures. | No |
 | `bun run store:selftest` | Real-bucket storage test (see [Storage selftest](#storage-selftest)); runs `bun --env-file=.env scripts/store-selftest.ts`. | Yes |
 | `bun run visual:selftest` | Real WordPress/Chromium/R2 integration (see [Visual selftest](#visual-selftest)); runs `bun --env-file=.env scripts/visual-selftest.ts`. | Yes |
 
-Use a listed slug (for example `acme`) or `all` for baseline/check. `approve all` is unsupported. `--sites path/to/sites.yaml` selects an alternative list and may appear before or after the positional arguments. The default is `sites.yaml`; no command rewrites it. An empty valid list with target `all` returns 0 without accessing R2 or launching a browser.
+Use a listed slug (for example `acme`) or `all` for baseline/check/forms. `approve all` is unsupported. `--sites path/to/sites.yaml` selects an alternative list and may appear before or after the positional arguments. The default is `sites.yaml`; no command rewrites it. An empty valid list with target `all` returns 0 without accessing R2 or launching a browser.
 
-Exit codes for baseline/check/approve:
+Exit codes for baseline/check/forms/approve:
 
 - `0`: pass or warnings only, successful approval, or an empty selection.
-- `1`: visual, health, missing/corrupt baseline, blocked capture or operational failure, including report upload/pruning and approval failures.
-- `2`: usage, site-list, CSS-selector or missing/blank credential configuration error.
+- `1`: visual, health, rejected/failed form, missing/corrupt baseline, blocked capture or operational failure, including report upload/pruning and approval failures.
+- `2`: usage, site-list, CSS-selector or missing/blank/invalid credential configuration error.
 
 ### Before and after manual updates
 
@@ -84,7 +87,7 @@ bun run check acme
 
 `baseline` replaces complete captured pairs directly, including usable captures with health findings; those findings can still make it return 1. Blocked/incomplete captures preserve existing pairs. `check` never creates a baseline: a missing PNG or health object is a `missing-baseline` failure; corrupt PNG/health is an explicit error. Inspect the site, then run `baseline <slug>` to establish or replace those pairs. Storage/authentication failures are operational errors, not evidence that a baseline is absent.
 
-Approval reads R2, without recapture or a local-cache requirement. It scans canonical run IDs newest first, skipping runs without a completion manifest and valid runs for other sites. An invalid manifest encountered during selection is an error. From the newest completed check containing the site, it requires the same configured source URL and complete actual PNG/health evidence for every requested current page at both widths. All selected PNGs, recorded dimensions and health snapshots are validated before any baseline write. A newly listed page absent from that run, blocked/incomplete capture or missing/corrupt evidence fails preflight without writes. It never falls back to an older run or mixes runs; create a fresh check when evidence is unsuitable or pruned.
+Approval reads R2, without recapture or a local-cache requirement. It scans canonical run IDs newest first, skipping runs without a completion manifest, valid forms-only runs and valid checks for other sites. An invalid manifest encountered during selection is an error. From the newest completed check containing the site, it requires the same configured source URL and complete actual PNG/health evidence for every requested current page at both widths. All selected PNGs, recorded dimensions and health snapshots are validated before any baseline write. A newly listed page absent from that run, blocked/incomplete capture or missing/corrupt evidence fails preflight without writes. It never falls back to an older run or mixes runs; create a fresh check when evidence is unsuitable or pruned.
 
 Baseline and approval writes are **nontransactional**: a write failure can leave partial replacement after successful preflight. Approval stops on that failure. Resolve the cause and rerun the explicit baseline/approve command; recheck afterward. Successful approval returns 0 for byte promotion, even when the promoted capture contains health failures that will still fail the next check.
 
@@ -104,7 +107,7 @@ Health is separate from pixel comparison:
 - Missing main-document response, final HTTP status >=400, the rendered WordPress critical-error phrase, and HTTP resources on a final HTTPS document always fail, even after baseline/approval. HTTP hyperlinks alone are not mixed content.
 - Warnings alone return 0. Raw health snapshots retain all observations, not just new findings.
 
-The browser blocks service workers, page-originated non-GET HTTP requests (including POST/beacon), and WebSocket connections/messages. WebSocket interception is installed for the entire browser context before any page is opened, with no connection to the remote peer. HTTP and WebSocket policy blocks produce read-only-policy warnings, not server asset failures. It does not click forms or admin/update flows. Normal asset GETs are allowed; a remote GET endpoint can itself have side effects, so this policy cannot guarantee an arbitrary site is side-effect-free. Real-site TLS validation stays enabled.
+The **visual capture** browser blocks service workers, page-originated non-GET HTTP requests (including POST/beacon), and WebSocket connections/messages. WebSocket interception is installed for the entire browser context before any page is opened, with no connection to the remote peer. HTTP and WebSocket policy blocks produce read-only-policy warnings, not server asset failures. It does not click forms or admin/update flows. Normal asset GETs are allowed; a remote GET endpoint can itself have side effects, so this policy cannot guarantee an arbitrary site is side-effect-free. Real-site TLS validation stays enabled.
 
 ## Site list
 
@@ -114,7 +117,7 @@ The browser blocks service workers, page-originated non-GET HTTP requests (inclu
 sites:
   - slug: acme                 # lowercase letters/digits, single internal hyphens, unique
     url: https://acme.example.com  # http(s), absolute, no trailing slash
-    form_helper: false         # required metadata; visual checks do not execute forms
+    form_helper: false         # fill only; true authorizes supported form submissions
     mask: ['#hero-slider']     # optional, CSS selectors masked on every page (default [])
     max_diff_pixel_ratio: 0.01 # optional, 0–1 (default 0.01)
     pages:                     # required, nonempty; order preserved
@@ -182,9 +185,9 @@ reports/<runId>/diff/<slug>/<viewport>/<pageKey>.png              # when availab
 
 Each check saves `runs/<runId>/index.html`, `manifest.json` and the same relative actual/baseline/diff paths shown above. The HTML contains inline CSS and embedded PNGs, so a single private signed GET renders all available panels without public or unsigned asset requests. Site-derived text is escaped and scripts/external assets are disallowed. HTML uploads use `text/html; charset=utf-8`, JSON `application/json`, and PNGs `image/png`.
 
-The manifest is `{schemaVersion: 1, command: "check", report: RunReport}` from `src/report/model.ts`, recording site URL, page identity, capture/visual/health results and artifact paths. It uploads **last** as the completion marker. Publication then prunes to ten run directories and prints a signed report link valid for up to **604800 seconds (seven days)**. Expected failed checks also publish reports. Upload/prune/presign errors return 1; an already-written local report survives. A local filesystem failure can prevent HTML creation in the first place.
+The manifest is `{schemaVersion: 1, command: "check", report: RunReport}` from `src/report/model.ts`, recording site URL, page identity, capture/visual/health results and artifact paths. It uploads **last** as the completion marker. Publication then prunes to ten run directories. The CLI prints the local report path and confirms private publication, but withholds the bearer URL from logs: it contains credential identifiers that the privacy boundary would otherwise replace, producing an unusable link. Programmatic `runCheck`/`runForms` results retain `url`, the valid private link signed for **604800 seconds (seven days)**. Expected failed checks also publish reports. Upload/prune/presign errors return 1; an already-written local report survives. A local filesystem failure can prevent HTML creation in the first place.
 
-The printed URL is a **bearer capability**: anyone holding it can read the report. Do not paste it into issues, committed files or retained implementation logs. Seven days is signature expiry, not guaranteed retention: global last-ten pruning across all sites can remove it sooner, including a quiet site's latest approval source. Run a fresh check if that source has gone.
+The API-returned URL is a **bearer capability**: anyone holding it can read the report. Do not paste it into issues, committed files or retained implementation logs. Seven days is signature expiry, not guaranteed retention: global last-ten pruning across all sites can remove it sooner, including a quiet site's latest approval source. Run a fresh check if that source has gone.
 
 Capture traces are local only: `runs/<runId>/traces/<slug>/<viewport>/<pageKey>.trace.zip` when saving succeeds. They include screenshots, snapshots and sources, without video; publication explicitly excludes traces even though manifest metadata may name their paths. Baseline commands retain raw `actual/` files and traces, but do not publish a check report. `runs/` is gitignored and has no automatic local pruning. Reports and traces can contain private site content; review before sharing and remove locally when no longer needed.
 
@@ -194,7 +197,44 @@ Open `runs/<runId>/index.html` in a browser. View a retained trace with the inst
 bunx playwright show-trace runs/<runId>/traces/<slug>/desktop/<pageKey>.trace.zip
 ```
 
-The shared `PageResult` supports optional `forms?: FormResult[]`; a supplied value enables a Forms column with plugin, outcome and detail. Outcomes are `delivered`, `delivered-spam`, `not-verified`, `rejected`, `unsupported`, or `failed`. Ordinary visual runs supply no forms. Rendering this data introduces no form submission, email check or form-health gating.
+`check` attaches `PageResult.forms` after visual capture; no forms is `[]`, while discovery failures are explicit failed results. Form outcomes participate in page/site/run status (see below). `forms` writes `{schemaVersion: 1, command: "forms", report: FormsRunReport}` with `mode: "forms"`, no viewports or fictitious images. Forms-only uploads are HTML then manifest, with the same global last-ten pruning; they never become approval evidence. A malformed manifest still fails selection rather than being skipped.
+
+## Form checks
+
+**`form_helper: true` is operator attestation, not proof of installation, matching token or audited versions.** Verify the built helper ZIP, settings, notification path and integrations before opting in. A missing/mismatched helper can process a marker as ordinary data and involve clients. Keep unverified sites false. Roll out one site, then a group, then all, with explicit operator go-ahead at every stage; tests do not authorize a rollout. Follow the [helper install/rollout guide](plugin/pirax-form-test/README.md#rollout).
+
+Both commands scan each listed page once for forms at desktop 1440×900, separately from visual desktop/mobile contexts. Supported Gravity Forms and Fluent Forms get deterministic test data, `FORM_TEST_ADDRESS` in email fields, and an intact `<FORM_TEST_TOKEN>-<id>` in the first usable textarea or plain text input. Each attempt has a fresh cryptographic 12-character lowercase alphanumeric ID. Hidden nonces/honeypots are preserved. Unknown forms, uploads (even hidden), missing/constrained marker fields, external actions, custom/multistep/payment/password flows and GF drafts are unsupported. FF hCaptcha/Turnstile is not verified; no CAPTCHA solving is attempted.
+
+With helper false, supported forms are filled/client-validated but never submitted. With helper true, the checker permits one selected, marker-bearing native GF/FF browser submission on its audited same-origin route. No direct submission API or automatic retry is used. Initial GET/assets are allowed; requests during filling and unrelated submissions/WebSockets are blocked. This cannot prove arbitrary site JavaScript or GET endpoints side-effect-free. Discovery has a bounded initialization window; indefinitely delayed forms/custom widgets are not covered.
+
+A new, form-associated native confirmation is required before polling. GF postback/modern AJAX and FF AJAX are supported; GF 3.1.2's exact default-path DOMPurify script may load only after its authorized AJAX POST. Relocated/custom chunks and redirect-only or unfamiliar confirmations fail rather than infer success. Client/native server validation refusals are `rejected`; later forms/pages still run. Per-page navigation and confirmation normally allow 30 seconds each. Each confirmed ID then gets **at most five minutes** for real mailbox verification, including connection/command waits; multiple forms run sequentially. Delayed queues can arrive after a failed result. There is no public polling-shortcut flag.
+
+| Outcome | Run effect |
+| --- | --- |
+| `delivered` | Pass: exact tagged Subject found in configured inbox folder. |
+| `delivered-spam` | Warning: spam match wins even if also found in inbox. |
+| `not-verified`, `unsupported` | Warning, not proof of delivery. |
+| `rejected`, `failed` | Failure, exit 1 (including missing confirmation or delivery timeout). |
+
+### Forms/mail configuration
+
+Obtain a **new dedicated mailbox**, not anyone's personal inbox. Enable IMAP/app-password access, create a plus-address or alias, and configure its filter to file tests in a dedicated existing folder. Confirm the provider's exact spam folder name. Add the following names to your private environment; no values belong in the site list or logs. Configuration is lazy: imports/empty selection need none; unsupported/no-form pages need no forms/mail credentials; supported filling needs token/address, and eligible opted-in submission validates IMAP configuration before clicking. Nonempty published commands still need R2. SMTP is only for the independent selftest.
+
+| Name | Acquisition and format |
+| --- | --- |
+| `FORM_TEST_TOKEN` | Operator-generated random secret, 16–255 characters `[A-Za-z0-9._~+/=-]`; exactly match helper settings. |
+| `FORM_TEST_ADDRESS` | Dedicated mailbox plus-address/alias; one bare address with dotted domain, no display name/list/whitespace. Use it as helper redirect too. |
+| `IMAP_HOST`, `IMAP_PORT` | Provider's hostname (no URL) and decimal port 1–65535. Port 993 uses implicit TLS; other ports require STARTTLS. Certificates are verified. |
+| `IMAP_USER`, `IMAP_PASSWORD` | Dedicated account login and provider/app password; nonblank, no control characters; not trimmed. |
+| `IMAP_FOLDER`, `IMAP_SPAM_FOLDER` | Exact existing provider folder names, no outer whitespace, controls or `*`/`%`; no automatic discovery or creation. Equal names are checked once and treated as spam. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Selftest only: provider's authenticated sender settings (port 465 implicit TLS, others required STARTTLS), same dedicated account; port 1–65535, nonblank credentials without controls. |
+| `GRAVITY_FORMS_ZIP` | Native tests only: absolute licensed **3.1.2** ZIP path from gravityforms.com → account → Downloads. |
+
+IMAP uses only the two literal folders with `EXAMINE`, tag-specific UID SEARCH and candidate Subject-only `BODY.PEEK`; no body reads, discovery, flag writes, moves, deletes or mailbox creation. ImapFlow is pinned to **2.0.7**, with the reproducible Bun patch `patches/imapflow@2.0.7.patch` disabling namespace/path rewriting and implicit LIST in opt-in literal-mailbox mode (both runtime builds). Keep the pin/patch and installed-contract tests together when upgrading.
+
+Forms traces are private local action-only ZIPs in `runs/<runId>/traces/forms/`: tracing on, video/screenshots/DOM snapshots/sources off. Action arguments/errors are scrubbed, including encoded variants; the token becomes literal `<token>`. Unsafe trace sanitation fails closed and removes raw files. Traces are never uploaded. Existing visual traces remain separate and unchanged, before typing. Reports can still contain private site information; retain/share carefully.
+
+[Forms test guide](test/forms/README.md) describes native CLI/scoped R2 evidence and the independent real-mail selftest. Playground's logged redirected mail proves submission/isolation/entry cleanup, **not delivery**. SMTP/IMAP proves one independent message's arrival, not a live client's transport. Do not run `forms all` or `check all` against live sites as an integration test.
 
 ### API
 
@@ -285,6 +325,8 @@ Every remote operation is scoped to a fresh `test/visual-<timestamp>-<random>/` 
 In `finally`, it stops fixtures, deletes only the test root and confirms that root is empty. Cleanup failure fails the run; the summary names the root for manual cleanup. Local evidence is retained at `runs/visual-selftest-<timestamp>/summary.json`, with scenario results, command exit codes, report/trace paths and cleanup counts. Command reports normally live under `commands/<runId>/index.html`; remote-only approval evidence is moved to a sibling `<runId>-retained/` directory and summary paths are updated. Capture traces use the layout above; browser-reviewed remote reports also retain `remote-report.png`, `remote-report.trace.zip` and `remote-render.json`. Use the summary's exact trace path with `bunx playwright show-trace`.
 
 Exit 0 means all assertions and cleanup passed; exit 1 means a scenario, prerequisite other than missing credentials, or cleanup failed; exit 2 means required R2 variables were missing/blank. Missing prerequisites fail with a retained summary rather than silently skipping. The integration harness does not duplicate every helper/browser test: readiness caps, comparison boundaries, malformed evidence variants and Forms/hostile-text rendering also have targeted coverage in `tests/`.
+
+Implementation lessons: [active mechanisms and case histories](learnings/ACTIVE.md).
 
 ## Limitations
 

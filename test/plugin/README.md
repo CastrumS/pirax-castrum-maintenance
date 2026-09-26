@@ -12,6 +12,8 @@ Nothing in authentication, form processing or validation is mocked. The only tes
 
 Because of the observer, these tests prove that recipients are transformed, **not** that mail is delivered.
 
+The [forms checker suites](../forms/README.md) reuse this native harness with real wp-admin settings, production browser/CLI dispatch and scoped R2 reports. Their Playground confirmations must truthfully time out over IMAP; the separate `mail:selftest` sends one real SMTP message and leaves it in the dedicated mailbox. The checker wrapper additionally sanitizes credential/address values with the production redactor before retaining evidence; do not assume this plugin harness's token/ZIP-only redaction covers other credentials.
+
 ## Prerequisites
 
 - **Bun** runs the tests, the build and dependency installs.

@@ -2,7 +2,7 @@ import { evaluateHealth } from "../health.ts";
 import type { Site } from "../sites.ts";
 import { isRunId, type Store } from "../store.ts";
 import type { Manifest } from "../report/model.ts";
-import { artifactPath, parseManifest, ReportError, validateActualPair, validateApproval, viewportNames } from "../report/manifest.ts";
+import { artifactPath, parsePublishedManifest, ReportError, validateActualPair, validateApproval, viewportNames } from "../report/manifest.ts";
 import { configurationError, dispatch, safeError, UsageError, type CommandResult } from "./common.ts";
 
 export function completedRunIds(keys: string[]): string[] {
@@ -12,11 +12,12 @@ export function completedRunIds(keys: string[]): string[] {
   }))].sort().reverse();
 }
 
-/** Reader seam keeps selection testable as pure manifest data, without claiming fake-storage acceptance. */
+/** Reader seam keeps selection testable as pure manifest data, without claiming fake-storage acceptance.
+ * Validated forms-only runs are skipped (never approval evidence); malformed manifests still stop selection. */
 export async function newestSiteCheck(runIds: string[], slug: string, read: (runId: string) => Promise<unknown>): Promise<Manifest> {
   for (const id of [...runIds].sort().reverse()) {
-    const manifest = parseManifest(await read(id), id);
-    if (manifest.report.sites.some(site => site.slug === slug)) return manifest;
+    const manifest = parsePublishedManifest(await read(id), id);
+    if (manifest.command === "check" && manifest.report.sites.some(site => site.slug === slug)) return manifest;
   }
   throw new ReportError("no completed check contains this site; run check first");
 }

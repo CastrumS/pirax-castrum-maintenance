@@ -16,6 +16,7 @@ const sites = loadSites(sitesFile);
 describe("command preflight without browser or storage", () => {
   test("parses selection, optional sites and approve page; retains list order", () => {
     expect(parseArgs("check", ["--sites", sitesFile, "all"])).toEqual({ target: "all", sitesFile });
+    expect(parseArgs("forms", ["all", "--sites", sitesFile])).toEqual({ target: "all", sitesFile });
     expect(parseArgs("approve", ["acme", "/about/", "--sites", sitesFile])).toEqual({ target: "acme", pagePath: "/about/", sitesFile });
     expect(selectSites(sites, "all")).toEqual(sites);
     expect(selectSites([], "all")).toEqual([]);
@@ -32,6 +33,8 @@ describe("command preflight without browser or storage", () => {
     expect(await dispatch("approve", ["acme", "/unlisted", "--sites", sitesFile], { log })).toBe(2);
     const empty = join(dir, "empty.yaml"); await Bun.write(empty, "sites: []\n");
     expect(await dispatch("check", ["all", "--sites", empty], { log })).toBe(0);
+    expect(await dispatch("forms", ["all", "--sites", empty], { log })).toBe(0);
+    expect(await dispatch("forms", ["acme", "extra", "--sites", sitesFile], { log })).toBe(2);
     const bad = join(dir, "bad.yaml"); await Bun.write(bad, "sites: [{slug: bad}]\n");
     expect(await dispatch("baseline", ["all", "--sites", bad], { log })).toBe(2);
   });
@@ -45,6 +48,28 @@ describe("command preflight without browser or storage", () => {
     expect(missing.exitCode).toBe(2);
     expect(missing.stdout.toString() + missing.stderr.toString()).toContain("S3_ACCESS_KEY_ID");
   });
+});
+
+test("root forms alias invokes production entrypoint; empty/usage need no credentials or writes", async () => {
+  const pkg = await Bun.file(resolve('package.json')).json();
+  expect(pkg.scripts.forms).toBe('bun src/commands/forms.ts');
+  const empty = join(dir, 'root-empty.yaml'); await Bun.write(empty, 'sites: []\n');
+  const child = (args: string[]) => Bun.spawnSync([process.execPath, '--no-env-file', 'run', 'forms', ...args], { cwd: resolve('.'), env: { PATH: process.env.PATH! } });
+  const ok = child(['all', '--sites', empty]);
+  expect(ok.exitCode).toBe(0); expect(ok.stdout.toString()).toContain('No sites selected.');
+  const usage = child([]); expect(usage.exitCode).toBe(2); expect(usage.stdout.toString()).toContain('usage: forms');
+  const { runForms } = await import('../src/commands/forms.ts');
+  expect(await runForms([], createStore())).toEqual({ exitCode: 0 });
+});
+
+test("direct forms/check errors sanitize trusted messages and classify config as exit 2", async () => {
+  const common = resolve('src/commands/common.ts');
+  const forms = resolve('src/commands/forms.ts'), check = resolve('src/commands/check.ts');
+  const secret = 'private-command-token-1234';
+  const code = `const { safeError, UsageError } = await import(${JSON.stringify(common)}); if (safeError(new UsageError(process.env.FORM_TEST_TOKEN)).includes(process.env.FORM_TEST_TOKEN)) process.exit(9); const {createStore} = await import(${JSON.stringify(resolve('src/store.ts'))}); const {runForms} = await import(${JSON.stringify(forms)}); const {runCheck} = await import(${JSON.stringify(check)}); const sites = ${JSON.stringify(sites)}; for (const run of [runForms,runCheck]) { const result = await run(sites, createStore(), {runId: process.env.FORM_TEST_TOKEN}); if (result.exitCode !== 2) process.exit(8); }`;
+  const child = Bun.spawnSync([process.execPath, '--no-env-file', '-e', code], { cwd: dir, env: { FORM_TEST_TOKEN: secret } });
+  expect(child.exitCode).toBe(0);
+  expect(child.stdout.toString() + child.stderr.toString()).not.toContain(secret);
 });
 
 test("only canonical completed run IDs qualify, in descending order", () => {
@@ -84,4 +109,19 @@ test("direct approval rejects an unlisted page before touching its real lazy Sto
   const result = await runApprove(sites[0]!, createStore(), { pagePath: "/unlisted", log: message => messages.push(message) });
   expect(result.exitCode).toBe(2);
   expect(messages.join("\n")).toContain("no baselines written");
+});
+
+test("newer valid forms-only runs are skipped; a malformed newer forms manifest is still an error", async () => {
+  const v = (name: "desktop" | "mobile") => ({ viewport: name, capture: { state: "captured", detail: null }, visual: { state: "same", detail: null, actual: { width: name === "desktop" ? 1440 : 390, height: 2 }, baseline: null, ratio: 0, allowance: 0.01 }, health: [], warnings: [], artifacts: { actualPng: `actual/acme/${name}/home.png`, actualHealth: `actual/acme/${name}/home.health.json` } });
+  const check = (id: string) => ({ schemaVersion: 1, command: "check", report: { runId: id, sites: [{ slug: "acme", url: "https://example.test", pages: [{ path: "/", pageKey: "home", viewports: { desktop: v("desktop"), mobile: v("mobile") } }] }] } });
+  const forms = (id: string) => ({ schemaVersion: 1, command: "forms", report: { mode: "forms", runId: id, sites: [{ slug: "acme", url: "https://example.test", pages: [{ path: "/", pageKey: "home", forms: [{ selector: "#gform_1", plugin: "gravity", outcome: "failed", detail: "timeout" }] }] }] } });
+  const newest = "2026-09-25T14-00-00.000Z", checkId = "2026-09-25T13-00-00.000Z";
+  const reads: string[] = [];
+  const selected = await newestSiteCheck([checkId, newest], "acme", async id => { reads.push(id); return id === newest ? forms(id) : check(id); });
+  expect(selected.report.runId).toBe(checkId);
+  expect(reads).toEqual([newest, checkId]);
+  const malformed = forms(newest) as { report: Record<string, unknown> };
+  delete malformed.report.mode;
+  await expect(newestSiteCheck([checkId, newest], "acme", async id => id === newest ? malformed : check(id))).rejects.toThrow(/manifest/);
+  await expect(newestSiteCheck([newest], "acme", async id => forms(id))).rejects.toThrow(/no completed check/);
 });

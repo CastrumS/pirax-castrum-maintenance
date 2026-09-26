@@ -8,17 +8,23 @@
     "store:selftest": "bun --env-file=.env scripts/store-selftest.ts",
     "baseline": "bun src/commands/baseline.ts",
     "check": "bun src/commands/check.ts",
+    "forms": "bun src/commands/forms.ts",
+    "test:forms": "bun test test/forms",
     "approve": "bun src/commands/approve.ts",
     "visual:selftest": "bun --env-file=.env scripts/visual-selftest.ts",
+    "mail:selftest": "bun --env-file=.env test/forms/mailbox-selftest.ts",
     "build:plugin": "bun scripts/build-plugin.ts",
     "test:plugin": "bun test test/plugin"
   },
   "devDependencies": {
     "@types/bun": "^1.4.2",
+    "@types/nodemailer": "^8.0.2",
     "@types/pngjs": "^6.0.5",
     "@wp-playground/blueprints": "3.1.55",
     "@wp-playground/cli": "3.1.55",
+    "imapflow": "2.0.7",
     "node-gyp": "13.0.2",
+    "nodemailer": "^10.0.10",
     "pixelmatch": "^7.2.0",
     "playwright": "1.63.0",
     "pngjs": "^7.0.0",
@@ -26,5 +32,8 @@
   },
   "trustedDependencies": [
     "fs-ext-extra-prebuilt"
-  ]
+  ],
+  "patchedDependencies": {
+    "imapflow@2.0.7": "patches/imapflow@2.0.7.patch"
+  }
 }

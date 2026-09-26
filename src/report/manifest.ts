@@ -3,7 +3,7 @@ import type { ViewportName } from "../capture.ts";
 import { parseHealth, type HealthSnapshot } from "../health.ts";
 import { pageKey, type Site } from "../sites.ts";
 import { isRunId } from "../store.ts";
-import type { Manifest, PageResult, ViewportResult } from "./model.ts";
+import type { FormsManifest, Manifest, PageResult, PublishedManifest, ViewportResult } from "./model.ts";
 
 export class ReportError extends Error {}
 const fail = (detail: string): never => { throw new ReportError(detail); };
@@ -22,36 +22,59 @@ export function artifactPath(kind: ArtifactKind, slug: string, viewport: Viewpor
   return `${kind}/${slug}/${viewport}/${key}.${extension}`;
 }
 
-/** A manifest is the remote completion marker; validate the entire model before using any evidence. */
-export function parseManifest(value: unknown, expectedRunId?: string): Manifest {
-  const bad = (): never => fail("invalid check manifest; run a new check before approval");
-  if (!object(value) || value.schemaVersion !== 1 || value.command !== "check" || !object(value.report)) return bad();
-  const report = value.report;
-  if (typeof report.runId !== "string" || !isRunId(report.runId) || (expectedRunId !== undefined && report.runId !== expectedRunId) || !Array.isArray(report.sites)) return bad();
+const formsOk = (v: unknown) => Array.isArray(v) && v.every(f => object(f) && typeof f.selector === "string" && typeof f.detail === "string" && oneOf(f.plugin, ["gravity", "fluent", "unknown"]) && oneOf(f.outcome, ["delivered", "delivered-spam", "not-verified", "rejected", "unsupported", "failed"]));
+const urlOk = (v: unknown) => {
+  if (typeof v !== "string") return false;
+  try { const url = new URL(v); return /^https?:$/.test(url.protocol) && !url.username && !url.password && !/[?#]/.test(v) && !v.endsWith("/") && v.trim() === v; } catch { return false; }
+};
+const pathOk = (v: unknown): v is string => typeof v === "string" && v.startsWith("/") && !/[?#\s\\\u0000-\u001f\u007f]/.test(v) && !v.includes("//") && !v.split("/").some(s => /^(\.|%2e){1,2}$/i.test(s));
+
+/** Run/site/page identity shared by both report modes; `page` validates the mode-specific fields. */
+function reportOk(report: Record<string, unknown>, expectedRunId: string | undefined, page: (p: Record<string, unknown>, slug: string) => boolean): boolean {
+  if (typeof report.runId !== "string" || !isRunId(report.runId) || (expectedRunId !== undefined && report.runId !== expectedRunId) || !Array.isArray(report.sites)) return false;
   const slugs = new Set<string>();
   for (const site of report.sites) {
-    if (!object(site) || !slugOk(site.slug) || slugs.has(site.slug) || typeof site.url !== "string" || !Array.isArray(site.pages) || !site.pages.length) return bad();
+    if (!object(site) || !slugOk(site.slug) || slugs.has(site.slug) || !urlOk(site.url) || !Array.isArray(site.pages) || !site.pages.length) return false;
     slugs.add(site.slug);
-    try { const url = new URL(site.url); if (!/^https?:$/.test(url.protocol) || url.username || url.password || /[?#]/.test(site.url) || site.url.endsWith("/") || site.url.trim() !== site.url) return bad(); } catch { return bad(); }
     const keys = new Set<string>();
-    for (const page of site.pages) {
-      if (!object(page) || typeof page.path !== "string" || !page.path.startsWith("/") || /[?#\s\\\u0000-\u001f\u007f]/.test(page.path) || page.path.includes("//") || page.path.split("/").some(s => /^(\.|%2e){1,2}$/i.test(s)) || !keyOk(page.pageKey) || page.pageKey !== pageKey(page.path) || keys.has(page.pageKey.toLowerCase()) || !object(page.viewports)) return bad();
-      keys.add(page.pageKey.toLowerCase());
-      for (const name of viewportNames) {
-        const v = page.viewports[name];
-        if (!object(v) || v.viewport !== name || !object(v.capture) || !oneOf(v.capture.state, ["captured", "blocked", "error"]) || !nullableString(v.capture.detail) || !object(v.visual) || !oneOf(v.visual.state, ["same", "changed", "missing-baseline", "error", "not-compared"]) || !nullableString(v.visual.detail) || !dimensions(v.visual.baseline) || !dimensions(v.visual.actual) || !(v.visual.ratio === null || ratio(v.visual.ratio)) || !ratio(v.visual.allowance) || !strings(v.warnings) || !Array.isArray(v.health) || !object(v.artifacts)) return bad();
-        for (const h of v.health) if (!object(h) || !oneOf(h.severity, ["warning", "failure"]) || !oneOf(h.kind, ["status", "critical-error", "console-error", "failed-request", "mixed-content"]) || typeof h.detail !== "string") return bad();
-        const expected = {
-          actualPng: artifactPath("actual", site.slug, name, page.pageKey, "png"), actualHealth: artifactPath("actual", site.slug, name, page.pageKey, "health.json"),
-          baselinePng: artifactPath("baseline", site.slug, name, page.pageKey, "png"), baselineHealth: artifactPath("baseline", site.slug, name, page.pageKey, "health.json"),
-          diffPng: artifactPath("diff", site.slug, name, page.pageKey, "png"), trace: artifactPath("traces", site.slug, name, page.pageKey, "trace.zip"),
-        };
-        for (const [key, path] of Object.entries(v.artifacts)) if (!(key in expected) || path !== expected[key as keyof typeof expected]) return bad();
-      }
-      if (page.forms !== undefined && (!Array.isArray(page.forms) || !page.forms.every(f => object(f) && typeof f.selector === "string" && typeof f.detail === "string" && oneOf(f.plugin, ["gravity", "fluent", "unknown"]) && oneOf(f.outcome, ["delivered", "delivered-spam", "not-verified", "rejected", "unsupported", "failed"])))) return bad();
+    for (const p of site.pages) {
+      if (!object(p) || !pathOk(p.path) || !keyOk(p.pageKey) || p.pageKey !== pageKey(p.path) || keys.has(p.pageKey.toLowerCase()) || !page(p, site.slug)) return false;
+      keys.add(p.pageKey.toLowerCase());
     }
   }
+  return true;
+}
+
+function checkPageOk(page: Record<string, unknown>, slug: string): boolean {
+  if (!object(page.viewports)) return false;
+  for (const name of viewportNames) {
+    const v = page.viewports[name];
+    if (!object(v) || v.viewport !== name || !object(v.capture) || !oneOf(v.capture.state, ["captured", "blocked", "error"]) || !nullableString(v.capture.detail) || !object(v.visual) || !oneOf(v.visual.state, ["same", "changed", "missing-baseline", "error", "not-compared"]) || !nullableString(v.visual.detail) || !dimensions(v.visual.baseline) || !dimensions(v.visual.actual) || !(v.visual.ratio === null || ratio(v.visual.ratio)) || !ratio(v.visual.allowance) || !strings(v.warnings) || !Array.isArray(v.health) || !object(v.artifacts)) return false;
+    for (const h of v.health) if (!object(h) || !oneOf(h.severity, ["warning", "failure"]) || !oneOf(h.kind, ["status", "critical-error", "console-error", "failed-request", "mixed-content"]) || typeof h.detail !== "string") return false;
+    const key = page.pageKey as string;
+    const expected = {
+      actualPng: artifactPath("actual", slug, name, key, "png"), actualHealth: artifactPath("actual", slug, name, key, "health.json"),
+      baselinePng: artifactPath("baseline", slug, name, key, "png"), baselineHealth: artifactPath("baseline", slug, name, key, "health.json"),
+      diffPng: artifactPath("diff", slug, name, key, "png"), trace: artifactPath("traces", slug, name, key, "trace.zip"),
+    };
+    for (const [k, path] of Object.entries(v.artifacts)) if (!(k in expected) || path !== expected[k as keyof typeof expected]) return false;
+  }
+  return page.forms === undefined || formsOk(page.forms);
+}
+/** Forms-only pages carry form results and nothing that could pass as visual evidence. */
+const formsPageOk = (page: Record<string, unknown>) => !("viewports" in page) && formsOk(page.forms);
+
+/** A manifest is the remote completion marker; validate the entire model before using any evidence. Check runs only. */
+export function parseManifest(value: unknown, expectedRunId?: string): Manifest {
+  if (!object(value) || value.schemaVersion !== 1 || value.command !== "check" || !object(value.report) || "mode" in value.report || !reportOk(value.report, expectedRunId, checkPageOk)) return fail("invalid check manifest; run a new check before approval");
   return value as Manifest;
+}
+
+/** Any published completion marker, discriminated by `command`; forms runs are never approval evidence. */
+export function parsePublishedManifest(value: unknown, expectedRunId?: string): PublishedManifest {
+  if (!object(value) || value.command !== "forms") return parseManifest(value, expectedRunId);
+  if (value.schemaVersion !== 1 || !object(value.report) || value.report.mode !== "forms" || !reportOk(value.report, expectedRunId, formsPageOk)) return fail("invalid forms manifest; run forms again");
+  return value as FormsManifest;
 }
 
 /** Select all current pages, or one current page; never choose a fallback run. */

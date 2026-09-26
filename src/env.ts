@@ -28,3 +28,21 @@ export function readR2Config(env: Record<string, string | undefined> = process.e
     region: "auto",
   };
 }
+
+/** Present but unusable values; names only, because a partial secret is still a secret. */
+export class EnvFormatError extends Error {
+  constructor(readonly invalid: string[]) {
+    super(`Invalid environment variables (see README for the expected format): ${invalid.join(", ")}`);
+    this.name = "EnvFormatError";
+  }
+}
+
+/** Shared lazy reader: EnvError for missing/blank names first, then EnvFormatError for failed checks. Values are never trimmed. */
+export function readEnv<const N extends string>(env: Record<string, string | undefined>, checks: Record<N, (value: string) => boolean>): Record<N, string> {
+  const names = Object.keys(checks) as N[];
+  const missing = names.filter((name) => !env[name]?.trim());
+  if (missing.length) throw new EnvError(missing);
+  const invalid = names.filter((name) => !checks[name](env[name]!));
+  if (invalid.length) throw new EnvFormatError(invalid);
+  return Object.fromEntries(names.map((name) => [name, env[name]!])) as Record<N, string>;
+}

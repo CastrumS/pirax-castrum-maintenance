@@ -5,11 +5,20 @@ import type { Site } from "../sites.ts";
 import type { Store } from "../store.ts";
 import { artifactPath, ReportError } from "../report/manifest.ts";
 import { publishReport, saveArtifact, writeLocalReport } from "../report/writer.ts";
-import { captureSelection, dispatch, safeError, type CommandResult, type RunOptions } from "./common.ts";
+import { captureSelection, configurationError, dispatch, safeError, type CommandResult, type RunOptions } from "./common.ts";
+import { populateForms } from "../forms/runner.ts";
+import { secretRedactor } from "../forms/evidence.ts";
+import { reportStatus } from "../report/html.ts";
 
 export async function runCheck(sites: Site[], store: Store, options: RunOptions = {}): Promise<CommandResult> {
+  const redact = secretRedactor();
+  const log = (message: string) => (options.log ?? console.log)(redact(message));
+  try { return await executeCheck(sites, store, { ...options, log }); }
+  catch (error) { log(`check: ${safeError(error)}`); return { exitCode: configurationError(error) ? 2 : 1 }; }
+}
+async function executeCheck(sites: Site[], store: Store, options: RunOptions): Promise<CommandResult> {
   if (!sites.length) return { exitCode: 0 };
-  const log = options.log ?? console.log;
+  const log = options.log!;
   const result: CommandResult = await captureSelection(sites, options, async (site, key, capture, v, runDir) => {
     const prefix = `baselines/${site.slug}/${v.viewport}/`;
     // Listing distinguishes absence from authentication/network errors; failed gets remain operational errors.
@@ -47,13 +56,15 @@ export async function runCheck(sites: Site[], store: Store, options: RunOptions 
   });
   try {
     if (!result.report || !result.runDir) throw new ReportError("check has no report");
+    await populateForms(sites, result.report, { ...options.forms, runDir: result.runDir });
+    if (["failure", "blocked"].includes(reportStatus(result.report))) result.exitCode = 1;
     result.localPath = await writeLocalReport(result.report, result.runDir);
     log(`Local report: ${result.localPath}`);
     result.url = await publishReport(result.report, result.runDir, store);
-    log(`Private report (7 days): ${result.url}`);
+    log("Private report published; bearer link withheld from logs. Open the local report above.");
   } catch (error) {
-    result.exitCode = 1;
-    log(`Report publication/pruning failed: ${safeError(error)}. Local artifacts: ${result.runDir}`);
+    result.exitCode = configurationError(error) ? 2 : 1;
+    log(`Forms/report publication/pruning failed: ${safeError(error)}. Local artifacts: ${result.runDir}`);
   }
   return result;
 }

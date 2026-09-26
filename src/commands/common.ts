@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { combineMasks, MaskSelectorError, openCaptureSession, type CaptureResult, type CaptureSession, type SessionOptions } from "../capture.ts";
-import { EnvError, readR2Config } from "../env.ts";
+import { EnvError, EnvFormatError, readR2Config } from "../env.ts";
 import { evaluateHealth } from "../health.ts";
 import { loadSites, pageKey, SitesConfigError, type Site } from "../sites.ts";
 import { createStore, isRunId, type Store } from "../store.ts";
@@ -9,16 +9,18 @@ import { artifactPath, ReportError, viewportNames } from "../report/manifest.ts"
 import { reportStatus } from "../report/html.ts";
 import { saveArtifact } from "../report/writer.ts";
 import type { RunReport, ViewportResult } from "../report/model.ts";
+import type { FormsOptions } from "../forms/runner.ts";
+import { secretRedactor } from "../forms/evidence.ts";
 
-export type Command = "baseline" | "check" | "approve";
+export type Command = "baseline" | "check" | "approve" | "forms";
 export type ExitCode = 0 | 1 | 2;
-export type RunOptions = { runsDir?: string; runId?: string; browser?: SessionOptions; log?: (message: string) => void };
+export type RunOptions = { runsDir?: string; runId?: string; browser?: SessionOptions; forms?: Omit<FormsOptions, "runDir">; log?: (message: string) => void };
 export type CommandResult = { exitCode: ExitCode; report?: RunReport; runDir?: string; localPath?: string; url?: string };
 export class UsageError extends Error {}
 export type Arguments = { target: string; pagePath?: string; sitesFile?: string };
 
 export function parseArgs(command: Command, args: string[]): Arguments {
-  if (!["baseline", "check", "approve"].includes(command)) throw new UsageError("unknown command");
+  if (!["baseline", "check", "approve", "forms"].includes(command)) throw new UsageError("unknown command");
   const positional: string[] = [];
   let sitesFile: string | undefined;
   for (let i = 0; i < args.length; i++) {
@@ -43,11 +45,12 @@ export function selectSites(sites: Site[], target: string): Site[] {
 
 /** Unknown errors never expose storage endpoints, credentials, bucket names or raw SDK messages. */
 export function safeError(error: unknown): string {
-  if (error instanceof UsageError || error instanceof SitesConfigError || error instanceof EnvError || error instanceof MaskSelectorError || error instanceof ReportError) return error.message;
+  const redact = secretRedactor();
+  if (error instanceof UsageError || error instanceof SitesConfigError || error instanceof EnvError || error instanceof EnvFormatError || error instanceof MaskSelectorError || error instanceof ReportError) return redact(error.message);
   const code = (error as { code?: unknown } | null)?.code;
-  return typeof code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(code) ? `operation failed (${code})` : "operation failed";
+  return redact(typeof code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(code) ? `operation failed (${code})` : "operation failed");
 }
-export const configurationError = (error: unknown) => error instanceof UsageError || error instanceof SitesConfigError || error instanceof EnvError || error instanceof MaskSelectorError;
+export const configurationError = (error: unknown) => error instanceof UsageError || error instanceof SitesConfigError || error instanceof EnvError || error instanceof EnvFormatError || error instanceof MaskSelectorError;
 
 /** Harness seam: supply a real scoped Store and browser/run options; CLI has no scope/TLS bypass flags. */
 export async function dispatch(command: Command, args: string[], options: RunOptions & { store?: Store } = {}): Promise<ExitCode> {
@@ -60,6 +63,7 @@ export async function dispatch(command: Command, args: string[], options: RunOpt
     const store = options.store ?? createStore({ config: readR2Config() });
     if (command === "baseline") return (await (await import("./baseline.ts")).runBaseline(sites, store, options)).exitCode;
     if (command === "check") return (await (await import("./check.ts")).runCheck(sites, store, options)).exitCode;
+    if (command === "forms") return (await (await import("./forms.ts")).runForms(sites, store, options)).exitCode;
     return (await (await import("./approve.ts")).runApprove(sites[0]!, store, { pagePath: parsed.pagePath, log })).exitCode;
   } catch (error) {
     log(`${command}: ${safeError(error)}`);

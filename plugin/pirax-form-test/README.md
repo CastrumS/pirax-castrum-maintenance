@@ -100,7 +100,9 @@ WP-Cron runs only when the site gets traffic, so one hour is a recovery deadline
 
 ## Rollout
 
-Install on **one site** first and run the form checks against it. Extend to a small group, then to all sites. Each step needs the operator's explicit go-ahead after the previous step's results are reviewed.
+Install on **one site** first, verify the token/redirect and audited versions/integrations, then use the [checker setup and commands](../../README.md#form-checks) (`bun run forms <slug>` or `bun run check <slug>`). `form_helper: true` authorizes real submissions: it is operator attestation, **not** public proof that this plugin is installed or its token matches. Keep it false until verified; a missing/mismatched helper can process tests as ordinary client submissions.
+
+Extend to a small group, then to all sites. Each step needs the operator's explicit go-ahead after the previous step's results are reviewed. Local tests do not authorize rollout. The checker verifies arrival independently over read-only IMAP; this helper still only hands mail to WordPress. See the [native checker and real-mail test guide](../../test/forms/README.md) for the distinction between logged Playground mail and delivered mail.
 
 A site whose form-plugin versions or integrations differ from the audited set rejects marked submissions. Treat it as not rollout-ready until it is re-audited, rather than working around the rejection.
 

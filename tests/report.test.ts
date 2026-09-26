@@ -56,7 +56,9 @@ describe("private report", () => {
     for (const outcome of outcomes) expect(html).toContain(outcome);
     expect(html).toContain("&lt;detail&gt;");
     expect(html).toContain("&lt;form id=&quot;x&quot;&gt;");
-    expect(reportStatus(report)).toBe("pass"); // Forms are displayed, not executed or gated here.
+    expect(reportStatus(report)).toBe("failure"); // rejected/failed forms gate the run.
+    report.sites[0]!.pages[0]!.forms = report.sites[0]!.pages[0]!.forms!.filter(f => !["rejected", "failed"].includes(f.outcome));
+    expect(reportStatus(report)).toBe("warning");
   });
   test("aggregates blocked, failures and warnings while keeping capture separate", () => {
     const report = fixture();

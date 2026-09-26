@@ -54,3 +54,13 @@ export type RunReport = { runId: string; sites: SiteResult[] };
 
 /** `reports/<runId>/manifest.json`, uploaded last as the completion marker. */
 export type Manifest = { schemaVersion: 1; command: "check"; report: RunReport };
+
+/** Forms-only run: desktop form results per listed page, with no visual capture or baseline evidence. */
+export type FormsPageResult = { path: string; pageKey: string; forms: FormResult[] };
+export type FormsSiteResult = { slug: string; url: string; pages: FormsPageResult[] };
+export type FormsRunReport = { mode: "forms"; runId: string; sites: FormsSiteResult[] };
+export type FormsManifest = { schemaVersion: 1; command: "forms"; report: FormsRunReport };
+
+export type AnyRunReport = RunReport | FormsRunReport;
+export type PublishedManifest = Manifest | FormsManifest;
+export const isFormsReport = (report: AnyRunReport): report is FormsRunReport => "mode" in report && report.mode === "forms";

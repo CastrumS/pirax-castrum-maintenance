@@ -1,0 +1,104 @@
+diff --git a/dist/cjs/commands/select.js b/dist/cjs/commands/select.js
+index b255a9148c27942d54951f8a08c72f66eb371726..fffe35b5577c209afddca411d14561fbdcc6ca8e 100644
+--- a/dist/cjs/commands/select.js
++++ b/dist/cjs/commands/select.js
+@@ -64,7 +64,10 @@ async function select(connection, pathInput, options) {
+         return;
+     }
+     options = options || {};
+-    let path = (0, tools_js_1.normalizePath)(connection, pathInput);
++    if (connection.options.literalMailboxes && typeof pathInput !== 'string') {
++        throw new TypeError('literalMailboxes requires a string mailbox path');
++    }
++    let path = connection.options.literalMailboxes ? pathInput : (0, tools_js_1.normalizePath)(connection, pathInput);
+     // Ensure we have folder metadata (delimiter, flags, specialUse) by running LIST if needed.
+     // This is cached in connection.folders to avoid repeated LIST calls.
+     // Note: this uses run() rather than runInternal(), so it terminates a running IDLE first,
+@@ -72,7 +75,7 @@ async function select(connection, pathInput, options) {
+     // runInternal(), and on a cache miss this LIST awaits the polling session's own preCheck and
+     // so cancels that session. Not a deadlock, and only reachable when the folder is uncached,
+     // but a polled SELECT of an unlisted folder ends the poll early.
+-    if (!connection.folders.has(path)) {
++    if (!connection.options.literalMailboxes && !connection.folders.has(path)) {
+         let folders = await connection.run('LIST', '', path);
+         if (!folders) {
+             throw new Error('Failed to fetch folders');
+diff --git a/dist/cjs/imap-flow.js b/dist/cjs/imap-flow.js
+index 395e9c78f176f155fe462e9b8f9e1d5c3216d875..d1d62ff2bf760685dcbfab1a235b349a0ba21cf9 100644
+--- a/dist/cjs/imap-flow.js
++++ b/dist/cjs/imap-flow.js
+@@ -1162,7 +1162,8 @@ class ImapFlow extends node_events_1.EventEmitter {
+             this.idRequested = await this.run('ID', this.clientInfo);
+         }
+         // Make sure we have namespace set. This should also throw if Exchange actually failed authentication
+-        let nsResponse = await this.run('NAMESPACE');
++        // Literal mailbox users supply exact server paths and must not discover other folders.
++        let nsResponse = this.options.literalMailboxes ? false : await this.run('NAMESPACE');
+         if (nsResponse && nsResponse.error && nsResponse.status === 'BAD' && /User is authenticated but not connected/i.test(nsResponse.text)) {
+             // Not a NAMESPACE failure but authentication failure, so report as
+             this.authenticated = false;
+diff --git a/dist/cjs/types.d.ts b/dist/cjs/types.d.ts
+index d584e74d176a3aaf62f08df2339b479b08a7ec08..806300a0b932b6f9e2fe878317de50f15b275fe3 100644
+--- a/dist/cjs/types.d.ts
++++ b/dist/cjs/types.d.ts
+@@ -28,6 +28,8 @@ export interface AuthOptions {
+     authzid?: string | undefined;
+ }
+ export interface ImapFlowOptions {
++    /** Skip startup namespace discovery and mailboxOpen metadata LIST; mailboxOpen requires exact string paths without namespace/INBOX normalization. Other mailbox APIs are unchanged. Default false. */
++    literalMailboxes?: boolean | undefined;
+     /** Hostname of the IMAP server */
+     host?: string | undefined;
+     /** Port number for the IMAP server */
+diff --git a/dist/esm/commands/select.js b/dist/esm/commands/select.js
+index 0758fa32bbb3250f3734db644497413a0ee87f8d..e88204ea5caeae607c1092ec050d3556274c6366 100644
+--- a/dist/esm/commands/select.js
++++ b/dist/esm/commands/select.js
+@@ -61,7 +61,10 @@ export default async function select(connection, pathInput, options) {
+         return;
+     }
+     options = options || {};
+-    let path = normalizePath(connection, pathInput);
++    if (connection.options.literalMailboxes && typeof pathInput !== 'string') {
++        throw new TypeError('literalMailboxes requires a string mailbox path');
++    }
++    let path = connection.options.literalMailboxes ? pathInput : normalizePath(connection, pathInput);
+     // Ensure we have folder metadata (delimiter, flags, specialUse) by running LIST if needed.
+     // This is cached in connection.folders to avoid repeated LIST calls.
+     // Note: this uses run() rather than runInternal(), so it terminates a running IDLE first,
+@@ -69,7 +72,7 @@ export default async function select(connection, pathInput, options) {
+     // runInternal(), and on a cache miss this LIST awaits the polling session's own preCheck and
+     // so cancels that session. Not a deadlock, and only reachable when the folder is uncached,
+     // but a polled SELECT of an unlisted folder ends the poll early.
+-    if (!connection.folders.has(path)) {
++    if (!connection.options.literalMailboxes && !connection.folders.has(path)) {
+         let folders = await connection.run('LIST', '', path);
+         if (!folders) {
+             throw new Error('Failed to fetch folders');
+diff --git a/dist/esm/imap-flow.js b/dist/esm/imap-flow.js
+index 2dc5e2d7a3736187bccb100dd878273e19f7fa30..85182d33689b47604f6ce1ad7b065fc4153a27cb 100644
+--- a/dist/esm/imap-flow.js
++++ b/dist/esm/imap-flow.js
+@@ -1122,7 +1122,8 @@ export class ImapFlow extends EventEmitter {
+             this.idRequested = await this.run('ID', this.clientInfo);
+         }
+         // Make sure we have namespace set. This should also throw if Exchange actually failed authentication
+-        let nsResponse = await this.run('NAMESPACE');
++        // Literal mailbox users supply exact server paths and must not discover other folders.
++        let nsResponse = this.options.literalMailboxes ? false : await this.run('NAMESPACE');
+         if (nsResponse && nsResponse.error && nsResponse.status === 'BAD' && /User is authenticated but not connected/i.test(nsResponse.text)) {
+             // Not a NAMESPACE failure but authentication failure, so report as
+             this.authenticated = false;
+diff --git a/dist/esm/types.d.ts b/dist/esm/types.d.ts
+index d584e74d176a3aaf62f08df2339b479b08a7ec08..806300a0b932b6f9e2fe878317de50f15b275fe3 100644
+--- a/dist/esm/types.d.ts
++++ b/dist/esm/types.d.ts
+@@ -28,6 +28,8 @@ export interface AuthOptions {
+     authzid?: string | undefined;
+ }
+ export interface ImapFlowOptions {
++    /** Skip startup namespace discovery and mailboxOpen metadata LIST; mailboxOpen requires exact string paths without namespace/INBOX normalization. Other mailbox APIs are unchanged. Default false. */
++    literalMailboxes?: boolean | undefined;
+     /** Hostname of the IMAP server */
+     host?: string | undefined;
+     /** Port number for the IMAP server */

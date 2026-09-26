@@ -8,8 +8,8 @@
  * Author:            Pirax
  * License:           GPL-2.0-or-later
  *
- * Loading: core modules always; optional form adapters/modules only when their file ships in the
- * build (each adapter guards for its own form plugin being absent).
+ * Every module is required, so a damaged package fails loudly instead of treating test submissions
+ * as ordinary; each adapter guards for its own form plugin being absent.
  */
 
 namespace Pirax\FormTest;
@@ -21,13 +21,10 @@ const SWEEP_HOOK = 'pirax_form_test_sweep';
 require_once __DIR__ . '/includes/settings.php';
 require_once __DIR__ . '/includes/marker.php';
 require_once __DIR__ . '/includes/mail.php';
-
-foreach ( array( 'compatibility', 'gravity-forms', 'fluent-forms', 'cleanup' ) as $pirax_form_test_module ) {
-	if ( is_readable( __DIR__ . "/includes/$pirax_form_test_module.php" ) ) {
-		require_once __DIR__ . "/includes/$pirax_form_test_module.php";
-	}
-}
-unset( $pirax_form_test_module );
+require_once __DIR__ . '/includes/compatibility.php';
+require_once __DIR__ . '/includes/gravity-forms.php';
+require_once __DIR__ . '/includes/fluent-forms.php';
+require_once __DIR__ . '/includes/cleanup.php';
 
 /** Create both options with autoload off and schedule one hourly recovery event (idempotent). */
 function activate() {

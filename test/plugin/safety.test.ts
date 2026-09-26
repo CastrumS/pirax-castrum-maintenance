@@ -1,13 +1,16 @@
 // Safety hardening regressions against real Gravity Forms and Fluent Forms (plan D4, D7–D9; AC3, AC5–AC7):
 // a late FF feed-type filter, a throwing queued FF notification, FF CAPTCHA vs. rejection precedence,
 // GF recovery of queued work for swept entries, and the exact audited version gate.
-// bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/safety.test.ts --timeout 180000
-import { afterAll, beforeAll, expect, test } from "bun:test";
+// bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/safety.test.ts
+import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { appendFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { findSecret } from "./artifacts";
 import { startHarness, type Harness, type MailRecord } from "./harness";
+
+// Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
+setDefaultTimeout(180_000);
 
 const ROOT = resolve(import.meta.dir, "../..");
 const ZIP = join(ROOT, "dist/pirax-form-test.zip");

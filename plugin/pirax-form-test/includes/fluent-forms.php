@@ -48,11 +48,6 @@ function &ff_state() {
 	return $state;
 }
 
-/** Submitted values of the form's own inputs (FF has already unslashed and parsed them). */
-function ff_field_values( $form, $data ) {
-	return array_intersect_key( is_array( $data ) ? $data : array(), \FluentForm\App\Modules\Form\FormFieldsParser::getInputs( $form ) );
-}
-
 function ff_detect( $fields, $form_data ) {
 	$state             = &ff_state();
 	$state['parsed']   = parse( array_intersect_key( (array) $form_data, (array) $fields ) );

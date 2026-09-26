@@ -1,11 +1,14 @@
 // Smoke test for the real Playground harness (plan D10–D12). Run from a worktree with:
 // bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/harness.test.ts
-import { afterAll, beforeAll, expect, test } from "bun:test";
+import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { preflight, startHarness, type Harness } from "./harness";
 import { findSecret } from "./artifacts";
 import { mkdir, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+// Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
+setDefaultTimeout(180_000);
 
 let h: Harness;
 beforeAll(async () => {

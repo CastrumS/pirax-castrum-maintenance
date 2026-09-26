@@ -147,9 +147,12 @@ function sweep_ff( $token ) {
 			)
 		);
 		foreach ( $rows as $row ) {
-			$after = (int) $row->id;
-			$form  = wpFluent()->table( 'fluentform_forms' )->find( $row->form_id );
-			if ( $form && values_contain( ff_field_values( $form, json_decode( $row->response, true ) ), $token ) ) {
+			$after  = (int) $row->id;
+			$values = json_decode( $row->response, true );
+			// The stored response holds the fields as submitted (whatever the form looks like now) plus
+			// FF's own whitelisted request metadata (referer, nonce, CAPTCHA, embed post), which is not field data.
+			$fields = is_array( $values ) ? array_diff_key( $values, array_flip( \FluentForm\App\Helpers\Helper::getWhiteListedFields( (int) $row->form_id ) ) ) : array();
+			if ( values_contain( $fields, $token ) ) {
 				ff_expire( $after, (int) $row->form_id, $cutoff );
 			}
 		}

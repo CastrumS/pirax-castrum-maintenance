@@ -1,10 +1,10 @@
 <?php
 /**
  * Marked mail (plan D5): while current_id() is set, every wp_mail() call goes only to the
- * configured redirect, without To/Cc/Bcc (or Resent-*) headers, tagged `X-Pirax-Form-Test: <id>`
- * and with the subject prefixed `[pirax-test <id>] ` once. Body, attachments, From, Reply-To and
- * other headers are kept, and delivery stays on the site's own mail path. The plugin never sends
- * mail itself.
+ * configured redirect, without To/Cc/Bcc (or Resent-*) headers (named as wp_mail() parses them, so
+ * control-character padding cannot hide one), tagged `X-Pirax-Form-Test: <id>` and with the subject
+ * prefixed `[pirax-test <id>] ` once. Body, attachments, From, Reply-To and other headers are kept,
+ * and delivery stays on the site's own mail path. The plugin never sends mail itself.
  *
  * If the redirect is unusable, or a later filter undoes the transformation, marked mail fails
  * (wp_mail() returns false, `wp_mail_failed` fires) rather than reaching the original recipients.
@@ -35,7 +35,13 @@ function transform_mail( array $atts, $id, $redirect ) {
 			$lines[] = $line;
 		}
 	}
-	$headers   = preg_grep( '/^(?:resent-)?(?:to|cc|bcc)\s*:|^x-pirax-form-test\s*:/i', $lines, PREG_GREP_INVERT );
+	// Match header names exactly as wp_mail() reads them: trimmed (control characters included) up to the first colon.
+	$headers   = array_filter(
+		$lines,
+		static function ( $line ) {
+			return ! preg_match( '/^(?:(?:resent-)?(?:to|cc|bcc)|x-pirax-form-test)$/i', trim( explode( ':', trim( $line ), 2 )[0] ) );
+		}
+	);
 	$headers[] = 'X-Pirax-Form-Test: ' . $id;
 	$subject   = preg_replace( '/^(?:\[pirax-test ' . ID_PATTERN . '\] )+/', '', (string) $atts['subject'] );
 

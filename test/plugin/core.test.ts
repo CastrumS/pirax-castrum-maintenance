@@ -1,14 +1,17 @@
 // Production plugin core against real WordPress (plan D1–D5, D12; AC1–AC3, AC6, AC8): build/upload,
 // capability+nonce protected settings, marker parsing/context and final wp_mail transformation.
 // Adapters (GF/FF), compatibility preflight and the sweep are covered by the next unit's suites.
-// bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/core.test.ts --timeout 180000
-import { afterAll, beforeAll, expect, test } from "bun:test";
+// bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/core.test.ts
+import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { findSecret } from "./artifacts";
 import { startHarness, type Harness } from "./harness";
+
+// Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
+setDefaultTimeout(180_000);
 
 const ROOT = resolve(import.meta.dir, "../..");
 const ZIP = join(ROOT, "dist/pirax-form-test.zip");

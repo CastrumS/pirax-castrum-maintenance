@@ -1,12 +1,15 @@
 // GF/FF adapters, compatibility preflight and recovery sweep against real Gravity Forms and Fluent Forms
 // (plan D6–D9; AC2–AC7). Forms are submitted in headless Chromium; queues run in separate native requests.
-// bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/adapters.test.ts --timeout 180000
-import { afterAll, beforeAll, expect, test } from "bun:test";
+// bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/adapters.test.ts
+import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { appendFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { findSecret } from "./artifacts";
 import { startHarness, type Harness, type MailRecord } from "./harness";
+
+// Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
+setDefaultTimeout(180_000);
 
 const ROOT = resolve(import.meta.dir, "../..");
 const ZIP = join(ROOT, "dist/pirax-form-test.zip");

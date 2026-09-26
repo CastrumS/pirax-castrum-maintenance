@@ -7,7 +7,7 @@ These are Bun test suites for `plugin/pirax-form-test`. They run against a real,
 
 Nothing in authentication, form processing or validation is mocked. The only test doubles are:
 
-- a `pre_wp_mail` observer that logs the final `wp_mail()` arguments and returns success instead of sending;
+- a `pre_wp_mail` observer that logs the final `wp_mail()` arguments and returns success instead of sending (`review-regressions.test.ts` removes it for its envelope checks and instead lets WordPress parse the headers into PHPMailer, where a `phpmailer_init` observer records the effective To/Cc/Bcc and throws before any transport; the plugin's own guard stays installed);
 - a Google reCAPTCHA `siteverify` answer of `{"success":false}`, supplied via `pre_http_request`.
 
 Because of the observer, these tests prove that recipients are transformed, **not** that mail is delivered.
@@ -37,11 +37,11 @@ These values live in the registered repository's `.env`. Do not copy, print, com
 From a git worktree, load the registered repository's file:
 
 ```sh
-bun --env-file=<registered-repo>/.env test test/plugin/harness.test.ts --timeout 180000
+bun --env-file=<registered-repo>/.env test test/plugin/harness.test.ts
 bun --env-file=<registered-repo>/.env run test:plugin
 ```
 
-If both variables are already in the environment, plain `bun test` / `bun run test:plugin` works as well.
+If both variables are already in the environment, plain `bun test` / `bun run test:plugin` works as well. No `--timeout` flag is needed: each suite calls `setDefaultTimeout(180_000)` (per file, because Bun 1.4 scopes it to the calling file and ignores a `bunfig.toml` timeout), since one Playground PHP round trip can exceed Bun's 5 s default. Site start-up hooks and long scenarios keep explicit, longer timeouts. A new suite must set it too.
 
 ## Commands
 
@@ -49,7 +49,7 @@ If both variables are already in the environment, plain `bun test` / `bun run te
 bun install
 bunx playwright install chromium
 bun run build:plugin        # the suites also rebuild before uploading
-bun --env-file=<registered-repo>/.env test test/plugin/core.test.ts --timeout 180000
+bun --env-file=<registered-repo>/.env test test/plugin/core.test.ts
 ```
 
 | Suite | Covers |
@@ -58,6 +58,7 @@ bun --env-file=<registered-repo>/.env test test/plugin/core.test.ts --timeout 18
 | `core.test.ts` | ZIP contents, upload and activation without the form plugins, capability and nonce settings flow, marker parsing, mail transformation, uninstall |
 | `adapters.test.ts` | GF/FF marked and unmarked submissions with controls, CAPTCHA, fail-closed integrations, FF queued, retried and legacy-batch jobs, token rotation, the hourly sweep |
 | `safety.test.ts` | Late FF feed filter, a throwing queued notification, a marked entry deleted natively while its queued job runs, rejection before CAPTCHA, GF queue pruning in the sweep, the exact version gate |
+| `review-regressions.test.ts` | Review round 1: the native PHPMailer envelope (stopped before transport) for control-padded Cc/Bcc header names, and the sweep after the marker's FF field is renamed or removed |
 
 Each suite starts its own site, which takes about a minute. Budget roughly 10 minutes for the whole plugin suite.
 

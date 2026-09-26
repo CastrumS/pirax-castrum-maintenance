@@ -44,7 +44,7 @@ Rejected submissions create no entry and send no mail, and no feeds run.
 For each `wp_mail()` call made during a marked submission, or by that submission's queued notification job:
 
 - `to` is replaced by the redirect address alone;
-- `To`, `Cc`, `Bcc`, `Resent-To`, `Resent-Cc` and `Resent-Bcc` headers are removed, including folded continuation lines;
+- `To`, `Cc`, `Bcc`, `Resent-To`, `Resent-Cc` and `Resent-Bcc` headers are removed, including folded continuation lines and names padded with whitespace or control characters that `wp_mail()` itself trims;
 - exactly one `X-Pirax-Form-Test: <id>` header is set;
 - the subject is prefixed `[pirax-test <id>] ` once;
 - body, attachments, `From`, `Reply-To` and other headers are kept.
@@ -82,7 +82,7 @@ One such callback blocks marked submissions on every form of that site.
 
 Activation schedules one hourly WP-Cron event, `pirax_form_test_sweep`. It deletes entries whose submitted field values contain the configured token and that are **strictly older than one hour**. This also catches old malformed markers.
 
-- **Selection:** candidates are read in pages of 50 with an escaped `LIKE` and a stable id cursor; the decoded field values decide what is deleted. Younger entries, entries without the token, and matches found only in metadata or the source URL are kept. GF times are compared in UTC and FF times in site-local time.
+- **Selection:** candidates are read in pages of 50 with an escaped `LIKE` and a stable id cursor; the decoded field values decide what is deleted. FF values are read from the stored submission as it was saved, so renaming or removing a form field later does not strand old test entries. Younger entries, entries without the token, and matches found only in metadata or the source URL are kept. GF times are compared in UTC and FF times in site-local time.
 - **Deletion:** entries are deleted with the native APIs only (GFAPI or FF `deleteEntries`), after removing the entry's queued work:
   - FF: pending jobs and their Action Scheduler actions;
   - GF: background notification and feed tasks, including tasks that only carry a copy of the entry. Other tasks are kept.

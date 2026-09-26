@@ -201,7 +201,7 @@ Open `runs/<runId>/index.html` in a browser. View a retained trace with the inst
 bunx playwright show-trace runs/<runId>/traces/<slug>/desktop/<pageKey>.trace.zip
 ```
 
-`check` attaches `PageResult.forms` after visual capture; no forms is `[]`, while discovery failures (including positively identified HTTP-200 challenge/interstitial pages) are explicit failed results. Every discovered form is listed, including `skipped` ones with their reason. Form outcomes participate in page/site/run status (see below). `forms` writes `{schemaVersion: 1, command: "forms", report: FormsRunReport}` with `mode: "forms"`, no viewports or fictitious images. Forms-only uploads are HTML then manifest, with the same global last-ten pruning; they never become approval evidence. A malformed manifest still fails selection rather than being skipped.
+`check` attaches `PageResult.forms` after visual capture; a successfully scanned page without forms is `[]`, except the `test_form` page, which gets one `failed` result with detail `test form not found`; discovery failures (including positively identified HTTP-200 challenge/interstitial pages) are explicit failed results. Every discovered form is listed, including `skipped` ones with their reason. Form outcomes participate in page/site/run status (see below). `forms` writes `{schemaVersion: 1, command: "forms", report: FormsRunReport}` with `mode: "forms"`, no viewports or fictitious images. Forms-only uploads are HTML then manifest, with the same global last-ten pruning; they never become approval evidence. A malformed manifest still fails selection rather than being skipped.
 
 ## Form checks
 

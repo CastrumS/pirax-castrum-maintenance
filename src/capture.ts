@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { chromium, type Browser, type Page, type Request } from "playwright";
+import { chromium, type Browser, type Page, type Request, type Response } from "playwright";
 import { CRITICAL_ERROR_PHRASE, normalizeHealth, type HealthSnapshot } from "./health.ts";
 import type { Page as SitePage, Site } from "./sites.ts";
 
@@ -133,13 +133,24 @@ async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean
   const failedRequests: HealthSnapshot["failedRequests"] = [];
   const insecure = new Set<string>();
   let status: number | null = null;
+  let finalUrl = req.url;
   let criticalError = false;
+  let mainResponse: Response | null = null;
+  let mainRequest: Request | null = null;
+  let navigationVersion = 0;
+  let navigating = false;
   let result: Omit<CaptureResult, "health" | "warnings" | "tracePath">;
 
-  await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
-  const page = await context.newPage();
+  let page: Page;
   let traceSaved = false;
   try {
+    await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
+    await context.routeWebSocket("**/*", (socket) => {
+      warnings.add(`read-only policy blocked WebSocket ${socket.url()}`);
+      // Never connectToServer: even the handshake must stay inside this context.
+      return socket.close({ code: 1008, reason: "read-only policy" });
+    });
+    page = await context.newPage();
     result = await run();
   } catch (e) {
     if (e instanceof MaskSelectorError) throw e;
@@ -155,7 +166,6 @@ async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean
     await context.close().catch(() => {});
   }
 
-  const finalUrl = page.url() === "about:blank" ? req.url : page.url();
   const health = normalizeHealth({
     status,
     finalUrl,
@@ -184,10 +194,23 @@ async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean
     });
     page.on("pageerror", (e) => consoleErrors.push(`Uncaught ${e.name}: ${e.message}`));
     page.on("request", (r) => {
+      if (isMainDocument(r)) {
+        mainRequest = r;
+        navigating = true;
+        navigationVersion++;
+      }
       if (r.url().startsWith("http:") && !isMainDocument(r)) insecure.add(r.url());
     });
+    page.on("framenavigated", (frame) => {
+      if (frame === page.mainFrame()) {
+        navigating = false;
+        navigationVersion++;
+      }
+    });
     page.on("response", (r) => {
-      if (r.status() >= 400 && !isMainDocument(r.request())) failedRequests.push({ url: r.url(), status: r.status() });
+      if (isMainDocument(r.request())) {
+        if (r.request() === mainRequest) mainResponse = r;
+      } else if (r.status() >= 400) failedRequests.push({ url: r.url(), status: r.status() });
     });
     page.on("requestfailed", (r) => {
       // Policy aborts are warnings; ERR_ABORTED is the browser cancelling its own request (media ranges, superseded loads).
@@ -197,30 +220,44 @@ async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean
 
     await assertCss(page, req.masks);
 
-    let response;
     try {
-      response = await page.goto(req.url, { waitUntil: "load", timeout: t.navigation });
+      await page.goto(req.url, { waitUntil: "load", timeout: t.navigation });
     } catch (e) {
+      status = mainResponse?.status() ?? null;
+      finalUrl = page.url() === "about:blank" ? req.url : page.url();
       return { state: "blocked", detail: `navigation failed: ${firstLine(e)}`, image: null };
     }
-    status = response?.status() ?? null;
-    const html = await page.content().catch(() => "");
-    criticalError = await hasCriticalError(page);
-    const challenge = status === 403 ? "HTTP 403 Forbidden" : challengeReason((await response?.allHeaders()) ?? {}, html);
-    if (challenge) return { state: "blocked", detail: challenge, image: null };
 
     await page.waitForLoadState("networkidle", { timeout: t.networkIdle }).catch(() => {
       warnings.add(`network not idle after ${t.networkIdle} ms; captured anyway`);
     });
     if (!(await scrollThrough(page, t.lazyScroll))) warnings.add(`lazy-load scrolling stopped at the ${t.lazyScroll} ms limit`);
     if (!(await settle(page, t.settle))) warnings.add(`fonts/images still loading after ${t.settle} ms; captured anyway`);
-    criticalError = await hasCriticalError(page);
     for (const url of await insecureReferences(page)) insecure.add(url);
 
     const mask = req.masks.map((s) => page.locator(`css=${s}`));
     for (const [i, locator] of mask.entries()) {
       if ((await locator.count()) === 0) warnings.add(`mask ${JSON.stringify(req.masks[i])} matched nothing`);
     }
+    // Read headers from this exact response, not an async listener that can finish out of order.
+    const response = mainResponse;
+    const version = navigationVersion;
+    const [observation, headers] = await Promise.all([
+      page.evaluate((phrase) => ({
+        url: location.href,
+        html: document.documentElement.outerHTML,
+        critical: (document.body?.innerText ?? "").toLowerCase().includes(phrase),
+      }), CRITICAL_ERROR_PHRASE.toLowerCase()),
+      response?.allHeaders() ?? {},
+    ]);
+    status = response?.status() ?? null;
+    finalUrl = observation.url;
+    criticalError = observation.critical;
+    const changed = () => navigating || navigationVersion !== version || mainResponse !== response;
+    const unstable = { state: "blocked", detail: "main document changed during capture; retry the page", image: null } as const;
+    if (changed()) return unstable;
+    const challenge = status === 403 ? "HTTP 403 Forbidden" : challengeReason(headers, observation.html);
+    if (challenge) return { state: "blocked", detail: challenge, image: null };
     const png = new Uint8Array(
       await page.screenshot({
         type: "png",
@@ -233,16 +270,13 @@ async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean
         timeout: t.screenshot,
       }),
     );
+    // A screenshot can wait for rendering while navigation replaces the document. Never pair
+    // those pixels with the earlier health, nor let trace shutdown change the captured URL.
+    if (changed()) return unstable;
     // PNG IHDR: width and height are big-endian uint32 at bytes 16 and 20.
     const ihdr = new DataView(png.buffer, png.byteOffset, png.byteLength);
     return { state: "captured", detail: null, image: { png, width: ihdr.getUint32(16), height: ihdr.getUint32(20) } };
   }
-}
-
-async function hasCriticalError(page: Page): Promise<boolean> {
-  return page
-    .evaluate((phrase) => (document.body?.innerText ?? "").toLowerCase().includes(phrase), CRITICAL_ERROR_PHRASE.toLowerCase())
-    .catch(() => false);
 }
 
 /** Scrolls down a viewport at a time until the bottom stops moving, then back to the top. False if the limit hit first. */

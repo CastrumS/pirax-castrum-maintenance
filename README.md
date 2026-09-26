@@ -78,13 +78,15 @@ Site and page CSS masks are combined without duplicates. Invalid CSS is configur
 
 Navigation/load has a 30-second timeout, followed by network idle capped at 15 seconds, lazy-load scrolling down/back up capped at 15 seconds, font/image settling capped at 5 seconds, and a 30-second screenshot timeout. Idle/scroll/settling limits produce readiness warnings; they do not promise a fully settled page. Navigation failure, HTTP 403 or an explicit challenge/interstitial is blocked and fails the run, while later pages/sites continue. A normal CAPTCHA or mention of Cloudflare alone is not classified as a challenge. A 404 is a health failure.
 
+Capture tracks main-document responses through HTTP redirects and client-side navigation. After readiness, it reads the current document's status, challenge evidence and rendered critical-error text before taking the screenshot; iframe and asset responses cannot replace that status. If another navigation races with this final read or screenshot, its image is discarded: a detected navigation reports blocked with retry guidance, while a destroyed execution context reports a capture error. The captured URL is retained while the trace is saved.
+
 Health is separate from pixel comparison:
 
 - New console errors, uncaught JavaScript errors and failed subresource `{url, status}` pairs fail. Identical findings already in baseline health are warnings; removed findings disappear. Query strings and statuses remain significant; transport failures have `status: null`.
 - Missing main-document response, final HTTP status >=400, the rendered WordPress critical-error phrase, and HTTP resources on a final HTTPS document always fail, even after baseline/approval. HTTP hyperlinks alone are not mixed content.
 - Warnings alone return 0. Raw health snapshots retain all observations, not just new findings.
 
-The browser blocks service workers and page-originated non-GET HTTP requests, including POST/beacon, and records policy aborts as warnings. It does not click forms or admin/update flows. Normal asset GETs are allowed; a remote GET endpoint can itself have side effects, so this policy cannot guarantee an arbitrary site is side-effect-free. Real-site TLS validation stays enabled.
+The browser blocks service workers, page-originated non-GET HTTP requests (including POST/beacon), and WebSocket connections/messages. WebSocket interception is installed for the entire browser context before any page is opened, with no connection to the remote peer. HTTP and WebSocket policy blocks produce read-only-policy warnings, not server asset failures. It does not click forms or admin/update flows. Normal asset GETs are allowed; a remote GET endpoint can itself have side effects, so this policy cannot guarantee an arbitrary site is side-effect-free. Real-site TLS validation stays enabled.
 
 ## Site list
 

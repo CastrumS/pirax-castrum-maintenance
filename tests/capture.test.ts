@@ -21,7 +21,7 @@ import { evaluateHealth } from "../src/health.ts";
 const runDir = join(import.meta.dir, "..", "runs", `capture-test-${new Date().toISOString().replaceAll(":", "-")}`);
 mkdirSync(runDir, { recursive: true });
 
-const counts = { writes: 0, serviceWorker: 0, tall: 0 };
+const counts = { writes: 0, serviceWorker: 0, tall: 0, socketMutations: 0, socketConnections: 0 };
 const html = (body: string, head = "") =>
   `<!doctype html><html><head><meta charset="utf-8">${head}<style>body{margin:0;font:16px sans-serif}</style></head><body>${body}</body></html>`;
 const page = (body: string, status = 200, headers: Record<string, string> = {}) =>
@@ -68,6 +68,23 @@ function routes(req: Request, origin: () => string): Response | Promise<Response
     return new Response("written");
   }
   switch (url.pathname) {
+    case "/delayed":
+      return page(`<p>Initial HTTP 200</p><script>setTimeout(() => location.replace(${JSON.stringify(url.searchParams.get("to"))}), 100)</script>`);
+    case "/redirect":
+      return new Response(null, { status: 302, headers: { location: "/missing" } });
+    case "/scroll-navigation":
+      return page(`<div style="height:2000px">Scroll to navigate</div><script>
+        addEventListener("scroll", () => location.replace(${JSON.stringify(url.searchParams.get("to"))}), { once: true });
+      </script>`);
+    case "/normal":
+      return page('<h1>Normal page</h1><iframe src="/forbidden"></iframe><img src="/missing.png">');
+    case "/socket-page":
+      return page(`<h1>Ordinary GET content</h1><script>
+        const ws = new WebSocket("ws://" + location.host + "/socket");
+        ws.onopen = () => ws.send("mutate");
+      </script>`);
+    case "/header-only-challenge":
+      return page("<p>Checking your browser</p>", 200, { "cf-mitigated": "challenge" });
     case "/tall":
       return tallPage();
     case "/health":
@@ -138,7 +155,22 @@ beforeAll(async () => {
   closedPort = probe.port!;
   probe.stop(true);
 
-  http = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: (req) => routes(req, () => base) });
+  http = Bun.serve({
+    hostname: "127.0.0.1", port: 0,
+    fetch: (req, server) => {
+      if (new URL(req.url).pathname === "/socket") {
+        return server.upgrade(req, { data: undefined }) ? undefined : new Response("upgrade failed", { status: 400 });
+      }
+      return routes(req, () => base);
+    },
+    websocket: {
+      open() { counts.socketConnections++; },
+      message(socket, message) {
+        if (String(message) === "mutate") counts.socketMutations++;
+        socket.close();
+      },
+    },
+  });
   base = `http://127.0.0.1:${http.port}`;
 
   const certDir = join(runDir, "tls");
@@ -189,6 +221,66 @@ test("locked viewports and readiness limits", () => {
 });
 
 describe("capture in real Chromium", () => {
+  for (const [destination, status, criticalError, detail] of [
+    ["/missing", 404, false, null],
+    ["/critical", 500, true, null],
+    ["/forbidden", 403, false, "HTTP 403 Forbidden"],
+    ["/challenge", 200, false, "Cloudflare challenge page"],
+    ["/header-only-challenge", 200, false, "Cloudflare challenge (cf-mitigated: challenge)"],
+  ] as const) {
+    test(`delayed main-document navigation to ${destination} uses final health and classification`, async () => {
+      const r = await shoot(session, `/delayed?to=${destination}`);
+      expect({ state: r.state, detail: r.detail, health: r.health }).toMatchObject({
+        state: detail ? "blocked" : "captured", detail,
+        health: { status, finalUrl: base + destination, criticalError },
+      });
+      if (detail) expect(r.image).toBeNull();
+      else {
+        expect(r.image).not.toBeNull();
+        expect(evaluateHealth(r.health, r.health)).toContainEqual({
+          kind: "status", severity: "failure", detail: `HTTP ${status} for ${base}${destination}`,
+        });
+      }
+      expect(statSync(r.tracePath!).size).toBeGreaterThan(1000);
+      // An iframe's 403 and an asset's 404 must not replace the main document's 200.
+      const normal = await shoot(session, "/normal");
+      expect(normal).toMatchObject({ state: "captured", health: { status: 200, finalUrl: base + "/normal", criticalError: false } });
+      expect(normal.health.failedRequests).toContainEqual({ url: base + "/forbidden", status: 403 });
+      expect(normal.image).not.toBeNull();
+    }, 60_000);
+  }
+
+  test("direct HTTP redirect retains the final document status", async () => {
+    expect(await shoot(session, "/redirect")).toMatchObject({ state: "captured", health: { status: 404, finalUrl: base + "/missing" } });
+  }, 60_000);
+
+  test("navigation triggered by readiness scrolling reconciles the final document", async () => {
+    for (const [destination, status, state] of [["/missing", 404, "captured"], ["/header-only-challenge", 200, "blocked"]] as const) {
+      const r = await shoot(session, `/scroll-navigation?to=${destination}`);
+      expect({ state: r.state, detail: r.detail, health: r.health }).toMatchObject({
+        state, health: { status, finalUrl: base + destination, criticalError: false },
+      });
+      if (state === "blocked") {
+        expect(r.image).toBeNull();
+        expect(r.detail).toBe("Cloudflare challenge (cf-mitigated: challenge)");
+      } else expect(r.image).not.toBeNull();
+    }
+  }, 60_000);
+
+  test("read-only policy blocks real WebSocket mutations while GET content captures", async () => {
+    const before = { ...counts };
+    const r = await shoot(session, "/socket-page");
+    const observed = { mutations: counts.socketMutations - before.socketMutations, connections: counts.socketConnections - before.socketConnections };
+    writeFileSync(join(runDir, "websocket-counts.json"), JSON.stringify(observed, null, 2));
+    console.log("WebSocket fixture:", JSON.stringify(observed), "artifacts:", runDir);
+    expect(observed.mutations).toBe(0);
+    expect(observed.connections).toBe(0);
+    expect(r.state).toBe("captured");
+    expect(r.image).not.toBeNull();
+    expect(r.warnings).toContain(`read-only policy blocked WebSocket ws://127.0.0.1:${http.port}/socket`);
+    expect(evaluateHealth(r.health, null)).toEqual([]);
+  }, 60_000);
+
   test("full-page PNG at both viewports includes lazy content; trace saved", async () => {
     for (const viewport of ["desktop", "mobile"] as const) {
       const r = await shoot(session, "/tall", { viewport });

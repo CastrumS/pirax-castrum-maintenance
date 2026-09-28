@@ -67,7 +67,8 @@ sites:
       - /about-us/                      # GF #1 + reCAPTCHA
       - /accommodation/
       - /room/pleso/
-      - /room-category/apartments/
+      - path: /room-category/apartments/
+        hide: ['.soliloquy-container']             # per-room photo slideshows change height
       - /the-garden/
       - /event/the-hiking-day/
       - /event-category/cooking/

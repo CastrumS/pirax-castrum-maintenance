@@ -33,6 +33,25 @@ test("preflight names missing or invalid credentials without their values", () =
   expect(message).not.toContain(token);
 });
 
+test("compatibility preflight requires FLUENT_FORMS_PRO_ZIP by name only; the default stack does not", async () => {
+  // A stand-in file, not the real licensed path: a failing assertion may print preflight's return value.
+  const gf = join(await mkdtemp(join(tmpdir(), "pirax-preflight-")), "gf.zip");
+  await Bun.write(gf, "stand-in");
+  const base = { GRAVITY_FORMS_ZIP: gf, FORM_TEST_TOKEN: "tok-value-that-must-not-leak" };
+  expect(() => preflight(base)).not.toThrow();
+  expect(() => preflight(base, { compatibility: true })).toThrow(/FLUENT_FORMS_PRO_ZIP is not set/);
+  const path = "/nonexistent/licensed-pro-secret-path.zip";
+  let message = "";
+  try {
+    preflight({ ...base, FLUENT_FORMS_PRO_ZIP: path }, { compatibility: true });
+  } catch (error) {
+    message = String(error);
+  }
+  expect(message).toContain("FLUENT_FORMS_PRO_ZIP");
+  expect(message).not.toContain(path);
+  expect(message).not.toContain(base.FORM_TEST_TOKEN);
+});
+
 test("loopback WordPress runs licensed Gravity Forms and pinned Fluent Forms with real PHP and database", async () => {
   expect(new URL(h.url).hostname).toBe("127.0.0.1");
   const info = await h.php<{
@@ -61,6 +80,10 @@ test("loopback WordPress runs licensed Gravity Forms and pinned Fluent Forms wit
   expect(info.users).toBeGreaterThanOrEqual(2);
   expect(info.tables).toBeGreaterThan(0);
   expect(info.mu).toBe(true);
+  // The default stack stays GF + FF only: no optional plugins, no Pro prerequisite, baseline mail observer.
+  expect(h.compatibility).toBe(false);
+  expect(h.versions).toEqual({ gf: h.versions.gf, ff: "6.2.14", wp: "7.1.2", php: "8.3" });
+  expect(info.active.filter((p) => !/^(gravityforms|fluentform)\//.test(p))).toEqual([]);
   await expect(h.php("throw new RuntimeException('boom');")).rejects.toThrow(/boom/);
 
   const verify = await h.php<{ success: boolean }>(`
@@ -168,6 +191,7 @@ test("browser logs in to real wp-admin and submits unmarked forms for both plugi
     artifacts: { mail: "mail.jsonl", feeds: "feeds.jsonl", entries: "entries.json", network: "network.jsonl", traces: ["smoke.trace.zip"] },
     uploads: [{ file: "probe.zip", sha256: probeSha }],
   });
+  expect(Object.keys(manifest.zips).sort()).toEqual(["fluentform", "gravityforms"]);
   expect(evidence.files).toEqual(expect.arrayContaining(["network.jsonl", "manifest.json"]));
 }, 300_000);
 

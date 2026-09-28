@@ -1,6 +1,7 @@
 <?php
 /**
- * Settings → Pirax Form Test: the shared marker token and the single redirect mailbox.
+ * Settings → Pirax Form Test: the shared marker token, the single redirect mailbox, and a read-only
+ * compatibility panel (versions, verdict and unaudited callbacks per form plugin).
  *
  * Both render and save require manage_options; saving also requires the nonce. The token is never
  * printed back. A blank token field keeps the stored token; "clear" disables all test behaviour.
@@ -92,7 +93,54 @@ function render_settings() {
 			</table>
 			<?php submit_button(); ?>
 		</form>
+		<?php render_compatibility(); ?>
 	</div>
+	<?php
+}
+
+/** Read-only compatibility_report() of each form plugin; nothing is changed or stored. */
+function render_compatibility() {
+	?>
+	<section id="pirax-form-test-compatibility">
+		<h2>Compatibility</h2>
+		<p class="description">"Ready" covers only the plugins, versions and hooked callbacks loaded for this admin page. It is not a promise about every form, the marker, CAPTCHA, callbacks that only load on public pages or later requests, or mail delivery. Each marked submission is checked again when it arrives.</p>
+		<?php
+		foreach ( array( 'gf', 'ff' ) as $plugin ) :
+			$report = compatibility_report( $plugin );
+			$groups = array();
+			foreach ( $report['unaudited'] as $callback ) {
+				$groups[ $callback['hook'] ][] = $callback;
+			}
+			?>
+			<div id="pirax-form-test-compat-<?php echo esc_attr( $plugin ); ?>">
+				<h3><?php echo esc_html( PLUGIN_LABELS[ $plugin ] ); ?></h3>
+				<table class="widefat striped" role="presentation">
+					<?php foreach ( $report['versions'] as $key => $fact ) : ?>
+						<tr>
+							<th scope="row"><?php echo esc_html( PLUGIN_LABELS[ $key ] ); ?></th>
+							<td><?php echo esc_html( null === $fact['version'] ? 'not active' : ( '' === $fact['version'] ? 'unknown version' : $fact['version'] ) ); ?></td>
+							<td><?php echo esc_html( $fact['audited'] ? 'audited' : 'not audited (audited: ' . AUDITED_VERSIONS[ $key ] . ')' ); ?></td>
+						</tr>
+					<?php endforeach; ?>
+				</table>
+				<p class="pirax-form-test-verdict"><strong><?php echo esc_html( $report['ready'] ? 'ready' : 'blocked: ' . implode( '; ', $report['reasons'] ) ); ?></strong></p>
+				<?php if ( $groups ) : ?>
+					<h4>Unaudited callbacks</h4>
+					<ul class="pirax-form-test-unaudited">
+						<?php foreach ( $groups as $hook => $callbacks ) : ?>
+							<li><code><?php echo esc_html( $hook ); ?></code>
+								<ul>
+									<?php foreach ( $callbacks as $callback ) : ?>
+										<li><code><?php echo esc_html( $callback['id'] ); ?></code> (priority <?php echo esc_html( (string) $callback['priority'] ); ?>)</li>
+									<?php endforeach; ?>
+								</ul>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+				<?php endif; ?>
+			</div>
+		<?php endforeach; ?>
+	</section>
 	<?php
 }
 

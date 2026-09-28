@@ -16,10 +16,10 @@ Building and testing it additionally requires Node, `zip`/`unzip`, and a C++ too
 ```sh
 bun run build:plugin           # → dist/pirax-form-test.zip, the uploadable plugin (allowlisted files only)
 bunx playwright install chromium
-bun run test:plugin            # real WordPress + Gravity Forms + Fluent Forms suites; needs credentials
+bun run test:plugin            # real WordPress + Gravity Forms + Fluent Forms suites, plus the full stack; needs credentials
 ```
 
-The plugin suites need `GRAVITY_FORMS_ZIP` and `FORM_TEST_TOKEN`. From a worktree, pass the registered repository's environment file with `bun --env-file=<registered-repo>/.env run test:plugin`. `dist/`, `artifacts/` and `.cache/` are generated and ignored by git.
+The plugin suites need `GRAVITY_FORMS_ZIP`, `FLUENT_FORMS_PRO_ZIP` and `FORM_TEST_TOKEN`. Two of them (`stack-harness`, `compatibility`) run the full audited stack: Gravity Forms 3.1.2, Fluent Forms free and Pro 6.2.14, CleanTalk 6.88 and FluentSMTP 2.4.0 (simulated sending only). From a worktree, pass the registered repository's environment file with `bun --env-file=<registered-repo>/.env run test:plugin`. `dist/`, `artifacts/` and `.cache/` are generated and ignored by git.
 
 ## Setup
 
@@ -51,7 +51,7 @@ Create `.env` in the repository root with the four names from `.env.example`:
 | `bun run forms <slug\|all> [--sites file]` | Desktop forms-only check; no visual capture/comparison or baseline access. | Yes |
 | `bun run approve <slug> [pagePath] [--sites file]` | Promote exact actual PNG/health bytes from the latest completed remote check containing that site. | Yes |
 | `bun --no-env-file test tests` | Credential-free unit/helper, CLI and local browser tests; browser cases require installed Chromium. `bunfig.toml` excludes `issues/**` worktrees from discovery. | No |
-| `bun --env-file=.env test` | Full suite, including native [plugin](test/plugin/README.md) and [forms](test/forms/README.md) integration and scoped real R2; budget 20–30 minutes. Needs licensed GF ZIP, forms/IMAP and R2 configuration. Missing prerequisites fail, never skip. | Yes |
+| `bun --env-file=.env test` | Full suite, including native [plugin](test/plugin/README.md) and [forms](test/forms/README.md) integration and scoped real R2; budget about 35 minutes. Needs licensed GF and Fluent Forms Pro ZIPs, forms/IMAP and R2 configuration. On a clean checkout run `bun run build:plugin` first: the forms suite uploads the existing `dist/pirax-form-test.zip` and can run before a plugin suite builds it. Missing prerequisites fail, never skip. | Yes |
 | `bun --env-file=.env run test:forms` | Browser/config/mail helpers, native Playground checker and scoped report tests. | Yes |
 | `bun --env-file=.env run mail:selftest` | Independent real SMTP/IMAP proof; sends one message and leaves it in the dedicated mailbox. | No |
 | `bun run typecheck` | `tsc --noEmit` over `src`, `scripts`, `tests` and `test` fixtures. | No |
@@ -249,6 +249,7 @@ Obtain a **new dedicated mailbox**, not anyone's personal inbox. Enable IMAP/app
 | `IMAP_FOLDER`, `IMAP_SPAM_FOLDER` | Exact existing provider folder names, no outer whitespace, controls or `*`/`%`; no automatic discovery or creation. Equal names are checked once and treated as spam. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Selftest only: provider's authenticated sender settings (port 465 implicit TLS, others required STARTTLS), same dedicated account; port 1–65535, nonblank credentials without controls. |
 | `GRAVITY_FORMS_ZIP` | Native tests only: absolute licensed **3.1.2** ZIP path from gravityforms.com → account → Downloads. |
+| `FLUENT_FORMS_PRO_ZIP` | Native plugin tests only: absolute licensed Fluent Forms Pro **6.2.14** ZIP path from fluentforms.com → account → Downloads. |
 
 IMAP uses only the two literal folders with `EXAMINE`, tag-specific UID SEARCH and candidate Subject-only `BODY.PEEK`; no body reads, discovery, flag writes, moves, deletes or mailbox creation. ImapFlow is pinned to **2.0.7**, with the reproducible Bun patch `patches/imapflow@2.0.7.patch` disabling namespace/path rewriting and implicit LIST in opt-in literal-mailbox mode (both runtime builds). Keep the pin/patch and installed-contract tests together when upgrading.
 

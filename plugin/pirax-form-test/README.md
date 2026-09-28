@@ -55,12 +55,22 @@ If the redirect is unusable, or a later filter undoes the change, marked mail **
 
 ## Supported versions and behaviour
 
-Marked submissions are accepted only on the exact audited versions: **Gravity Forms 3.1.2** and **Fluent Forms 6.2.14** (free). Any other version, including a later patch release, rejects marked submissions with the "integrations could not be suppressed" message until the new version is re-audited. Ordinary submissions still work with other versions. The plugin also loads without either form plugin; each adapter is simply inactive.
+Version 0.2.0. Marked submissions are accepted only on these exact audited versions, compared as exact strings:
+
+| Plugin | Audited version | Applies to |
+|---|---|---|
+| Gravity Forms | 3.1.2 | GF |
+| Fluent Forms (free) | 6.2.14 | FF |
+| Fluent Forms Pro | 6.2.14 | FF, when active |
+| Anti-Spam by CleanTalk | 6.88 | GF and FF, when active |
+| FluentSMTP | 2.4.0 | GF and FF, when active |
+
+Pro, CleanTalk and FluentSMTP are optional: a site without them is checked against the core rows only. When one is active at any other version, marked submissions of the adapters it applies to are rejected with the "integrations could not be suppressed" message. This includes later patch releases such as FluentSMTP 2.4.1 or CleanTalk 6.88.1: 2.4.0 is the only audited FluentSMTP release, not 2.4.x. An active plugin whose version cannot be read counts as not audited. A new version is supported only after it is re-audited. Ordinary submissions still work with any version. The plugin also loads without either form plugin; each adapter is simply inactive.
 
 Tested only on a single WordPress 7.1.2 / PHP 8.3 site. The plugin header declares WordPress 6.4+ and PHP 7.4+, but those are untested. Multisite is untested.
 
 **Gravity Forms**
-- **CAPTCHA:** only GF's built-in CAPTCHA field is bypassed; its server check still runs, but the result is overridden. The field's other types (invisible, math/simple) share this path; only reCAPTCHA v2 (checkbox) was tested. All other field validation, the honeypot and spam checks still apply.
+- **CAPTCHA:** only GF's built-in CAPTCHA field is bypassed; its server check still runs, but the result is overridden. The field's other types (invisible, math/simple) share this path; only reCAPTCHA v2 (checkbox) was tested. Other field validation, the honeypot and spam checks still apply, except for the explicitly suppressed CleanTalk integration described below.
 - **Feeds and notifications:** add-on feeds are emptied. Notifications are sent synchronously in the submission request, even when background notifications are enabled.
 - **Cleanup:** the entry is deleted with `GFAPI::delete_entry` at the end of `gform_after_submission`.
 
@@ -72,11 +82,45 @@ Tested only on a single WordPress 7.1.2 / PHP 8.3 site. The plugin header declar
 
 **Fail closed (both).** A marked submission is rejected before anything is saved or dispatched (for FF, before CAPTCHA) when any of these is true:
 
-- a callback outside the small audited inventory is hooked on the submission side-effect, feed-dispatch or notification hooks (in `includes/compatibility.php`). Examples: FF Pro, GF payment or user-registration add-ons, or custom `gform_after_submission` code;
+- a core or active optional plugin is not at its audited version (table above);
+- a callback outside the small audited inventory is hooked on the submission side-effect, feed-dispatch or notification hooks, including GF's form-specific `<hook>_<form id>` variants (in `includes/compatibility.php`). Examples: FF Pro modules not listed below (such as Inventory, Post/CPT, payments, user registration or AffiliateWP), GF payment or user-registration add-ons, or custom `gform_after_submission` code;
+- CleanTalk's check is switched on for the submission but its audited binding cannot be recognized or removed (see below);
 - the GF form has post-creation fields;
 - the FF form is a payment form (`has_payment`) or not of type `form`.
 
-One such callback blocks marked submissions on every form of that site.
+An unaudited generic callback blocks that form plugin's marked submissions site-wide; a GF form-specific callback blocks that form. FF Pro itself does not block; only its callbacks outside the audited list do. Custom forms and optional Pro modules that were not audited stay unsupported.
+
+**Suppressed for marked submissions only.** Some audited callbacks have side effects that a test must not trigger. For a marked submission the plugin removes exactly these bindings, by callback identity and exact priority, before they can run, and checks that they are gone; if removal fails the submission is rejected. It removes them again just before dispatch (GF priority 998, FF priority 9) in case they were re-registered, and restores them for the next ordinary submission in the same PHP request. Ordinary submissions are unchanged: they still get CleanTalk moderation and Pro's features.
+
+| Owner | Hook (priority) | Callback | Effect prevented |
+|---|---|---|---|
+| CleanTalk 6.88 | `fluentform/before_insert_submission` (10) | CleanTalk's closure from `lib/Cleantalk/Antispam/Integrations.php`, bound to its `FluentForm` integration | Moderation request and spam verdict |
+| CleanTalk 6.88 | `gform_entry_is_spam` (999) | `apbct_form__gravityForms__testSpam` | Moderation request, spam verdict and entry deletion |
+| CleanTalk 6.88 | `gform_confirmation` (999) | `apbct_form__gravityForms__showResponse` | CleanTalk's spam text replacing the confirmation |
+| FF Pro 6.2.14 | `fluentform/before_form_actions_processing` (10) | `DoubleOptin::processOnSubmission` | Opt-in mail to the visitor, `unconfirmed` status, early response instead of notifications |
+| FF Pro 6.2.14 | `fluentform/before_form_actions_processing` (10) | `AdminApproval::processOnSubmission` | Approval mail, `unapproved` status, early response |
+| FF Pro 6.2.14 | `fluentform/submission_inserted` (10) | `DraftSubmissionsManager::delete` | Deleting the visitor's saved and step-form drafts |
+| FF Pro 6.2.14 | `fluentform/global_notify_completed` (10) | Pro's closure in `fluentformpro.php` | "Delete entry on submission" racing the helper's own cleanup |
+
+CleanTalk's FF check is recognized only if it is CleanTalk's closure with its `FluentForm` integration. For FF, if CleanTalk's contact-form check is switched off, there is no binding to remove and the submission proceeds. If the check is on but its binding was changed or wrapped, the submission is rejected. CleanTalk registers its GF bindings only on public requests. CleanTalk's options, spam state and moderation results are never changed, and no spam approval is faked.
+
+Pro's WebHook feeds (`fluentform_webhook_feed`) are removed before they are queued by the existing email-feed-only narrowing, so a marked submission creates no webhook job or request.
+
+**CleanTalk browser traffic is not suppressed.** Only the marked form POST is covered. Before that POST exists, CleanTalk's frontend JavaScript runs in the visitor's browser: its bot detector, telemetry and a pre-submit email check (`/wp-json/cleantalk-antispam/v1/check_email_before_post`, which calls `api.cleantalk.org`). The plugin cannot tell that a visit is a test at that point, so on a live site CleanTalk still receives those signals and the checker's email address. The checker puts the marker in a text or textarea field, never an email field, so these earlier checks do not carry the marker. That is the checker's behaviour, not a guarantee: a marker typed by hand into an email field could reach CleanTalk through the pre-check.
+
+**FluentSMTP 2.4.0** has no callbacks on the audited hooks, so only its version is checked. The helper's mail changes run inside FluentSMTP's replacement `wp_mail()` before FluentSMTP hands the message to its provider.
+
+## Compatibility panel
+
+Settings → Pirax Form Test shows a read-only **Compatibility** section below the settings form, for users with `manage_options` only. It has a Gravity Forms and a Fluent Forms section, each with:
+
+- one row per core plugin and each active optional plugin that applies, with the detected version ("not active" or "unknown version" where that applies) and whether it is audited;
+- one verdict: `ready`, or `blocked: <reasons>`;
+- every unaudited callback, grouped by hook, with its callback identity and priority. A version failure does not hide these.
+
+All values are escaped. The panel has no JavaScript, endpoint, toggle or bypass. It stores nothing, removes no callbacks and submits nothing.
+
+`ready` covers only the plugins, versions and callbacks loaded for that admin page. It does not cover every form (payment, non-`form` and GF post-field forms are still rejected at submission), the marker, CAPTCHA, callbacks that only load on public pages or in later requests (such as CleanTalk's GF bindings), or mail delivery. Each marked submission is checked again when it arrives, and that check decides.
 
 ## Scheduled recovery sweep
 
@@ -100,17 +144,18 @@ WP-Cron runs only when the site gets traffic, so one hour is a recovery deadline
 
 ## Rollout
 
-Install on **one site** first, verify the token/redirect and audited versions/integrations, then use the [checker setup and commands](../../README.md#form-checks) (`bun run forms <slug>` or `bun run check <slug>`). `form_helper: true` authorizes real submissions: it is operator attestation, **not** public proof that this plugin is installed or its token matches. Keep it false until verified; a missing/mismatched helper can process tests as ordinary client submissions.
+Install on **one site** first, verify the token/redirect and audited versions/integrations (the [compatibility panel](#compatibility-panel) shows the admin-visible part; it is not a rollout approval), then use the [checker setup and commands](../../README.md#form-checks) (`bun run forms <slug>` or `bun run check <slug>`). `form_helper: true` authorizes real submissions: it is operator attestation, **not** public proof that this plugin is installed or its token matches. Keep it false until verified; a missing/mismatched helper can process tests as ordinary client submissions.
 
 Extend to a small group, then to all sites. Each step needs the operator's explicit go-ahead after the previous step's results are reviewed. Local tests do not authorize rollout. The checker verifies arrival independently over read-only IMAP; this helper still only hands mail to WordPress. See the [native checker and real-mail test guide](../../test/forms/README.md) for the distinction between logged Playground mail and delivered mail.
 
-A site whose form-plugin versions or integrations differ from the audited set rejects marked submissions. Treat it as not rollout-ready until it is re-audited, rather than working around the rejection.
+A site whose form-plugin, Pro, CleanTalk or FluentSMTP versions or integrations differ from the audited set rejects marked submissions. Treat it as not rollout-ready until it is re-audited, rather than working around the rejection.
 
 ## Known limitations
 
-- **After `wp_mail`:** anything that changes recipients after `wp_mail` (for example in `phpmailer_init` or an SMTP plugin's transport), or arbitrary PHP outside the audited hooks, is out of reach. This includes a callback that registers a new FF feed-type filter after the pre-dispatch move. No plugin can prove safety against all other code.
+- **After `wp_mail`:** anything that changes recipients after `wp_mail` (for example in `phpmailer_init` or an SMTP plugin's transport), or arbitrary PHP outside the audited hooks, is out of reach. For FluentSMTP 2.4.0 only, the tests check the effective PHPMailer envelope and the entry in FluentSMTP's Simulator log. They do not cover other versions, its real providers or SMTP/IMAP delivery. This also includes a callback that registers a new FF feed-type filter after the pre-dispatch move. No plugin can prove safety against all other code.
+- **Late re-registration:** a suppressed callback re-registered after the guard (GF priority 998, FF priority 9) in the same dispatch, or registered on another hook later in the request, is not caught. Restored bindings go to the end of their priority; the order among callbacks at the same priority is preserved for the audited stack only.
 - **Checker browser limits:** invisible/reCAPTCHA v3 client flows are unverified and may time out under the checker's frozen request policy despite this helper's server-side bypass. Specialized GF phone formats/widgets are also unverified by the checker and may reject its fixed data; basic telephone filling is not proof of support.
-- **Delivery is not verified here:** the local tests log `wp_mail()` arguments; they do not verify SMTP delivery or mailbox arrival.
+- **Delivery is not verified here:** the local tests log `wp_mail()` arguments, and on the full stack FluentSMTP's simulated send. They do not verify SMTP delivery or mailbox arrival.
 - **GF save and continue** (`gform_save`) skips validation, so a marker in a saved draft is not detected.
 - **GF prune race:** a GF worker that starts between the sweep's `is_processing()` check and its batch update can write a removed task back. GF has no compare-and-set batch API.
 - **Crashed FF job:** a job left `processing` by a crashed worker delays cleanup until it has been untouched for an hour.

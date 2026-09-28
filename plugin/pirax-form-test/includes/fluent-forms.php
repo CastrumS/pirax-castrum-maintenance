@@ -18,6 +18,10 @@
  * - is deleted with FF's native deleteEntries() at the end of a request once no notification job
  *   is pending, processing or retryable. FF's own completion signal only checks pending rows, and
  *   FF writes submission meta after its submission actions, so deletion waits for shutdown.
+ * - runs without CleanTalk's audited FF check and Fluent Forms Pro's audited direct side effects
+ *   (double opt-in, admin approval, draft deletion, delete-entry-on-submission): removed when the
+ *   submission is classified, kept removed whenever one of their hooks runs for marked work (the
+ *   submission, or a queued job's completion for a marked entry), put back for ordinary work.
  * Unsafe marked submissions are rejected with the literal message before CAPTCHA and insert.
  */
 
@@ -42,6 +46,11 @@ add_action( 'fluentform/integration_notify_notifications', __NAMESPACE__ . '\ff_
 add_action( 'action_scheduler_failed_execution', __NAMESPACE__ . '\ff_abandon_notifications', 10, 0 );
 add_action( 'fluentform/global_notify_completed', __NAMESPACE__ . '\ff_schedule_cleanup', 10, 2 );
 add_action( 'wp_mail_failed', __NAMESPACE__ . '\ff_count_mail_failure' );
+// Just before the suppressed bindings (10), so one re-registered earlier in the same dispatch is caught too.
+add_action( 'fluentform/before_insert_submission', __NAMESPACE__ . '\ff_guard', 9, 3 );
+add_action( 'fluentform/before_form_actions_processing', __NAMESPACE__ . '\ff_guard', 9, 3 );
+add_action( 'fluentform/submission_inserted', __NAMESPACE__ . '\ff_guard', 9, 3 );
+add_action( 'fluentform/global_notify_completed', __NAMESPACE__ . '\ff_guard_completed', 9, 2 );
 
 function &ff_state() {
 	static $state = array( 'parsed' => null, 'marked' => null, 'verdicts' => array(), 'jobs' => array(), 'failures' => 0, 'cleanup' => array() );
@@ -49,6 +58,7 @@ function &ff_state() {
 }
 
 function ff_detect( $fields, $form_data ) {
+	restore_suppressed();
 	$state             = &ff_state();
 	$state['parsed']   = parse( array_intersect_key( (array) $form_data, (array) $fields ) );
 	$state['verdicts'] = array();
@@ -68,10 +78,28 @@ function ff_verdict( $form ) {
 		} elseif ( is_wp_error( $state['marked'] ) ) {
 			$state['verdicts'][ $form_id ] = $state['marked']->get_error_message();
 		} else {
-			$state['verdicts'][ $form_id ] = ff_supported( $form ) ? 'supported' : BLOCKED_MESSAGE;
+			$state['verdicts'][ $form_id ] = prepare_marked_submission( 'ff', $form ) ? 'supported' : BLOCKED_MESSAGE;
 		}
 	}
 	return $state['verdicts'][ $form_id ];
+}
+
+/** Before the suppressed bindings' hooks: remove them (again) for this marked submission, else put them back. */
+function ff_guard( $data, $form_data, $form ) {
+	if ( null !== current_id() && 'supported' === ff_verdict( $form ) ) {
+		suppress( 'ff' );
+	} else {
+		restore_suppressed();
+	}
+}
+
+/** Completion also runs in queue runners, where the entry's stored test id marks it. */
+function ff_guard_completed( $entry_id, $form ) {
+	if ( null !== ff_test_id( $entry_id ) || ( null !== current_id() && 'supported' === ff_verdict( $form ) ) ) {
+		suppress( 'ff' );
+	} else {
+		restore_suppressed();
+	}
 }
 
 function ff_disable_captcha( $disabled, $form, $type ) {

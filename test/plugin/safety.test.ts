@@ -386,6 +386,27 @@ test("compatibility gate accepts exactly GF 3.1.2 and FF 6.2.14", async () => {
   });
 }, 60_000);
 
+test("optional plugin pins are exact strings, and on this stack (none of them active) both reports are ready with core versions only", async () => {
+  const result = await h.php<any>(`
+    $audited = fn($plugin, $versions) => array_combine($versions, array_map(fn($v) => Pirax\\FormTest\\version_is_audited($plugin, $v), $versions));
+    $report = fn($plugin) => array_intersect_key(Pirax\\FormTest\\compatibility_report($plugin), array_flip(['versions', 'unaudited', 'reasons', 'ready']));
+    return [
+      'ff_pro' => $audited('ff_pro', ['6.2.14', '6.2.15', '6.2.1', '6.2', '6.2.14.1', '6.2.14-beta', '']),
+      'cleantalk' => $audited('cleantalk', ['6.88', '6.88.1', '6.89', '6.8', '6.880', '6.88-rc1', '']),
+      'fluent_smtp' => $audited('fluent_smtp', ['2.4.0', '2.4.1', '2.4', '2.4.00', '2.4.0-beta', '']),
+      'gf' => $report('gf'),
+      'ff' => $report('ff'),
+    ];
+  `);
+  expect(result).toEqual({
+    ff_pro: { "6.2.14": true, "6.2.15": false, "6.2.1": false, "6.2": false, "6.2.14.1": false, "6.2.14-beta": false, "": false },
+    cleantalk: { "6.88": true, "6.88.1": false, "6.89": false, "6.8": false, "6.880": false, "6.88-rc1": false, "": false },
+    fluent_smtp: { "2.4.0": true, "2.4.1": false, "2.4": false, "2.4.00": false, "2.4.0-beta": false, "": false },
+    gf: { versions: { gf: { version: "3.1.2", audited: true } }, unaudited: [], reasons: [], ready: true },
+    ff: { versions: { ff: { version: "6.2.14", audited: true } }, unaudited: [], reasons: [], ready: true },
+  });
+}, 60_000);
+
 test("retained evidence contains no token", async () => {
   await h.closeBrowser(visitor.context);
   visitor = undefined as any;

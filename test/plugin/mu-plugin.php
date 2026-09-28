@@ -3,11 +3,15 @@
  * Plugin Name: Pirax form test harness (test only)
  * Description: Local Playground observer. Never packaged into the production plugin ZIP.
  *
- * - Logs the final wp_mail arguments (after every wp_mail filter) and short-circuits sending.
+ * - Logs the final wp_mail arguments (after every wp_mail filter) and short-circuits sending
+ *   (compatibility stack: optionally observes only, so FluentSMTP's Simulator is the transport).
  * - Answers Google reCAPTCHA siteverify with {"success":false} without network access.
  * - Keeps Action Scheduler from dispatching its own loopback runner; the harness drives queues.
  * - Registers ledger feeds through the real Gravity Forms feed add-on framework and the real
  *   Fluent Forms integration framework, recording each native execution.
+ * - Compatibility stack only (PIRAX_HARNESS_COMPAT): contains all third-party HTTP at the Requests
+ *   transport, answers CleanTalk moderation and the local webhook capture URL, records the
+ *   effective PHPMailer envelope.
  * It does not touch authentication, capabilities or form validation.
  */
 
@@ -43,7 +47,7 @@ add_filter(
 				'attachments' => array_values( (array) $atts['attachments'] ),
 			)
 		);
-		return true;
+		return pirax_harness_mail_passthrough() ? $short_circuit : true;
 	},
 	PHP_INT_MAX,
 	2
@@ -67,6 +71,149 @@ add_filter(
 	PHP_INT_MAX,
 	3
 );
+
+// Which plugins were activated with this mu-plugin (and its safeguards) already loaded.
+add_action(
+	'activated_plugin',
+	static function ( $plugin ) {
+		pirax_harness_log( 'activations', array( 'plugin' => $plugin ) );
+	}
+);
+
+/**
+ * pirax_harness_mail_passthrough (compatibility stack only): the mail observer above records and then
+ * lets wp_mail() continue, but only while FluentSMTP's own wp_mail() is loaded with its simulation
+ * constant, so its Simulator provider is the sole transport. Otherwise it short-circuits as always.
+ */
+function pirax_harness_mail_passthrough() {
+	return defined( 'PIRAX_HARNESS_COMPAT' ) && get_option( 'pirax_harness_mail_passthrough' )
+		&& defined( 'FLUENTMAIL_SIMULATE_EMAILS' ) && FLUENTMAIL_SIMULATE_EMAILS && function_exists( 'fluentMailGetProvider' )
+		&& 'fluent-smtp.php' === basename( ( new ReflectionFunction( 'wp_mail' ) )->getFileName() );
+}
+
+if ( defined( 'PIRAX_HARNESS_COMPAT' ) ) {
+	/**
+	 * The only Requests transport, so WordPress HTTP and direct Requests calls (CleanTalk's "WordPress
+	 * HTTP API" mode calls Requests itself, bypassing pre_http_request) cannot leave the machine.
+	 * Loopback goes to the real transport; the capture URL, CleanTalk moderation and everything
+	 * else are answered here and logged as method, host, path and purpose (no query, headers or body).
+	 */
+	class Pirax_Harness_Transport implements \WpOrg\Requests\Transport {
+		const CAPTURE = '/pirax-harness/capture/';
+
+		public function request( $url, $headers = array(), $data = array(), $options = array() ) {
+			$parts = wp_parse_url( $url );
+			$host  = strtolower( $parts['host'] ?? '' );
+			$path  = $parts['path'] ?? '/';
+			if ( in_array( $host, array( '127.0.0.1', 'localhost', wp_parse_url( home_url(), PHP_URL_HOST ) ), true ) && 0 !== strpos( $path, self::CAPTURE ) ) {
+				foreach ( \WpOrg\Requests\Requests::DEFAULT_TRANSPORTS as $class ) {
+					if ( $class::test( array( 'ssl' => 0 === stripos( $url, 'https://' ) ) ) ) {
+						return ( new $class() )->request( $url, $headers, $data, $options );
+					}
+				}
+				throw new \WpOrg\Requests\Exception( 'Pirax harness: no loopback transport', 'pirax_harness_loopback' );
+			}
+			$body   = is_string( $data ) ? json_decode( $data, true ) : null;
+			$record = array(
+				'method' => strtoupper( $options['type'] ?? 'GET' ),
+				'host'   => $host,
+				'path'   => $path,
+				'hooks'  => array_values( $GLOBALS['wp_current_filter'] ),
+				'action' => isset( $_REQUEST['action'] ) && is_string( $_REQUEST['action'] ) ? sanitize_key( $_REQUEST['action'] ) : null, // phpcs:ignore
+			);
+			if ( 0 === strpos( $path, self::CAPTURE ) ) {
+				$record += array( 'purpose' => 'webhook-capture', 'entry' => isset( $body['pirax_entry'] ) ? (int) $body['pirax_entry'] : null );
+				$answer  = '{"ok":true}';
+			} elseif ( preg_match( '/(^|\.)cleantalk\.org$/', $host ) && in_array( $body['method_name'] ?? null, array( 'check_message', 'check_newuser' ), true ) ) {
+				$record += array( 'purpose' => 'cleantalk-moderation', 'api' => $body['method_name'] );
+				$answer  = wp_json_encode( array( 'allow' => 1, 'spam' => 0, 'stop_queue' => 0, 'inactive' => 0, 'account_status' => 1, 'comment' => 'Pirax harness: allowed', 'id' => 'pirax-harness' ) );
+			} else {
+				pirax_harness_log( 'http', $record + array( 'purpose' => 'blocked' ) );
+				throw new \WpOrg\Requests\Exception( 'Pirax harness: third-party HTTP is contained', 'pirax_harness_blocked' );
+			}
+			pirax_harness_log( 'http', $record );
+			return "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " . strlen( $answer ) . "\r\n\r\n" . $answer;
+		}
+
+		public function request_multiple( $requests, $options ) {
+			$responses = array();
+			foreach ( $requests as $id => $request ) {
+				try {
+					$responses[ $id ] = $this->request( $request['url'], $request['headers'], $request['data'], $request['options'] );
+					$request['options']['hooks']->dispatch( 'transport.internal.parse_response', array( &$responses[ $id ], $request ) );
+				} catch ( \WpOrg\Requests\Exception $e ) {
+					$responses[ $id ] = $e;
+				}
+				if ( ! is_string( $responses[ $id ] ) ) {
+					$request['options']['hooks']->dispatch( 'multiple.request.complete', array( &$responses[ $id ], $id ) );
+				}
+			}
+			return $responses;
+		}
+
+		public static function test( $capabilities = array() ) {
+			return true;
+		}
+	}
+	\Closure::bind(
+		static function () {
+			self::$transports = array( Pirax_Harness_Transport::class => Pirax_Harness_Transport::class );
+			self::$transport  = array();
+		},
+		null,
+		\WpOrg\Requests\Requests::class
+	)();
+
+	// Effective envelope FluentSMTP hands to its provider (phpmailer_init runs just before the provider).
+	add_action(
+		'phpmailer_init',
+		static function ( $mailer ) {
+			$names = static fn( $list ) => array_values( array_map( static fn( $a ) => $a[0], $list ) );
+			pirax_harness_log(
+				'envelopes',
+				array(
+					'to'        => $names( $mailer->getToAddresses() ),
+					'cc'        => $names( $mailer->getCcAddresses() ),
+					'bcc'       => $names( $mailer->getBccAddresses() ),
+					'replyTo'   => $names( $mailer->getReplyToAddresses() ),
+					'from'      => $mailer->From,
+					'subject'   => $mailer->Subject,
+					'headers'   => array_values( array_map( static fn( $h ) => $h[0] . ': ' . $h[1], $mailer->getCustomHeaders() ) ),
+					'mailer'    => basename( ( new ReflectionFunction( 'wp_mail' ) )->getFileName() ),
+					'transport' => function_exists( 'fluentMailGetProvider' ) && fluentMailGetProvider( $mailer->From ) instanceof \FluentMail\App\Services\Mailer\Providers\Simulator\Handler ? 'fluentsmtp-simulator' : 'other',
+				)
+			);
+		},
+		PHP_INT_MAX
+	);
+}
+
+/**
+ * Fluent Forms Pro per-form features in their native settings (compatibility stack):
+ * 'double_optin' (form double_optin_settings, email field 'email'), 'admin_approval' (global module +
+ * form admin_approval_settings) and 'auto_delete' (formSettings.delete_entry_on_submission).
+ */
+function pirax_harness_ff_pro_feature( $form_id, $feature, $on ) {
+	$helper = '\FluentForm\App\Helpers\Helper';
+	$yes    = $on ? 'yes' : 'no';
+	switch ( $feature ) {
+		case 'double_optin':
+			$helper::setFormMeta( $form_id, 'double_optin_settings', array( 'status' => $yes, 'email_field' => 'email', 'skip_if_logged_in' => 'no', 'email_body_type' => 'global' ) );
+			return;
+		case 'admin_approval':
+			$modules                   = (array) get_option( 'fluentform_global_modules_status', array() );
+			$modules['admin_approval'] = $yes;
+			update_option( 'fluentform_global_modules_status', $modules );
+			$helper::setFormMeta( $form_id, 'admin_approval_settings', array( 'status' => $yes, 'skip_if_logged_in' => 'no' ) );
+			return;
+		case 'auto_delete':
+			$settings                               = (array) $helper::getFormMeta( $form_id, 'formSettings', array() );
+			$settings['delete_entry_on_submission'] = $yes;
+			$helper::setFormMeta( $form_id, 'formSettings', $settings );
+			return;
+	}
+	throw new InvalidArgumentException( "Unknown Fluent Forms Pro feature: $feature" );
+}
 
 // Queues run only when the harness drives them (as DISABLE_WP_CRON does for WP-Cron): no Action
 // Scheduler loopback runner racing the tests, and no pause inside a harness-driven runner request.
@@ -293,4 +440,79 @@ if ( get_option( 'pirax_harness_ff_delete_on_notify' ) ) {
 		8,
 		4
 	);
+}
+
+/*
+ * CleanTalk binding fixtures (compatibility stack; off unless a test sets the option):
+ * - pirax_harness_ct_rebind: after CleanTalk has bound its Fluent Forms check, replace that closure
+ *   with a wrapper defined here that calls it, so the check still runs but is no longer recognizable.
+ * - pirax_harness_ct_late: re-register CleanTalk's real checks after a submission was classified and
+ *   before its hooks run (on unaudited hooks in between): a new Integrations closure for Fluent Forms
+ *   (fluentform/filter_insert_data), and GF's testSpam callback (gform_field_validation).
+ */
+if ( get_option( 'pirax_harness_ct_rebind' ) ) {
+	add_action(
+		'plugins_loaded',
+		static function () {
+			global $wp_filter;
+			foreach ( $wp_filter['fluentform/before_insert_submission']->callbacks[10] ?? array() as $callback ) {
+				if ( $callback['function'] instanceof Closure && str_ends_with( ( new ReflectionFunction( $callback['function'] ) )->getFileName(), 'Cleantalk/Antispam/Integrations.php' ) ) {
+					$original = $callback['function'];
+					remove_action( 'fluentform/before_insert_submission', $original, 10 );
+					add_action( 'fluentform/before_insert_submission', static fn( ...$args ) => $original( ...$args ), 10, 3 );
+				}
+			}
+		},
+		20
+	);
+}
+if ( get_option( 'pirax_harness_ct_late' ) ) {
+	add_filter(
+		'fluentform/filter_insert_data',
+		static function ( $data ) {
+			global $apbct;
+			new \Cleantalk\Antispam\Integrations( array( 'FluentForm' => array( 'hook' => 'fluentform/before_insert_submission', 'setting' => 'forms__contact_forms_test', 'ajax' => false ) ), (array) $apbct->settings );
+			return $data;
+		}
+	);
+	add_filter(
+		'gform_field_validation',
+		static function ( $result ) {
+			add_filter( 'gform_entry_is_spam', 'apbct_form__gravityForms__testSpam', 999, 3 );
+			return $result;
+		}
+	);
+}
+
+/*
+ * pirax_harness_render_probe: around the Pirax Form Test settings page callback, record every
+ * callback on form-plugin hooks (hook, priority, identity and object) and count option writes, so a
+ * test can prove that rendering the compatibility panel changes neither.
+ */
+if ( get_option( 'pirax_harness_render_probe' ) ) {
+	$pirax_harness_writes = 0;
+	foreach ( array( 'added_option', 'updated_option', 'deleted_option' ) as $pirax_harness_hook ) {
+		add_action(
+			$pirax_harness_hook,
+			static function () use ( &$pirax_harness_writes ) {
+				++$pirax_harness_writes;
+			}
+		);
+	}
+	$pirax_harness_snapshot = static function ( $when ) use ( &$pirax_harness_writes ) {
+		global $wp_filter;
+		$hooks = array();
+		foreach ( $wp_filter as $hook => $object ) {
+			if ( preg_match( '#^(gform_|fluentform[/_])#', $hook ) ) {
+				foreach ( $object->callbacks as $priority => $callbacks ) {
+					foreach ( $callbacks as $key => $callback ) {
+						$hooks[] = "$hook $priority $key";
+					}
+				}
+			}
+		}
+		pirax_harness_log( 'render', array( 'when' => $when, 'hooks' => $hooks, 'writes' => $pirax_harness_writes ) );
+	};
+	add_action( 'settings_page_pirax-form-test', static fn() => $pirax_harness_snapshot( 'before' ), PHP_INT_MIN );
+	add_action( 'settings_page_pirax-form-test', static fn() => $pirax_harness_snapshot( 'after' ), PHP_INT_MAX );
 }

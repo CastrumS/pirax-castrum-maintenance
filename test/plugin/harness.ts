@@ -2,8 +2,12 @@
 //
 // startHarness() boots a disposable loopback WordPress (via playground.ts under Node) with the
 // licensed Gravity Forms ZIP (GRAVITY_FORMS_ZIP) and Fluent Forms FF_VERSION from wordpress.org,
-// installs the test-only mu-plugin, seeds native fixtures (fixtures.php) and returns a Harness:
+// installs the test-only mu-plugin, seeds native fixtures (fixtures.php) and returns a Harness.
+// startHarness({ compatibility: true }) adds the licensed Fluent Forms Pro ZIP (FLUENT_FORMS_PRO_ZIP)
+// and pinned CleanTalk and FluentSMTP, with third-party HTTP contained and FluentSMTP's Simulator
+// as the mail transport (see mu-plugin.php):
 //   url, token, versions, users, fixtures      site facts
+//   http() / envelopes() / simulator()          compatibility stack: contained HTTP, effective PHPMailer envelopes, Simulator log
 //   php(code)                                   run PHP (after wp-load) via Playground's run() API; returns the code's JSON result
 //   mail() / feeds() / siteverify()             final wp_mail arguments, native feed executions, siteverify calls
 //   entries()                                   GF/FF entry counts and rows
@@ -13,7 +17,8 @@
 //   uploadPlugin(page, zip)                     install + activate a plugin ZIP through wp-admin's upload form; its digest goes in the manifest
 //   saveEvidence() / artifactDir                redacted mail/feed/entry/network logs, manifest and traces under artifacts/plugin/<run>/
 //   stop()                                      close browser and Playground; idempotent
-// Credential values (FORM_TEST_TOKEN, the GRAVITY_FORMS_ZIP path) are redacted from all retained output and errors.
+// Credential values (FORM_TEST_TOKEN, the GRAVITY_FORMS_ZIP and FLUENT_FORMS_PRO_ZIP paths) are redacted from all
+// retained output and errors, and the licensed paths never appear on a child process's command line.
 import { createHash } from "node:crypto";
 import { existsSync, statSync } from "node:fs";
 import { mkdir, rename, writeFile } from "node:fs/promises";
@@ -24,6 +29,10 @@ import { redact, sanitizeZip } from "./artifacts";
 export const FF_VERSION = "6.2.14";
 export const WP_VERSION = "7.1.2";
 export const PHP_VERSION = "8.3";
+/** Compatibility stack pins (exact versions, as the plugin audits them). */
+export const FF_PRO_VERSION = "6.2.14";
+export const CLEANTALK_VERSION = "6.88";
+export const FLUENT_SMTP_VERSION = "2.4.0";
 
 const ROOT = resolve(import.meta.dir, "../..");
 const CACHE = join(ROOT, ".cache/plugin-test");
@@ -37,13 +46,50 @@ export interface QueueState {
   actionScheduler: { pending: number; running: number; nonce: string };
   ff: { statuses: Record<string, number>; nonce: string };
 }
+/** One contained outgoing HTTP request (compatibility stack): request line facts, never query, headers or body. */
+export interface HttpRecord {
+  purpose: "cleantalk-moderation" | "webhook-capture" | "blocked";
+  method: string;
+  host: string;
+  path: string;
+  /** WordPress hooks running when the request was made, outermost first (e.g. fluentform/before_insert_submission). */
+  hooks: string[];
+  /** The request's `action` parameter (e.g. fluentform_submit, fluentform_background_process), if any. */
+  action: string | null;
+  /** CleanTalk API method (check_message, check_newuser). */
+  api?: string;
+  /** Webhook capture: the FF entry id the Pro feed sent ({submission.id}). */
+  entry?: number | null;
+  request: string;
+  time: number;
+}
+/** The effective PHPMailer envelope at phpmailer_init, i.e. what FluentSMTP hands to its provider. */
+export interface EnvelopeRecord {
+  to: string[];
+  cc: string[];
+  bcc: string[];
+  replyTo: string[];
+  from: string;
+  subject: string;
+  /** Custom headers as "Name: value". */
+  headers: string[];
+  /** File defining wp_mail (fluent-smtp.php when FluentSMTP replaced it). */
+  mailer: string;
+  transport: "fluentsmtp-simulator" | "other";
+  request: string;
+  time: number;
+}
+/** A FluentSMTP email log row (the Simulator provider's own record); headers as "Name: value", content-type included. */
+export interface SimulatorRecord { id: number; to: string[]; from: string; subject: string; headers: string[]; provider: string; status: string; created: string }
 interface User { id?: number; login: string; password: string }
 
 export interface Harness {
   url: string;
   token: string;
   artifactDir: string;
-  versions: { gf: string; ff: string; wp: string; php: string };
+  /** True for startHarness({ compatibility: true }). */
+  compatibility: boolean;
+  versions: { gf: string; ff: string; wp: string; php: string; ffPro?: string; cleantalk?: string; fluentSmtp?: string };
   users: { admin: User; editor: User; subscriber: User };
   fixtures: {
     gf: number;
@@ -55,11 +101,19 @@ export interface Harness {
     captcha: { gf: number; ff: number; page: string };
     /** GF form with a post field and FF payment form: side effects outside the feed paths. */
     unsupported: { gf: number; ff: number; page: string };
+    /** Compatibility stack: the enabled Pro WebHook feed (fluentform_form_meta id) on `ff` and its loopback capture URL. */
+    stack?: { webhook: number; capture: string };
   };
   php<T = unknown>(code: string): Promise<T>;
   mail(): Promise<MailRecord[]>;
   feeds(): Promise<FeedRecord[]>;
   siteverify(): Promise<{ url: string; request: string }[]>;
+  /** Compatibility stack: contained third-party HTTP (empty on the default stack). */
+  http(): Promise<HttpRecord[]>;
+  /** Compatibility stack: effective PHPMailer envelopes (empty on the default stack). */
+  envelopes(): Promise<EnvelopeRecord[]>;
+  /** Compatibility stack: FluentSMTP email log rows, oldest first (empty on the default stack). */
+  simulator(): Promise<SimulatorRecord[]>;
   entries(): Promise<{ gf: number; ff: number; rows: { plugin: string; id: number; form: number; created: string }[] }>;
   queues(): Promise<QueueState>;
   drainQueues(maxRounds?: number): Promise<QueueState>;
@@ -73,13 +127,17 @@ export interface Harness {
 }
 
 /** Validate prerequisites; errors name the missing credential, never its value. */
-export function preflight(env: Record<string, string | undefined> = process.env) {
+export function preflight(env: Record<string, string | undefined> = process.env, { compatibility = false } = {}) {
   const problems: string[] = [];
   const gfZip = env.GRAVITY_FORMS_ZIP ?? "";
+  const proZip = compatibility ? (env.FLUENT_FORMS_PRO_ZIP ?? "") : "";
   const token = env.FORM_TEST_TOKEN ?? "";
-  if (!gfZip) problems.push("GRAVITY_FORMS_ZIP is not set (absolute path to the licensed Gravity Forms ZIP)");
-  else if (!isAbsolute(gfZip) || !existsSync(gfZip) || !statSync(gfZip).isFile())
-    problems.push("GRAVITY_FORMS_ZIP does not name an existing absolute file");
+  const zip = (name: string, value: string, what: string) => {
+    if (!value) problems.push(`${name} is not set (absolute path to the licensed ${what} ZIP)`);
+    else if (!isAbsolute(value) || !existsSync(value) || !statSync(value).isFile()) problems.push(`${name} does not name an existing absolute file`);
+  };
+  zip("GRAVITY_FORMS_ZIP", gfZip, "Gravity Forms");
+  if (compatibility) zip("FLUENT_FORMS_PRO_ZIP", proZip, "Fluent Forms Pro");
   if (!token) problems.push("FORM_TEST_TOKEN is not set");
   for (const tool of ["node", "zip", "unzip"]) if (!Bun.which(tool)) problems.push(`required tool '${tool}' is not on PATH`);
   if (problems.length)
@@ -87,35 +145,31 @@ export function preflight(env: Record<string, string | undefined> = process.env)
       `Plugin test prerequisites missing:\n- ${problems.join("\n- ")}\n` +
         "Run with bun --env-file=<registered repository>/.env; see plan D10.",
     );
-  return { gfZip, token };
+  return { gfZip, proZip, token };
 }
 
-async function sh(cmd: string[]): Promise<string> {
-  const proc = Bun.spawn(cmd, { stdout: "pipe", stderr: "pipe" });
-  const [out, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
-  if (code !== 0) throw new Error(`${cmd[0]} ${cmd[1]} exited ${code}`);
-  return out;
-}
-
+/** A plugin's Version header from inside its ZIP. The ZIP is unzip's stdin, so its path is not on the command line. */
 async function pluginVersion(zip: string, file: string, label: string): Promise<string> {
-  const header = await sh(["unzip", "-p", zip, file]).catch(() => "");
-  const version = header.match(/^\s*\*?\s*Version:\s*(\S+)/m)?.[1];
+  const proc = Bun.spawn(["unzip", "-p", "/dev/stdin", file], { stdin: Bun.file(zip), stdout: "pipe", stderr: "ignore" });
+  const [header, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
+  const version = code === 0 ? header.match(/^\s*\*?\s*Version:\s*(\S+)/m)?.[1] : undefined;
   if (!version) throw new Error(`${label} does not contain ${file} with a Version header`);
   return version;
 }
 
-async function fluentFormsZip(): Promise<string> {
-  const zip = join(CACHE, `fluentform.${FF_VERSION}.zip`);
+/** A pinned wordpress.org plugin ZIP, cached in .cache/plugin-test/ and checked against its Version header. */
+async function wordpressOrgZip(slug: string, version: string, main: string, name: string): Promise<string> {
+  const zip = join(CACHE, `${slug}.${version}.zip`);
   if (!existsSync(zip)) {
     await mkdir(CACHE, { recursive: true });
-    const url = `https://downloads.wordpress.org/plugin/fluentform.${FF_VERSION}.zip`;
+    const url = `https://downloads.wordpress.org/plugin/${slug}.${version}.zip`;
     const response = await fetch(url);
-    if (!response.ok) throw new Error(`Downloading Fluent Forms ${FF_VERSION} failed: HTTP ${response.status} from ${url}`);
+    if (!response.ok) throw new Error(`Downloading ${name} ${version} failed: HTTP ${response.status} from ${url}`);
     await Bun.write(`${zip}.part`, response);
     await rename(`${zip}.part`, zip);
   }
-  const version = await pluginVersion(zip, "fluentform/fluentform.php", "Fluent Forms ZIP");
-  if (version !== FF_VERSION) throw new Error(`Fluent Forms ZIP is ${version}, expected ${FF_VERSION}`);
+  const found = await pluginVersion(zip, `${slug}/${main}`, `${name} ZIP`);
+  if (found !== version) throw new Error(`${name} ZIP is ${found}, expected ${version}`);
   return zip;
 }
 
@@ -135,28 +189,39 @@ const timeout = (ms: number, error: () => Error) =>
 
 const sha256 = async (path: string) => createHash("sha256").update(await Bun.file(path).bytes()).digest("hex");
 
-export async function startHarness({ run = "run" }: { run?: string } = {}): Promise<Harness> {
-  const { gfZip, token } = preflight();
-  const secrets = [token, gfZip];
+export async function startHarness({ run = "run", compatibility = false }: { run?: string; compatibility?: boolean } = {}): Promise<Harness> {
+  const { gfZip, proZip, token } = preflight(process.env, { compatibility });
+  const secrets = [token, gfZip, proZip].filter(Boolean);
   const clean = (text: string) => redact(text, secrets).text;
   const artifactDir = join(ROOT, "artifacts/plugin", `${run}-${new Date().toISOString().replace(/[:.]/g, "-")}`);
   await mkdir(artifactDir, { recursive: true });
 
-  const [gfVersion, ffZip] = await Promise.all([
+  const [gfVersion, ffZip, extras] = await Promise.all([
     pluginVersion(gfZip, "gravityforms/gravityforms.php", "GRAVITY_FORMS_ZIP"),
-    fluentFormsZip(),
+    wordpressOrgZip("fluentform", FF_VERSION, "fluentform.php", "Fluent Forms"),
+    compatibility
+      ? Promise.all([
+          pluginVersion(proZip, "fluentformpro/fluentformpro.php", "FLUENT_FORMS_PRO_ZIP"),
+          wordpressOrgZip("cleantalk-spam-protect", CLEANTALK_VERSION, "cleantalk.php", "CleanTalk"),
+          wordpressOrgZip("fluent-smtp", FLUENT_SMTP_VERSION, "fluent-smtp.php", "FluentSMTP"),
+        ]).then(([ffPro, cleantalk, fluentSmtp]) => {
+          if (ffPro !== FF_PRO_VERSION) throw new Error(`FLUENT_FORMS_PRO_ZIP contains Fluent Forms Pro ${ffPro}, expected ${FF_PRO_VERSION}`);
+          return { cleantalk, fluentSmtp };
+        })
+      : undefined,
   ]);
-  const versions = { gf: gfVersion, ff: FF_VERSION, wp: WP_VERSION, php: PHP_VERSION };
+  const versions: Harness["versions"] = { gf: gfVersion, ff: FF_VERSION, wp: WP_VERSION, php: PHP_VERSION };
+  if (extras) Object.assign(versions, { ffPro: FF_PRO_VERSION, cleantalk: CLEANTALK_VERSION, fluentSmtp: FLUENT_SMTP_VERSION });
 
-  // The child needs GRAVITY_FORMS_ZIP but never the token.
-  const { FORM_TEST_TOKEN: _omit, ...childEnv } = process.env;
+  // The child reads the licensed ZIP paths from its environment (Pro only for the compatibility stack), never the token.
+  const { FORM_TEST_TOKEN: _omit, FLUENT_FORMS_PRO_ZIP: _pro, ...childEnv } = process.env;
   const child = Bun.spawn(
     [
       "node",
       join(import.meta.dir, "playground.ts"),
-      JSON.stringify({ ffZip, muPlugin: join(import.meta.dir, "mu-plugin.php"), wp: WP_VERSION, php: PHP_VERSION }),
+      JSON.stringify({ ffZip, extras, muPlugin: join(import.meta.dir, "mu-plugin.php"), wp: WP_VERSION, php: PHP_VERSION }),
     ],
-    { cwd: ROOT, env: childEnv, stdin: "pipe", stdout: "pipe", stderr: "pipe" },
+    { cwd: ROOT, env: compatibility ? { ...childEnv, FLUENT_FORMS_PRO_ZIP: proZip } : childEnv, stdin: "pipe", stdout: "pipe", stderr: "pipe" },
   );
   const killChild = () => child.kill("SIGKILL");
   process.once("exit", killChild);
@@ -278,6 +343,7 @@ export async function startHarness({ run = "run" }: { run?: string } = {}): Prom
     url,
     token,
     artifactDir,
+    compatibility,
     versions,
     users: { admin: { id: 1, login: "admin", password: "password" }, ...fixtureData.users },
     fixtures: (({ users: _users, ...fixtures }) => fixtures)(fixtureData),
@@ -285,6 +351,20 @@ export async function startHarness({ run = "run" }: { run?: string } = {}): Prom
     mail: () => readLog<MailRecord>("mail"),
     feeds: () => readLog<FeedRecord>("feeds"),
     siteverify: () => readLog<{ url: string; request: string }>("siteverify"),
+    http: () => readLog<HttpRecord>("http"),
+    envelopes: () => readLog<EnvelopeRecord>("envelopes"),
+    simulator: () =>
+      php<SimulatorRecord[]>(`
+        global $wpdb;
+        $table = $wpdb->prefix . 'fsmpt_email_logs';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) !== $table) return [];
+        return array_map(fn($r) => [
+          'id' => (int) $r['id'], 'to' => array_column((array) maybe_unserialize($r['to']), 'email'), 'from' => (string) maybe_unserialize($r['from']),
+          'subject' => $r['subject'],
+          'headers' => array_map(fn($k, $v) => is_array($v) ? "$v[0]: $v[1]" : "$k: $v", array_keys($h = (array) maybe_unserialize($r['headers'])), $h),
+          'provider' => maybe_unserialize($r['extra'])['provider'] ?? '', 'status' => $r['status'], 'created' => $r['created_at'],
+        ], $wpdb->get_results("SELECT id, \`to\`, \`from\`, subject, headers, extra, status, created_at FROM $table ORDER BY id", ARRAY_A));
+      `),
     entries: () =>
       php(`
         global $wpdb;
@@ -346,6 +426,9 @@ export async function startHarness({ run = "run" }: { run?: string } = {}): Prom
       context.on("requestfailed", (r) => network.push({ ...entry(r), status: null, failure: r.failure()?.errorText ?? "failed" }));
       // Screenshots/snapshots/sources would capture typed secrets in unscrubbable form (plan D11).
       await context.tracing.start({ name, title: name, screenshots: false, snapshots: false, sources: false });
+      // Compatibility stack: CleanTalk's bot detector and telemetry (and any other third party) stay unreachable;
+      // aborted requests are ledgered as failed. A test's own later route() still takes precedence.
+      if (compatibility) await context.route((u) => /^https?:$/.test(u.protocol) && u.hostname !== new URL(url).hostname, (r) => r.abort("blockedbyclient"));
       traces.set(context, join(artifactDir, `${name}.trace.zip`));
       return { context, page: await context.newPage() };
     },
@@ -372,8 +455,9 @@ export async function startHarness({ run = "run" }: { run?: string } = {}): Prom
       }
       await activate.click();
       await page.waitForURL(/plugins\.php/);
-      const notice = await page.locator("#message, .notice").first().innerText().catch(() => "");
-      if (!/activated/i.test(notice)) throw new Error(clean(`Plugin activation not confirmed: ${notice.slice(0, 500)}`));
+      // Other plugins' notices (FluentSMTP's "no connection" on the compatibility stack) may come first.
+      const notices = await page.locator("#message, .notice").allInnerTexts();
+      if (!notices.some((n) => /activated/i.test(n))) throw new Error(clean(`Plugin activation not confirmed: ${notices.join(" | ").slice(0, 500)}`));
     },
     async saveEvidence() {
       const write = async (name: string, text: string) => {
@@ -382,16 +466,22 @@ export async function startHarness({ run = "run" }: { run?: string } = {}): Prom
         await writeFile(join(artifactDir, name), result.text);
         return name;
       };
-      const [mail, feeds, entries] = await Promise.all([h.mail(), h.feeds(), h.entries()]);
+      const [mail, feeds, entries, http, envelopes, simulator] = await Promise.all([h.mail(), h.feeds(), h.entries(), h.http(), h.envelopes(), h.simulator()]);
       const jsonl = (rows: unknown[]) => rows.map((r) => JSON.stringify(r) + "\n").join("");
       const artifacts = {
         mail: await write("mail.jsonl", jsonl(mail)),
         feeds: await write("feeds.jsonl", jsonl(feeds)),
         entries: await write("entries.json", JSON.stringify(entries.rows, null, 2)),
         network: await write("network.jsonl", jsonl(network)),
+        ...(compatibility && {
+          http: await write("http.jsonl", jsonl(http)),
+          envelopes: await write("envelopes.jsonl", jsonl(envelopes)),
+          simulator: await write("simulator.jsonl", jsonl(simulator)),
+        }),
         traces: closedTraces.map((t) => relative(artifactDir, t)),
       };
       const files = [artifacts.mail, artifacts.feeds, artifacts.entries, artifacts.network];
+      if (compatibility) files.push(artifacts.http!, artifacts.envelopes!, artifacts.simulator!);
       files.push(
         await write(
           "manifest.json",
@@ -402,7 +492,11 @@ export async function startHarness({ run = "run" }: { run?: string } = {}): Prom
               url,
               versions,
               fixtures: h.fixtures,
-              zips: { gravityforms: await sha256(gfZip), fluentform: await sha256(ffZip) },
+              zips: {
+                gravityforms: await sha256(gfZip),
+                fluentform: await sha256(ffZip),
+                ...(extras && { fluentformpro: await sha256(proZip), cleantalk: await sha256(extras.cleantalk), fluentSmtp: await sha256(extras.fluentSmtp) }),
+              },
               uploads,
               artifacts,
             },

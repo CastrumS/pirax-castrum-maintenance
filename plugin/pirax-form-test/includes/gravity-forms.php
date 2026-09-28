@@ -6,7 +6,9 @@
  *   result is overridden); every other field, honeypot and spam check still applies;
  * - runs no add-on feeds (sync or background) and sends its notifications synchronously, even
  *   with GF background notifications on, so mail goes out (redirected) before the entry is deleted;
- * - has its entry deleted through GFAPI at the end of gform_after_submission.
+ * - has its entry deleted through GFAPI at the end of gform_after_submission;
+ * - runs without CleanTalk's audited GF check (moderation request, spam verdict, entry deletion):
+ *   removed when the submission is classified, kept removed at dispatch, put back for ordinary ones.
  * Unsafe marked submissions (unsupported integrations, bad marker or settings) fail validation
  * with the literal rejection message before anything is saved. Ordinary submissions are untouched.
  */
@@ -21,6 +23,9 @@ add_filter( 'gform_validation', __NAMESPACE__ . '\gf_reject', PHP_INT_MAX );
 add_filter( 'gform_addon_pre_process_feeds', __NAMESPACE__ . '\gf_no_feeds', PHP_INT_MAX );
 add_filter( 'gform_is_asynchronous_notifications_enabled', __NAMESPACE__ . '\gf_sync_notifications', PHP_INT_MAX );
 add_action( 'gform_after_submission', __NAMESPACE__ . '\gf_delete_entry', PHP_INT_MAX, 2 );
+// Just before CleanTalk's bindings (999), so one re-registered earlier in the same dispatch is caught too.
+add_filter( 'gform_entry_is_spam', __NAMESPACE__ . '\gf_guard', 998, 2 );
+add_filter( 'gform_confirmation', __NAMESPACE__ . '\gf_guard', 998, 2 );
 
 /** Per-request verdict for each GF form: 'supported' or the rejection message. */
 function &gf_verdicts() {
@@ -45,6 +50,7 @@ function gf_detect( $form ) {
 	if ( ! is_array( $form ) || empty( $form['fields'] ) ) {
 		return $form;
 	}
+	restore_suppressed();
 	$verdicts = &gf_verdicts();
 	$form_id  = (int) $form['id'];
 	unset( $verdicts[ $form_id ] );
@@ -59,7 +65,7 @@ function gf_detect( $form ) {
 	$marked = mark( $parsed['id'] );
 	if ( is_wp_error( $marked ) ) {
 		$verdicts[ $form_id ] = $marked->get_error_message();
-	} elseif ( ! gf_supported( $form ) ) {
+	} elseif ( ! prepare_marked_submission( 'gf', $form ) ) {
 		$verdicts[ $form_id ] = BLOCKED_MESSAGE;
 	} else {
 		$verdicts[ $form_id ] = 'supported';
@@ -79,6 +85,16 @@ function gf_detect( $form ) {
 function gf_is_supported( $form ) {
 	$verdicts = &gf_verdicts();
 	return 'supported' === ( isset( $verdicts[ (int) rgar( $form, 'id' ) ] ) ? $verdicts[ (int) rgar( $form, 'id' ) ] : null );
+}
+
+/** Before the suppressed bindings' hooks: remove them (again) for a marked submission, else put them back. */
+function gf_guard( $value, $form ) {
+	if ( null !== current_id() && is_array( $form ) && gf_is_supported( $form ) ) {
+		suppress( 'gf' );
+	} else {
+		restore_suppressed();
+	}
+	return $value;
 }
 
 /** Only the CAPTCHA field of a marked, supported submission is accepted regardless of its verifier. */

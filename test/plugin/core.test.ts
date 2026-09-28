@@ -80,6 +80,7 @@ test("build:plugin produces only the allowlisted uploadable ZIP with no tests, s
   // Code only: comments may name wp_mail() when documenting what the filters do.
   const source = (await Bun.$`unzip -p ${ZIP} ${"*.php"}`.text()).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   expect(source).not.toMatch(/register_rest_route|rest_api_init|\bwp_mail\s*\(|PHPMailer|PIRAX_FORM_TEST_HARNESS/);
+  expect(await Bun.$`unzip -p ${ZIP} pirax-form-test/pirax-form-test.php`.text()).toMatch(/^ \* Version:\s+0\.2\.0$/m);
   expect(await findSecret(join(ROOT, "dist"), [h.token, process.env.GRAVITY_FORMS_ZIP ?? ""])).toEqual([]);
 });
 
@@ -236,6 +237,104 @@ test("settings mutate only for manage_options with a valid nonce and valid value
   await page.locator(".notice-success").waitFor();
   expect(await page.content()).not.toContain(h.token);
   expect(await settings()).toEqual(good);
+}, 300_000);
+
+/** Rows (plugin, version, audited), verdict and hook => callback ids of one compatibility panel section. */
+async function panel(page: Page, plugin: "gf" | "ff") {
+  const section = page.locator(`#pirax-form-test-compat-${plugin}`);
+  const rows = await section.locator("tr").evaluateAll((trs) => trs.map((tr) => [...tr.querySelectorAll("th,td")].map((c) => (c as HTMLElement).innerText.trim())));
+  const hooks: Record<string, string[]> = {};
+  for (const li of await section.locator("ul.pirax-form-test-unaudited > li").all()) hooks[await li.locator(":scope > code").innerText()] = await li.locator("ul code").allInnerTexts();
+  return { rows, verdict: await section.locator(".pirax-form-test-verdict").innerText(), hooks };
+}
+
+test("compatibility panel: admins only, read-only, every unaudited callback by hook with a real <script> closure file escaped", async () => {
+  const { page } = admin;
+  await page.goto(`${h.url}${SETTINGS}`);
+  // Default stack: exact core versions, no optional plugins (not listed as version 0), both ready.
+  expect(await panel(page, "gf")).toEqual({ rows: [["Gravity Forms", "3.1.2", "audited"]], verdict: "ready", hooks: {} });
+  expect(await panel(page, "ff")).toEqual({ rows: [["Fluent Forms", "6.2.14", "audited"]], verdict: "ready", hooks: {} });
+  expect(await page.locator("#pirax-form-test-compatibility").innerText()).toContain('"Ready" covers only the plugins, versions and hooked callbacks loaded for this admin page');
+
+  // A real mu-plugin whose file name carries markup: closures and named callbacks on GF and FF hooks and a GF form-specific hook.
+  const file = "pirax-<script>alert(document.domain)<script>.php";
+  const source = [
+    "<?php",
+    "add_action('gform_entry_created', function () {}, 10);",
+    "add_action('fluentform/submission_inserted', function () {}, 20);",
+    `add_action('gform_after_submission_${h.fixtures.gf}', 'pirax_hostile_numeric', 10, 2);`,
+    "function pirax_hostile_numeric() {}",
+    "add_action('fluentform/before_form_actions_processing', 'pirax_hostile_named', 20);",
+    "function pirax_hostile_named() {}",
+    "",
+  ].join("\n");
+  const written = await h.php(`$f = WPMU_PLUGIN_DIR . '/' . ${lit(file)}; file_put_contents($f, ${lit(source)}); update_option('pirax_harness_render_probe', true, false); return ['name' => basename($f), 'sha' => hash_file('sha256', $f)];`);
+  expect(written).toEqual({ name: file, sha: sha(source) });
+  const dialogs: string[] = [];
+  const onDialog = (d: import("playwright").Dialog) => void (dialogs.push(d.message()), d.dismiss());
+  page.on("dialog", onDialog);
+  try {
+    await page.goto(`${h.url}${SETTINGS}`);
+    const gf = await panel(page, "gf");
+    const ff = await panel(page, "ff");
+    expect(gf).toEqual({
+      rows: [["Gravity Forms", "3.1.2", "audited"]],
+      verdict: "blocked: 2 unaudited callback(s) on submission hooks",
+      hooks: { gform_entry_created: [`closure:${file}`], [`gform_after_submission_${h.fixtures.gf}`]: ["pirax_hostile_numeric"] },
+    });
+    expect(ff).toEqual({
+      rows: [["Fluent Forms", "6.2.14", "audited"]],
+      verdict: "blocked: 2 unaudited callback(s) on submission hooks",
+      hooks: { "fluentform/before_form_actions_processing": ["pirax_hostile_named"], "fluentform/submission_inserted": [`closure:${file}`] },
+    });
+    // Escaped text, not markup: no script element, no dialog.
+    expect(await page.content()).toContain("closure:pirax-&lt;script&gt;alert(document.domain)&lt;script&gt;.php");
+    expect(await page.locator("#pirax-form-test-compatibility script").count()).toBe(0);
+    expect(dialogs).toEqual([]);
+    expect(await page.content()).not.toContain(h.token);
+
+    // Rendering the page changed no form-plugin hook and wrote no option.
+    const render = await h.php<{ when: string; hooks: string[]; writes: number }[]>(`
+      return array_map(fn($l) => json_decode($l, true), file(WP_CONTENT_DIR . '/pirax-harness/render.jsonl', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES));
+    `);
+    const [before, after] = render.slice(-2);
+    expect([before!.when, after!.when]).toEqual(["before", "after"]);
+    expect(after!.hooks).toEqual(before!.hooks);
+    expect(before!.hooks.length).toBeGreaterThan(0);
+    expect(after!.writes).toBe(before!.writes);
+
+    // The same collector decides at submission time.
+    const gates = await h.php<any>(`
+      return [
+        'gf' => ${F}gf_supported(GFAPI::get_form(${h.fixtures.gf})),
+        'ff' => ${F}ff_supported(wpFluent()->table('fluentform_forms')->find(${h.fixtures.ff})),
+        'list' => ${F}unaudited_callbacks(${F}inspected_hooks('gf', GFAPI::get_form(${h.fixtures.gf}))),
+      ];
+    `);
+    expect(gates).toEqual({ gf: false, ff: false, list: [`gform_entry_created: closure:${file}`, `gform_after_submission_${h.fixtures.gf}: pirax_hostile_numeric`] });
+
+    // Editors, subscribers and visitors get no panel.
+    for (const role of ["editor", "subscriber"] as const) {
+      const other = await h.browser(`core-panel-${role}`);
+      try {
+        await login(other.page, h.users[role]);
+        const denied = await other.page.goto(`${h.url}${SETTINGS}`);
+        expect(denied?.status()).toBe(403);
+        expect(await other.page.locator("#pirax-form-test-compatibility").count()).toBe(0);
+        expect(await other.page.content()).not.toContain("pirax_hostile");
+      } finally {
+        await h.closeBrowser(other.context);
+      }
+    }
+    const anonymous = await fetch(`${h.url}${SETTINGS}`, { redirect: "manual" });
+    expect(anonymous.status).toBe(302);
+    expect(await anonymous.text()).not.toContain("pirax-form-test-compatibility");
+  } finally {
+    page.off("dialog", onDialog);
+    await h.php(`unlink(WPMU_PLUGIN_DIR . '/' . ${lit(file)}); delete_option('pirax_harness_render_probe'); return true;`);
+  }
+  await page.goto(`${h.url}${SETTINGS}`);
+  expect([(await panel(page, "gf")).verdict, (await panel(page, "ff")).verdict]).toEqual(["ready", "ready"]);
 }, 300_000);
 
 test("marker parser classifies submitted values: ordinary, marked(id) or invalid-marker", async () => {

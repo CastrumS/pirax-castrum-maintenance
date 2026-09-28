@@ -196,7 +196,39 @@ if ( is_wp_error( $page ) ) {
 	throw new RuntimeException( $page->get_error_message() );
 }
 
-return array(
+// Compatibility stack only (PIRAX_HARNESS_COMPAT): FluentSMTP's Simulator is the mail transport (the
+// harness observer stops short-circuiting), CleanTalk keeps its WordPress HTTP mode for anonymous
+// contact forms against the contained moderation server, and a real Pro WebHook feed on the FF
+// contact form posts the entry id ({submission.id}) to the loopback capture URL.
+$stack = array();
+if ( defined( 'PIRAX_HARNESS_COMPAT' ) ) {
+	update_option( 'pirax_harness_mail_passthrough', true, false );
+	update_option( 'cleantalk_settings', array( 'wp__use_builtin_http_api' => 1, 'forms__contact_forms_test' => 1 ) + (array) get_option( 'cleantalk_settings', array() ) );
+	// The activating admin's next wp-admin request consumes CleanTalk's one-shot redirect to its settings;
+	// no admin visits here, so the first visitor admin-ajax request (an FF submission) would get the 302.
+	delete_option( 'ct_plugin_do_activation_redirect' );
+	update_option( 'cleantalk_server', array( 'ct_work_url' => 'https://moderate.cleantalk.org', 'ct_server_ttl' => DAY_IN_SECONDS, 'ct_server_changed' => time() ) );
+	$capture = home_url( '/pirax-harness/capture/webhook' );
+	$webhook = array(
+		'name'            => 'Pirax capture',
+		'request_url'     => $capture,
+		'request_method'  => 'POST',
+		'request_format'  => 'JSON',
+		'request_body'    => 'selected_fields',
+		'fields'          => array( array( 'key' => 'pirax_entry', 'value' => '{submission.id}' ) ),
+		'with_header'     => 'nop',
+		'request_headers' => array( array( 'key' => '', 'value' => '' ) ),
+		'conditionals'    => array( 'status' => false, 'type' => 'all', 'conditions' => array() ),
+		'enabled'         => true,
+	);
+	$wpdb->insert( "{$wpdb->prefix}fluentform_form_meta", array( 'form_id' => $ff_id, 'meta_key' => 'fluentform_webhook_feed', 'value' => wp_json_encode( $webhook ) ) );
+	$stack = array( 'stack' => array( 'webhook' => (int) $wpdb->insert_id, 'capture' => $capture ) );
+	$modules            = (array) get_option( 'fluentform_global_modules_status', array() );
+	$modules['webhook'] = 'yes';
+	update_option( 'fluentform_global_modules_status', $modules );
+}
+
+return $stack + array(
 	'gf'    => (int) $gf_id,
 	'ff'    => $ff_id,
 	'page'  => get_permalink( $page ),

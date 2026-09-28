@@ -30,7 +30,7 @@ sites:
 
   - slug: stolarijabanek
     url: https://stolarijabanek.com
-    form_helper: false
+    form_helper: false                 # helper installed 2026-09-28; blocked by CleanTalk + likely FF Pro hooks
     max_diff_pixel_ratio: 0.02                     # lazy images settle slightly differently on mobile
     test_form: { page: /kontakt/, plugin: fluent, id: 1 }
     pages:

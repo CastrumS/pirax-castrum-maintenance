@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { combineMasks, MaskSelectorError, openCaptureSession, type CaptureResult, type CaptureSession, type SessionOptions } from "../capture.ts";
+import { combineHides, combineMasks, MaskSelectorError, openCaptureSession, type CaptureResult, type CaptureSession, type SessionOptions } from "../capture.ts";
 import { EnvError, EnvFormatError, readR2Config } from "../env.ts";
 import { evaluateHealth } from "../health.ts";
 import { loadSites, pageKey, SitesConfigError, type Site } from "../sites.ts";
@@ -86,7 +86,7 @@ export async function captureSelection(sites: Site[], options: RunOptions, consu
   try {
     try { session = await openCaptureSession(options.browser); }
     catch { operationalFailure = true; }
-    if (session) await session.validateMasks(sites.flatMap(s => s.pages.flatMap(p => combineMasks(s, p))));
+    if (session) await session.validateMasks(sites.flatMap(s => s.pages.flatMap(p => [...combineMasks(s, p), ...combineHides(s, p)])));
     for (const site of sites) {
       const result = { slug: site.slug, url: site.url, pages: [] as RunReport["sites"][number]["pages"] };
       report.sites.push(result);
@@ -99,7 +99,7 @@ export async function captureSelection(sites: Site[], options: RunOptions, consu
           let capture: CaptureResult;
           try {
             if (!session) throw new Error("browser unavailable");
-            capture = await session.capture({ url: site.url + page.path, viewport: name, masks: combineMasks(site, page), tracePath: join(runDir, trace) });
+            capture = await session.capture({ url: site.url + page.path, viewport: name, masks: combineMasks(site, page), hides: combineHides(site, page), tracePath: join(runDir, trace) });
           } catch (error) {
             if (configurationError(error)) throw error;
             capture = { state: "error", detail: "Browser/capture operation failed.", image: null, health: { status: null, finalUrl: site.url + page.path, criticalError: false, consoleErrors: [], failedRequests: [], mixedContent: [] }, warnings: [], tracePath: null };

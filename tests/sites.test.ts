@@ -187,6 +187,21 @@ describe("loadSites required negative cases", () => {
   });
 });
 
+describe("loadSites hide", () => {
+  test("optional site and page hide lists; absent means no key", () => {
+    const text = `sites:\n${site("    hide: ['.newsletter-popup']\n", "acme", "    pages:\n      - /\n      - path: /x/\n        hide: ['.slider', '#reviews']")}`;
+    const [s] = loadSites(write(text));
+    expect(s!.hide).toEqual([".newsletter-popup"]);
+    expect(s!.pages).toEqual([{ path: "/", mask: [] }, { path: "/x/", mask: [], hide: [".slider", "#reviews"] }]);
+    expect("hide" in loadSites(write(`sites:\n${site()}`))[0]!).toBe(false);
+  });
+  test("malformed hides name the field", () => {
+    expectError(`sites:\n${site("    hide: '.a'\n")}`, "acme", "hide");
+    expectError(`sites:\n${site("    hide: ['']\n")}`, "acme", "hide[0]");
+    expectError(`sites:\n${site("", "acme", "    pages:\n      - path: /x/\n        hide: [3]")}`, "acme", "pages[0].hide[0]");
+  });
+});
+
 describe("loadSites broader validation", () => {
   test("root shape and unknown root key", () => {
     expectError("", "<root>", "sites");

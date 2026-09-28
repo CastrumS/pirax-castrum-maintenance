@@ -95,7 +95,7 @@ Baseline and approval writes are **nontransactional**: a write failure can leave
 
 Each page gets a fresh browser context at desktop **1440×900** and mobile **390×844**, device scale 1, fixed en-US/UTC/light settings and reduced motion. Mobile means a narrow viewport, not device emulation. Screenshots are full-page, so captured dimensions can exceed the viewport. Animations, transitions, caret and smooth scrolling are disabled for screenshots.
 
-Site and page CSS masks are combined without duplicates. Invalid CSS is configuration exit 2; a valid selector matching nothing produces a warning. Masks hide unstable regions in images, not health findings. With equal dimensions, pixelmatch uses threshold `0.1`; a visual failure occurs only when changed pixels divided by total pixels **exceeds** `max_diff_pixel_ratio` (default `0.01`, equality passes). Any width/height change fails regardless of tolerance; the report shows both dimensions and a diff computed on a padded canvas.
+Site and page CSS masks are combined without duplicates. Optional `hide` selectors (site and page, combined the same way) are set to `display: none` for the screenshot, so they also leave the full-page height: use them for pop-ups, rotating sliders and randomly ordered blocks that would otherwise change the page size. Unmatched hides warn and invalid ones are configuration errors, like masks. Invalid CSS is configuration exit 2; a valid selector matching nothing produces a warning. Masks hide unstable regions in images, not health findings. With equal dimensions, pixelmatch uses threshold `0.1`; a visual failure occurs only when changed pixels divided by total pixels **exceeds** `max_diff_pixel_ratio` (default `0.01`, equality passes). Any width/height change fails regardless of tolerance; the report shows both dimensions and a diff computed on a padded canvas.
 
 Navigation/load has a 30-second timeout, followed by network idle capped at 15 seconds, lazy-load scrolling down/back up capped at 15 seconds, font/image settling capped at 5 seconds, and a 30-second screenshot timeout. Idle/scroll/settling limits produce readiness warnings; they do not promise a fully settled page. Navigation failure, HTTP 403 or an explicit challenge/interstitial is blocked and fails the run, while later pages/sites continue. A normal CAPTCHA or mention of Cloudflare alone is not classified as a challenge. A 404 is a health failure.
 
@@ -105,6 +105,7 @@ Health is separate from pixel comparison:
 
 - New console errors, uncaught JavaScript errors and failed subresource `{url, status}` pairs fail. Identical findings already in baseline health are warnings; removed findings disappear. Query strings and statuses remain significant; transport failures have `status: null`.
 - Missing main-document response, final HTTP status >=400, the rendered WordPress critical-error phrase, and HTTP resources on a final HTTPS document always fail, even after baseline/approval. HTTP hyperlinks alone are not mixed content.
+- Benign third-party noise is not reported: `requestStorageAccess: Permission denied`, report-only Content Security Policy messages, Google Maps `<gmp-…>` component errors, and failed requests to ad/analytics hosts (`ad.doubleclick.net`, `stats.g.doubleclick.net`, `www.google-analytics.com`, `analytics.google.com`). See `BENIGN_CONSOLE` and `BENIGN_REQUEST_HOSTS` in `src/health.ts`.
 - Warnings alone return 0. Raw health snapshots retain all observations, not just new findings.
 
 The **visual capture** browser blocks service workers, page-originated non-GET HTTP requests (including POST/beacon), and WebSocket connections/messages. WebSocket interception is installed for the entire browser context before any page is opened, with no connection to the remote peer. HTTP and WebSocket policy blocks produce read-only-policy warnings, not server asset failures. It does not click forms or admin/update flows. Normal asset GETs are allowed; a remote GET endpoint can itself have side effects, so this policy cannot guarantee an arbitrary site is side-effect-free. Real-site TLS validation stays enabled.
@@ -119,6 +120,7 @@ sites:
     url: https://acme.example.com  # http(s), absolute, no trailing slash
     form_helper: false         # fill only; true authorizes submitting the designated test_form
     mask: ['#hero-slider']     # optional, CSS selectors masked on every page (default [])
+    hide: ['.newsletter-popup'] # optional, CSS selectors removed before every screenshot
     max_diff_pixel_ratio: 0.01 # optional, 0–1 (default 0.01)
     test_form: { page: /contact/, plugin: gravity, id: 1 }  # optional; omitted = every form skipped
     pages:                     # required, nonempty; order preserved
@@ -126,6 +128,7 @@ sites:
       - /services/
       - path: /contact/
         mask: ['.cookie-banner']   # optional, per page
+        hide: ['.related-posts']   # optional, per page
 ```
 
 `sites: []` is allowed. Unknown keys at any level are rejected.
@@ -135,9 +138,9 @@ sites:
 `loadSites(path = "sites.yaml"): Site[]` reads the file synchronously and returns:
 
 ```ts
-type Page = { path: string; mask: string[] };
+type Page = { path: string; mask: string[]; hide?: string[] };
 type TestForm = { page: string; plugin: "gravity" | "fluent"; id: number };
-type Site = { slug: string; url: string; form_helper: boolean; mask: string[]; max_diff_pixel_ratio: number; pages: Page[]; test_form?: TestForm };
+type Site = { slug: string; url: string; form_helper: boolean; mask: string[]; hide?: string[]; max_diff_pixel_ratio: number; pages: Page[]; test_form?: TestForm };
 ```
 
 Site and page masks stay separate in the loader; capture combines them. The loader checks nonblank strings; browser preflight checks CSS syntax.

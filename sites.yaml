@@ -12,6 +12,8 @@ sites:
   - slug: suntos
     url: https://suntos.de
     form_helper: false
+    hide: ['.brx-popup', '.brx-popup-backdrop']   # timed newsletter/review pop-ups
+    max_diff_pixel_ratio: 0.02                     # lazy product images settle slightly differently
     test_form: { page: /kontakt/, plugin: fluent, id: 4 }
     pages:
       - /
@@ -29,13 +31,15 @@ sites:
   - slug: stolarijabanek
     url: https://stolarijabanek.com
     form_helper: false
+    max_diff_pixel_ratio: 0.02                     # lazy images settle slightly differently on mobile
     test_form: { page: /kontakt/, plugin: fluent, id: 1 }
     pages:
       - /
       - /o-nama/
       - /usluge/
       - /usluge/kuhinje/
-      - /galerija/
+      - path: /galerija/
+        mask: ['.g-gallery-1__gallery']           # isotope gallery reflows while images load
       - /kontakt/                       # Fluent #1
 
   - slug: centrum-panda
@@ -133,6 +137,7 @@ sites:
   - slug: bravarskiservis
     url: https://bravarskiservis.hr
     form_helper: false
+    hide: ['.main-carousel']                       # comments carousel, sometimes not yet initialised
     test_form: { page: /kontakt/, plugin: fluent, id: 5 }
     pages:
       - /
@@ -144,7 +149,8 @@ sites:
       - /o-meni/
       - /komentari/
       - /blog/
-      - /blog/kako-dodatno-osigurati-ulazna-vrata/
+      - path: /blog/kako-dodatno-osigurati-ulazna-vrata/
+        hide: ['#_posts_grid-16-261']              # related posts in random order
       - /emergency-locksmith-zagreb/
       - /kontakt/                       # Fluent #5 + reCAPTCHA
 
@@ -163,6 +169,7 @@ sites:
   - slug: laris-tcb
     url: https://laris-tcb.hr
     form_helper: false
+    hide: ['.fl-module-pp-testimonials']           # rotating client reviews change the page height
     test_form: { page: /, plugin: gravity, id: 2 }   # site-wide inquiry (GF #4 is on /kontakt/)
     pages:
       - /                               # GF #2 + reCAPTCHA, site-wide

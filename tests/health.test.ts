@@ -88,6 +88,28 @@ describe("evaluateHealth", () => {
     expect(view.join("\n")).not.toContain("removed.png");
   });
 
+  test("benign third-party noise is not reported; the raw snapshot keeps it", () => {
+    const noise = snap({
+      consoleErrors: [
+        "requestStorageAccess: Permission denied.",
+        `Framing 'https://www.google.com/' violates the following report-only Content Security Policy directive: "frame-ancestors 'self'".`,
+        "<gmp-place-details-compact>: Encountered a network request error: Rpc failed due to xhr error.",
+        "Uncaught TypeError: Failed to fetch",
+      ],
+      failedRequests: [
+        { url: "https://ad.doubleclick.net/ccm/s/collect?auid=1", status: null },
+        { url: "https://www.googletagmanager.com/gtm.js?id=GTM-X", status: null },
+        { url: "not a url", status: 404 },
+      ],
+    });
+    expect(evaluateHealth(noise, null).map((f) => f.detail)).toEqual([
+      "Uncaught TypeError: Failed to fetch",
+      "transport failure https://www.googletagmanager.com/gtm.js?id=GTM-X",
+      "HTTP 404 not a url",
+    ]);
+    expect(normalizeHealth(noise).consoleErrors).toHaveLength(4);
+  });
+
   test("HTTP >= 400, critical error and mixed content fail even when baselined", () => {
     const bad = snap({ status: 404, criticalError: true, mixedContent: ["http://x/a.js"] });
     for (const baseline of [null, bad]) {

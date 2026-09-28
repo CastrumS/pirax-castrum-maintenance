@@ -21,6 +21,8 @@ export type CaptureRequest = {
   viewport: ViewportName;
   /** CSS selectors; see `combineMasks`. */
   masks: string[];
+  /** CSS selectors removed (display: none) for the screenshot; see `combineHides`. */
+  hides?: string[];
   /** Where the Playwright trace zip is written, whatever the outcome. */
   tracePath: string;
 };
@@ -67,6 +69,8 @@ const FREEZE_CSS = `*, *::before, *::after {
 
 /** Site masks then page masks, without duplicates. */
 export const combineMasks = (site: Site, page: SitePage): string[] => [...new Set([...site.mask, ...page.mask])];
+/** Site hides then page hides, without duplicates. */
+export const combineHides = (site: Site, page: SitePage): string[] => [...new Set([...(site.hide ?? []), ...(page.hide ?? [])])];
 
 /**
  * Names a positively identified bot challenge or firewall interstitial, else null. Only explicit
@@ -219,7 +223,8 @@ async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean
       failedRequests.push({ url: r.url(), status: null });
     });
 
-    await assertCss(page, req.masks);
+    const hides = req.hides ?? [];
+    await assertCss(page, [...req.masks, ...hides]);
 
     try {
       await page.goto(req.url, { waitUntil: "load", timeout: t.navigation });
@@ -239,6 +244,9 @@ async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean
     const mask = req.masks.map((s) => page.locator(`css=${s}`));
     for (const [i, locator] of mask.entries()) {
       if ((await locator.count()) === 0) warnings.add(`mask ${JSON.stringify(req.masks[i])} matched nothing`);
+    }
+    for (const selector of hides) {
+      if ((await page.locator(`css=${selector}`).count()) === 0) warnings.add(`hide ${JSON.stringify(selector)} matched nothing`);
     }
     // Read headers from this exact response, not an async listener that can finish out of order.
     const response = mainResponse?.request() === mainRequest ? mainResponse : null;
@@ -269,7 +277,8 @@ async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean
         fullPage: true,
         animations: "disabled",
         caret: "hide",
-        style: FREEZE_CSS,
+        // Screenshot styles also apply to the full-page size, so hidden elements cannot change the height.
+        style: FREEZE_CSS + hides.map((h) => `\n${h} { display: none !important; }`).join(""),
         mask,
         maskColor: MASK_COLOR,
         timeout: t.screenshot,

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 
-export type Page = { path: string; mask: string[] };
+/** `hide`: optional CSS selectors removed (display: none) before the screenshot. */
+export type Page = { path: string; mask: string[]; hide?: string[] };
 
 /** The one form per site that may be filled/attempted: plugin id as rendered, on one listed page. */
 export type TestForm = { page: string; plugin: "gravity" | "fluent"; id: number };
@@ -10,6 +11,8 @@ export type Site = {
   url: string;
   form_helper: boolean;
   mask: string[];
+  /** Optional CSS selectors removed before every screenshot of this site (pop-ups, rotating sliders). */
+  hide?: string[];
   max_diff_pixel_ratio: number;
   pages: Page[];
   /** Absent: every discovered form is skipped. */
@@ -28,8 +31,8 @@ export class SitesConfigError extends Error {
   }
 }
 
-const SITE_KEYS = ["slug", "url", "form_helper", "mask", "max_diff_pixel_ratio", "pages", "test_form"];
-const PAGE_KEYS = ["path", "mask"];
+const SITE_KEYS = ["slug", "url", "form_helper", "mask", "hide", "max_diff_pixel_ratio", "pages", "test_form"];
+const PAGE_KEYS = ["path", "mask", "hide"];
 const TEST_FORM_KEYS = ["page", "plugin", "id"];
 const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const TRAVERSAL = /^(\.|%2e){1,2}$/i;
@@ -107,10 +110,12 @@ export function loadSites(path = "sites.yaml"): Site[] {
       const at = `pages[${i}]`;
       let path: unknown = entry;
       let mask: string[] = [];
+      let hide: string[] | undefined;
       if (isObj(entry)) {
         for (const key of Object.keys(entry)) if (!PAGE_KEYS.includes(key)) err(`${at}.${key}`, "unknown key");
         path = entry.path;
         mask = masks(entry.mask, `${at}.mask`, err);
+        if (entry.hide !== undefined) hide = masks(entry.hide, `${at}.hide`, err);
       } else if (typeof entry !== "string") {
         err(at, "must be a path string or a {path, mask} mapping");
       }
@@ -126,7 +131,7 @@ export function loadSites(path = "sites.yaml"): Site[] {
       const clash = keys.get(key);
       if (clash !== undefined) err(`${at}.path`, clash === path ? "duplicate path" : `page key "${pageKey(path)}" collides with ${clash}`);
       keys.set(key, path);
-      return { path, mask };
+      return hide ? { path, mask, hide } : { path, mask };
     });
 
     const test_form = testForm(raw.test_form, normalized, err);
@@ -135,6 +140,7 @@ export function loadSites(path = "sites.yaml"): Site[] {
       url,
       form_helper,
       mask: masks(raw.mask, "mask", err),
+      ...(raw.hide !== undefined ? { hide: masks(raw.hide, "hide", err) } : {}),
       max_diff_pixel_ratio: ratio,
       pages: normalized,
       ...(test_form ? { test_form } : {}),

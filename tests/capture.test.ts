@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { PNG } from "pngjs";
 import {
   challengeReason,
+  combineHides,
   combineMasks,
   MaskSelectorError,
   openCaptureSession,
@@ -343,6 +344,25 @@ describe("capture in real Chromium", () => {
     const c = await shoot(session, "/tall");
     const d = await shoot(session, "/tall");
     expect(comparePng(c.image!.png, d.image!.png, 0.01)).toMatchObject({ state: "changed" });
+  }, 60_000);
+
+  test("hides combine, remove elements from the full-page size, and warn or fail like masks", async () => {
+    const site = { slug: "t", url: base, form_helper: false, mask: [], hide: ["#random"], max_diff_pixel_ratio: 0.01, pages: [] };
+    const hides = combineHides(site, { path: "/tall", mask: [], hide: ["#lazy-extra", "#random"] });
+    expect(hides).toEqual(["#random", "#lazy-extra"]);
+    expect(combineHides({ ...site, hide: undefined }, { path: "/tall", mask: [] })).toEqual([]);
+
+    const plain = await shoot(session, "/tall");
+    const hidden = await shoot(session, "/tall", { hides });
+    expect(hidden.image!.height).toBe(plain.image!.height - 300 - 700); // #random and the lazy block are gone
+    // Both alternating-colour blocks hidden: consecutive captures are identical.
+    const a = await shoot(session, "/tall", { hides: ["#random", ".page-mask"] });
+    const b = await shoot(session, "/tall", { hides: ["#random", ".page-mask"] });
+    expect(comparePng(a.image!.png, b.image!.png, 0.01)).toMatchObject({ state: "same", diffPixels: 0 });
+
+    const r = await shoot(session, "/tall", { hides: ["#random", ".nope"] });
+    expect(r.warnings).toEqual(['hide ".nope" matched nothing']);
+    expect(await shoot(session, "/tall", { hides: ["div["] }).catch((e) => e)).toBeInstanceOf(MaskSelectorError);
   }, 60_000);
 
   test("unmatched valid mask warns; invalid or non-CSS selectors are configuration errors", async () => {

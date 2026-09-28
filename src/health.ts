@@ -32,6 +32,24 @@ type FailedRequest = HealthSnapshot["failedRequests"][number];
 const requestKey = (r: FailedRequest) => `${r.status ?? ""} ${r.url}`;
 const sortedUnique = (xs: string[]) => [...new Set(xs)].sort();
 
+/**
+ * Third-party browser noise that says nothing about the site's own health. Raw snapshots keep
+ * these observations; only findings drop them.
+ */
+const BENIGN_CONSOLE = [
+  /^requestStorageAccess: Permission denied\.?$/, // third-party iframes asking for cookies in a fresh context
+  /violates the following report-only Content Security Policy directive/, // logged only, nothing blocked
+  /^<gmp-[a-z-]+>: /, // Google Maps web components failing their own API calls
+];
+const BENIGN_REQUEST_HOSTS = ["ad.doubleclick.net", "stats.g.doubleclick.net", "www.google-analytics.com", "analytics.google.com"];
+const benignRequest = (url: string) => {
+  try {
+    return BENIGN_REQUEST_HOSTS.includes(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+};
+
 /** Deduplicates and deterministically sorts every list, keeping query strings and statuses distinct. */
 export function normalizeHealth(h: HealthSnapshot): HealthSnapshot {
   const requests = new Map(h.failedRequests.map((r) => [JSON.stringify([r.url, r.status]), { url: r.url, status: r.status }]));
@@ -50,7 +68,8 @@ export function normalizeHealth(h: HealthSnapshot): HealthSnapshot {
 /**
  * Findings for `actual`, relative to an optional baseline. HTTP >= 400, critical errors and mixed
  * content always fail. Console errors and failed URL/status pairs already in the baseline are
- * warnings; new ones fail; ones only in the baseline are not reported.
+ * warnings; new ones fail; ones only in the baseline are not reported. Benign third-party noise
+ * (see `BENIGN_CONSOLE`, `BENIGN_REQUEST_HOSTS`) is not reported.
  */
 export function evaluateHealth(actual: HealthSnapshot, baseline: HealthSnapshot | null): HealthFinding[] {
   const findings: HealthFinding[] = [];
@@ -64,10 +83,12 @@ export function evaluateHealth(actual: HealthSnapshot, baseline: HealthSnapshot 
 
   const oldConsole = new Set(baseline?.consoleErrors);
   for (const message of sortedUnique(actual.consoleErrors)) {
+    if (BENIGN_CONSOLE.some((re) => re.test(message))) continue;
     findings.push({ severity: known(oldConsole.has(message)), kind: "console-error", detail: message });
   }
   const oldRequests = new Set(baseline?.failedRequests.map(requestKey));
   for (const r of normalizeHealth(actual).failedRequests) {
+    if (benignRequest(r.url)) continue;
     const what = r.status === null ? "transport failure" : `HTTP ${r.status}`;
     findings.push({ severity: known(oldRequests.has(requestKey(r))), kind: "failed-request", detail: `${what} ${r.url}` });
   }

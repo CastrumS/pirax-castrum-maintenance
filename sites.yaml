@@ -12,7 +12,7 @@ sites:
   - slug: suntos
     url: https://suntos.de
     form_helper: false
-    hide: ['.brx-popup', '.brx-popup-backdrop']   # timed newsletter/review pop-ups
+    hide: ['.brx-popup', '.brx-popup-backdrop', '.wcpay-express-checkout-wrapper']   # timed pop-ups; Apple/Google Pay buttons load late
     max_diff_pixel_ratio: 0.02                     # lazy product images settle slightly differently
     test_form: { page: /kontakt/, plugin: fluent, id: 4 }
     pages:

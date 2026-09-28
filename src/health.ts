@@ -40,11 +40,15 @@ const BENIGN_CONSOLE = [
   /^requestStorageAccess: Permission denied\.?$/, // third-party iframes asking for cookies in a fresh context
   /violates the following report-only Content Security Policy directive/, // logged only, nothing blocked
   /^<gmp-[a-z-]+>: /, // Google Maps web components failing their own API calls
+  /^\S*Error: .*\n\s+at [^\n]*https:\/\/maps\.gstatic\.com\/maps-api-v3\//, // errors thrown inside Google's Maps embed
 ];
 const BENIGN_REQUEST_HOSTS = ["ad.doubleclick.net", "stats.g.doubleclick.net", "www.google-analytics.com", "analytics.google.com"];
 const benignRequest = (url: string) => {
   try {
-    return BENIGN_REQUEST_HOSTS.includes(new URL(url).hostname);
+    const u = new URL(url);
+    // The Facebook pixel reporting its own errors home.
+    if (u.hostname === "connect.facebook.net" && /^\/+log\/error$/.test(u.pathname)) return true;
+    return BENIGN_REQUEST_HOSTS.includes(u.hostname);
   } catch {
     return false;
   }

@@ -95,19 +95,25 @@ describe("evaluateHealth", () => {
         `Framing 'https://www.google.com/' violates the following report-only Content Security Policy directive: "frame-ancestors 'self'".`,
         "<gmp-place-details-compact>: Encountered a network request error: Rpc failed due to xhr error.",
         "Uncaught TypeError: Failed to fetch",
+        "ReferenceError: google is not defined\n    at b (https://maps.gstatic.com/maps-api-v3/embed/js/66/6c/init_embed.js:499:584)",
+        "ReferenceError: google is not defined\n    at b (https://example.test/theme.js:1:2)",
       ],
       failedRequests: [
+        { url: "https://connect.facebook.net//log/error?p=pixel&e=x", status: null },
+        { url: "https://connect.facebook.net/en_US/fbevents.js", status: null },
         { url: "https://ad.doubleclick.net/ccm/s/collect?auid=1", status: null },
         { url: "https://www.googletagmanager.com/gtm.js?id=GTM-X", status: null },
         { url: "not a url", status: 404 },
       ],
     });
     expect(evaluateHealth(noise, null).map((f) => f.detail)).toEqual([
+      "ReferenceError: google is not defined\n    at b (https://example.test/theme.js:1:2)",
       "Uncaught TypeError: Failed to fetch",
+      "transport failure https://connect.facebook.net/en_US/fbevents.js",
       "transport failure https://www.googletagmanager.com/gtm.js?id=GTM-X",
       "HTTP 404 not a url",
     ]);
-    expect(normalizeHealth(noise).consoleErrors).toHaveLength(4);
+    expect(normalizeHealth(noise).consoleErrors).toHaveLength(6);
   });
 
   test("HTTP >= 400, critical error and mixed content fail even when baselined", () => {

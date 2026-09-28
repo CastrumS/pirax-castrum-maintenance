@@ -1,0 +1,31 @@
+I fixed both review findings and nits N2–N4. The full changed-tests command passed: exit 0, 245 pass / 0 fail, 2001 s. Nothing is committed, and the report is at `implementation/worker-5.md`.
+
+**A-F1: token leaked to CleanTalk on GF modern AJAX (fixed).**
+- **Cause:** CleanTalk 6.88 sends the whole POST at `plugins_loaded` priority 10, long before the helper classified the submission at `gform_pre_validation`.
+- **Fix:** a new guard runs at the very start of `plugins_loaded` (`PHP_INT_MIN`), only for `gform_submit_form` requests while CleanTalk is active. It reads the posted form's stored fields straight from GF's table, so no GF objects, filters or form cache are touched before GF initializes.
+- **When a GF field value holds the token:** the guard removes exactly `ct_ajax_hook` at priority 10, checks it is gone, and the unchanged normal preflight then decides.
+- **When it refuses instead:** the guard answers with GF's own AJAX error before CleanTalk runs if:
+  - GF or CleanTalk is at another version;
+  - the check was moved (including to priority 1) or wrapped;
+  - the token sits in a field input the stored form doesn't have, such as a field added by a form filter.
+- **Ordinary modern-AJAX submissions** still get CleanTalk's check. Cookies, query strings and unrelated POST names are still not classified.
+- **Mid-run brief checkpoint:** my first version ran at priority 9 and rejected late. I replaced it with the version above and showed the moved-to-priority-1 counterexample fails at priority 9.
+
+**B-F1: HTTP ledger kept inbound query strings (fixed).** The HTTP records now keep only the path of the incoming request. They also carry a new true/false flag saying whether the outgoing call held the token. A new test uses a made-up query and nonce, and the evidence check requires zero queries.
+
+**Nits:**
+- **N2:** a new test runs padded and folded Cc/Bcc headers through FluentSMTP's real mail path and its Simulator.
+- **N3:** the plugin README now says FluentSMTP's email log keeps the marker and token after the entry is deleted, and that log retention is the operator's decision.
+- **N4:** the stale comment in the stack-harness test is corrected.
+- **N1:** the browser pre-check limitation is unchanged; no checker code changed.
+
+**Red then green:**
+- Against the reviewed code, every new case failed. The run logs show CleanTalk calls carrying the token for marked, malformed, wrong-config, CleanTalk 6.88.1, wrapped, moved and filter-added-field submissions, and the stack test showed the inbound query and nonce kept.
+- After the fix, all cases pass. The privacy scans found 0 credential hits in logs and artifacts, and 0 queries or nonces in the final HTTP ledgers. The one token-carrying record is a deliberate control: a normal submission with the token in an unrelated POST field, which CleanTalk should still check.
+
+**Limits and unverified points:**
+- **Runs before the guard:** code that loads or runs earlier (plugin files, `plugin_loaded`, earlier `PHP_INT_MIN` callbacks) can't be covered. For an unaudited CleanTalk version, refusing the test doesn't prove its startup code sent nothing.
+- **Wrapper next to the original:** a wrapper added alongside an intact `ct_ajax_hook` would survive the exact removal and isn't detected.
+- **Dynamic fields:** fields added by a form filter are unsupported for marked modern-AJAX submissions while CleanTalk is active; those are refused, not processed.
+- **Not tested natively:** a failed removal, logged-in visitors, and a GF version other than 3.1.2 on this route. Each is covered by the code and a source check only.
+- **Your final checks:** B's blocking checks (build, typecheck, full suite, privacy) still need to run.

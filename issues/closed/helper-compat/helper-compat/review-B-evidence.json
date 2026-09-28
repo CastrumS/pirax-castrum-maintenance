@@ -1,0 +1,10 @@
+{
+  "base": "e2075daad1c5b0dd2438ff61d71e606c47819a39",
+  "reviewedHead": "aac43d6516b3cbb8f2187f1b98b49c36ac6ecef6",
+  "artifact": "artifacts/plugin/compatibility-2026-09-28T18-03-33-971Z/http.jsonl",
+  "records": 77,
+  "recordsWithQueryInRequestContext": 34,
+  "recordsWithWpNonceInRequestContext": 6,
+  "recordsWithQueryInOutgoingPath": 0,
+  "notes": "Only counts were inspected/printed for sensitive request context. No nonce or credential values are included. The destination path is query-free, but the shared logger appends the inbound REQUEST_URI unchanged."
+}

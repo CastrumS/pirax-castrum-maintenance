@@ -1,0 +1,12 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T20-38-46.169Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T20-38-46.169Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T20-38-46.169Z
+
+ 22 pass
+ 0 fail
+ 146 expect() calls
+Ran 22 tests across 1 file. [41.25s]
+exit 0

@@ -1,0 +1,27 @@
+The opt-in full stack (FF Pro 6.2.14, CleanTalk 6.88 and FluentSMTP 2.4.0 alongside GF and FF) is in place, and the full suite passes: 223 pass, 0 fail with the brief's command. Nothing is committed and no production PHP was touched. The report is at `issues/open/helper-compat/helper-compat/implementation/worker-1.md`, with the exact interfaces and fixture options the next unit needs.
+
+**Red → green:**
+- **Red:** 208 pass, 8 fail. Seven were my new tests failing as intended. The eighth was an existing order-dependent failure in `test/forms/playground.test.ts`: it needs `dist/pirax-form-test.zip`, which didn't exist yet when it ran.
+- **Green:** 223 pass, 0 fail, and the existing default suites still pass. Typecheck and `git diff --check` are clean.
+- **Evidence:** `artifacts/plugin/stack-harness-2026-09-28T13-53-11-477Z/` and `artifacts/plugin/harness-smoke-2026-09-28T13-48-54-379Z/`.
+
+**What the new stack test (`stack-harness.test.ts`) shows for ordinary submissions:**
+- FF and GF each send one CleanTalk moderation request from inside their real submission hooks, answered locally.
+- The Pro webhook fires exactly once, only after the queues are drained, and carries the right entry id.
+- Mail goes through FluentSMTP's real Simulator. The recorded mail shows the original To/Cc/Bcc.
+- Third-party requests from both PHP and the browser are blocked and logged.
+
+**What the tests turned up that changed the design:**
+- **CleanTalk skipped the planned interception point.** In its "WordPress HTTP API" mode it calls WordPress's bundled Requests library directly, so `pre_http_request` never sees it. That would have produced a false zero and let the request go out for real. I now intercept one layer lower, as the only Requests transport. Local requests still go through normally.
+- **The browser was reaching real CleanTalk servers.** Before I added containment, Chromium loaded scripts from `fd.cleantalk.org` and posted to `fd-api.cleantalk.org` with HTTP 200. Browser sessions on the new stack now block every non-local request.
+- **CleanTalk hijacked the first FF submission.** Its one-time redirect after activation turned the first visitor AJAX request into a 302. The fixture now clears that one-time redirect after setup.
+
+**Privacy incident, contained:** during the red run, a failing assertion printed the real `GRAVITY_FORMS_ZIP` path once, into a local `/tmp` log. It never appeared in retained artifacts, the worktree or my output, and I redacted it there. The test now uses a stand-in file. A secret scan of all this session's artifacts found 0 hits.
+
+**Not verified yet:**
+- **Marked submissions:** the zero-hit checks for marked submissions need the production changes in the next unit.
+- **Raw PHP sockets:** PHP code that bypasses Requests and opens its own curl/socket connections is not contained, because Playground's PHP networking can't be switched off. CleanTalk only takes that route if its WordPress HTTP mode is turned off. The fixture keeps it on, and the test checks it is still on after the submissions.
+- **Pro opt-in, approval and auto-delete fixtures:** checked only by reading the settings back through Pro's own code. No submission has run with them enabled.
+- **Last full run:** I didn't repeat the full suite after the final test-input fix. That one test passes on its own.
+
+Still to do elsewhere: the READMEs don't describe any of this yet (those files were outside my list). Adding `FLUENT_FORMS_PRO_ZIP` with an empty value to `.env.example` is left for you, since I was told not to open env files.

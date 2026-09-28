@@ -1,0 +1,32 @@
+slug: helper-compat
+phase: merged
+created: 2026-09-28
+repo: Pirax-Castrum-Maintenance
+debate: "no"
+blocked-by: 
+  []
+sources: 
+  []
+busy_since: 
+  {}
+busy_notified: 
+  {}
+attempts: 
+  A: 0
+  B: 0
+done: 
+  []
+fix_rounds: 1
+verdict: 
+  {}
+tab: wM:t7
+worktree: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat
+pane: 
+  A: wM:pC
+  B: wM:pD
+prompted: 
+  {}
+prompted_at: 
+  {}
+delivery_error: 
+  {}

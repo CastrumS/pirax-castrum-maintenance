@@ -1,0 +1,15 @@
+The real-R2 failure didn't come back: I reran the configured suite with no code changes and it passed, exiting 0. I made no repair and no tracked edits.
+
+**What the first failure was:** R2 returned an `InternalError` (a server-side error) on one request, reading `manifest.json` at `test/forms/report.test.ts:261`. It wasn't a test assertion that failed. Everything before that line had passed, including the manifest being uploaded last. The second failure, `(unnamed)`, was just the `afterAll` check at `:191` expecting `evidence.remote?.ok`. That field is only set after the failing read, so it's a knock-on effect, not a separate problem. The test's own cleanup still ran and deleted everything under its temporary R2 prefix (8 deleted, 0 remaining).
+
+**Why it's not a helper-compat defect:** the branch doesn't change `src/` or `test/forms/`, and two earlier runs of this same test on the branch passed.
+
+**The rerun:**
+- **Command:** `AKROGON_BASE=e2075daad1c5b0dd2438ff61d71e606c47819a39 bash -c ': "${AKROGON_BASE:?AKROGON_BASE is required}" && bun test'`
+- **Result:** exit 0; 239 pass, 0 fail, 2955 expect() calls, 239 tests across 22 files (1916.12s). The first attempt showed 240 only because the failing `afterAll` hook was counted as an extra test.
+- **R2 test this time:** passed. The manifest was uploaded last, no traces were uploaded, cleanup deleted 13 with 0 remaining, and the privacy scan passed. Evidence is in `runs/forms-report-tests-e7d6b375-df51-4b21-ac6f-2a9bb856ef54/summary.json`.
+- **Log:** `implementation/worker-4-full-suite.log`, plus start and exit timestamp files next to it. I scanned it for credential values and signed-URL markers and found none. No `.env*` file was read.
+
+**Limitations:** calling the first failure a one-off R2 fault is unconfirmed. One passing rerun doesn't prove a root cause, and I have no server-side data. The same external error could hit B's final rerun.
+
+The full report is in `implementation/worker-4.md`.

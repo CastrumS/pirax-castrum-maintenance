@@ -1,0 +1,42 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/compatibility.test.ts:
+411 |       const done = await since(m);
+412 |       await note(`GF modern AJAX generic check ${mode}`, { marked: marked.ok, ordinary: ordinary.ok, http: done.http, added: done.added });
+413 |       expect(marked.ok).toBe(false);
+414 |       expect(marked.text).toContain(BLOCKED);
+415 |       expect(ordinary).toMatchObject({ ok: true, text: "Pirax GF thanks" });
+416 |       expect(tokenBearing(done.http)).toEqual([]);
+                                            ^
+error: expect(received).toEqual(expected)
+
+- []
++ [
++   {
++     "action": "gform_submit_form",
++     "api": "check_message",
++     "carriesToken": true,
++     "hooks": [
++       "plugins_loaded",
++     ],
++     "host": "moderate.cleantalk.org",
++     "method": "POST",
++     "path": "/api2.0",
++     "purpose": "cleantalk-moderation",
++     "request": "/wp-admin/admin-ajax.php",
++     "time": 1790622410.506,
++   },
++ ]
+
+- Expected  - 1
++ Received  + 16
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/test/plugin/compatibility.test.ts:416:39)
+(fail) GF modern AJAX: CleanTalk's generic check moved to plugins_loaded priority 1 refuses marked submissions before it runs; ordinary ones keep it [25016.14ms]
+
+ 0 pass
+ 19 filtered out
+ 1 fail
+ 6 expect() calls
+Ran 1 test across 1 file. [78.54s]
+exit 1

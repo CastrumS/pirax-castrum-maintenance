@@ -1,0 +1,10 @@
+build: started
+build: exit 0; 0.0 seconds; final-build.log
+typecheck: started
+typecheck: exit 0; 0.3 seconds; final-typecheck.log
+full-suite: started
+full-suite: exit 0; 1910.7 seconds; final-full-suite.log
+diff-check: started
+diff-check: exit 0; 0.0 seconds; final-diff-check.log
+privacy: 0 matches
+FINAL_CHECKS_PASS

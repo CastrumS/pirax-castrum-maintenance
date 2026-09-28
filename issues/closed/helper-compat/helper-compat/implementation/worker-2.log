@@ -1,0 +1,30 @@
+Unit 2 is implemented and the configured test command passes: 239 pass, 0 fail. Nothing is committed. The full report is at `/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/helper-compat/helper-compat/implementation/worker-2.md`.
+
+**Test results**
+- **Before the fix:** I ran the new tests against the old plugin: 225 pass, 14 fail. The 14 failures are exactly the new tests. The old plugin rejects every marked submission on the full stack and has no panel.
+- **After the fix:** 239 pass, 0 fail, exit 0.
+- **Privacy:** no token or licensed ZIP path appears in either log or in the 32 artifact folders from this session.
+
+**What changed in the plugin**
+- **Shared check** (`includes/compatibility.php`): a single read-only report is used by both the submission preflight and the admin panel.
+  - It pins Fluent Forms Pro 6.2.14, CleanTalk 6.88 and FluentSMTP 2.4.0 exactly.
+  - It lists unaudited callbacks, including GF form-specific hooks.
+  - It identifies the exact CleanTalk and Pro callbacks with side effects. For each one it checks the hook, priority and owner version; for CleanTalk's FF closure it also checks the captured integration name.
+- **Adapters** (`gravity-forms.php`, `fluent-forms.php`):
+  - For marked submissions, those callbacks are removed when the submission is classified. The removal is verified, and a failure blocks the submission.
+  - Guards run just before the callbacks' own priority. They remove the callbacks again for marked work, including Pro's auto-delete in queue runners, and put them back for ordinary work.
+- **Admin panel** (`settings.php`): read-only and admin-only, with escaped output. A note says "ready" only covers the plugins and hooks loaded on that admin page.
+- **Version:** the header is now 0.2.0. There are no new production files, and `mail.php` is unchanged.
+
+**Tests added**
+- A new `test/plugin/compatibility.test.ts` with 14 tests on the full stack.
+- A panel test in `core.test.ts`, including a real mu-plugin file whose name contains `<script>`.
+- An exact-version matrix in `safety.test.ts`.
+- Three option-driven fixtures in `mu-plugin.php`.
+- A small fix to the harness's `uploadPlugin`: FluentSMTP's admin notice broke its activation check.
+
+**Limitations to decide on**
+- **CleanTalk still sees marked visits from the browser.** Its frontend script and pre-submit email check send the typed email and browser signals to CleanTalk before submission. That request carries no marker, so the plugin can't recognise it. The checker never puts the marker in an email field. In tests this traffic is contained and excluded from the "zero CleanTalk attempts" count by its exact request path. The reviewer should decide whether documenting this is enough.
+- **Late re-registration has a narrow gap.** A callback re-registered after the guard but before the callback's own priority, in the same dispatch, would not be caught.
+- **Docs are not updated.** They belong to the next unit, and the report lists the corrections needed in `plugin/pirax-form-test/README.md`, `test/plugin/README.md` and the root README.
+- **Operator action carried over:** add `FLUENT_FORMS_PRO_ZIP` to `.env.example` if it's missing.

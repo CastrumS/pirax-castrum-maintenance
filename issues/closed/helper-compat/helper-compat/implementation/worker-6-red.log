@@ -1,0 +1,46 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/compatibility.test.ts:
+473 |     const ordinary = await gfAjaxCounted("gf ordinary with the audited GF core");
+474 |     const marked = await gfAjaxCounted(`Pirax audited GF core ${marker}`);
+475 |     await h.drainQueues();
+476 |     let done = await since(m);
+477 |     await note("GF modern AJAX early reads: audited GF", { ordinary: [ordinary.ok, ordinary.reads], marked: [marked.ok, marked.reads], http: done.http, added: done.added });
+478 |     expect(ordinary).toMatchObject({ ok: true, text: "Pirax GF thanks", reads: 0 });
+                           ^
+error: expect(received).toMatchObject(expected)
+
+@@ -2,3 +2,5 @@
+    "ok": true,
+-   "reads": 0,
++   "queried": false,
++   "reads": 1,
++   "status": 200,
+    "text": "Pirax GF thanks",
+
+- Expected  - 1
++ Received  + 3
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/test/plugin/compatibility.test.ts:478:22)
+(fail) GF modern AJAX before GF initializes: ordinary requests read no stored form; a marked one reads it only under the audited GF core, and another GF version refuses it before any form read or CleanTalk request [26609.29ms]
+520 |       await h.drainQueues();
+521 |       const done = await since(m);
+522 |       await note(`GF modern AJAX logged in, protection ${on}`, { marked: marked.ok, ordinary: ordinary.ok, http: done.http, added: done.added });
+523 |       expect(marked).toMatchObject({ ok: true, text: "Pirax GF thanks" });
+524 |       expect(ordinary).toMatchObject({ ok: true, text: "Pirax GF thanks" });
+525 |       expect(genericCheck(done.http).length).toBe(on); // the ordinary one only, and only while protected
+                                                   ^
+error: expect(received).toBe(expected)
+
+Expected: 1
+Received: 0
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/test/plugin/compatibility.test.ts:525:46)
+(fail) GF modern AJAX from a logged-in admin: with CleanTalk's logged-in protection off it binds no generic check; on, marked submissions have it removed and ordinary ones keep it [45870.44ms]
+
+ 0 pass
+ 20 filtered out
+ 2 fail
+ 26 expect() calls
+Ran 2 tests across 1 file. [121.92s]
+exit 1

@@ -1,0 +1,10 @@
+build: started
+build: exit 0; 0.0 seconds; repair-1-final-build.log
+typecheck: started
+typecheck: exit 0; 0.3 seconds; repair-1-final-typecheck.log
+full-suite: started
+full-suite: exit 0; 2072.0 seconds; repair-1-final-full-suite.log
+diff-check: started
+diff-check: exit 0; 0.0 seconds; repair-1-final-diff-check.log
+privacy: 0 matches
+REPAIR_1_FINAL_CHECKS_PASS

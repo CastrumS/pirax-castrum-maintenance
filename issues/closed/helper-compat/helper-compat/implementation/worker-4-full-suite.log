@@ -1,0 +1,34 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T17-06-26.816Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T17-06-26.816Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T17-06-26.816Z
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/2026-09-28T17-07-10.949Z/index.html
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-browser-974d6f1e-94ef-4879-838a-c91c1c60027f
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-playground-5f8f4056-c0e0-4a3f-9bb6-bde666cef1f8/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-collision-908db774-040f-4285-b8f1-94662a87a487/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-report-tests-e7d6b375-df51-4b21-ac6f-2a9bb856ef54/summary.json
+
+ 239 pass
+ 0 fail
+ 2955 expect() calls
+Ran 239 tests across 22 files. [1916.12s]

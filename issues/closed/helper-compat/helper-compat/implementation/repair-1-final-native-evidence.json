@@ -1,0 +1,24 @@
+{
+  "reviewedHead": "aac43d6516b3cbb8f2187f1b98b49c36ac6ecef6",
+  "repairedHead": "d7933c81beae1c8b1457f27b5078595f1f01ac38",
+  "profiles": [
+    {
+      "run": "compatibility-2026-09-28T21-07-17-833Z",
+      "records": 105,
+      "incomingQueries": 0,
+      "outgoingQueries": 0,
+      "incomingNonces": 0,
+      "carriesToken": 1
+    },
+    {
+      "run": "stack-harness-2026-09-28T21-06-13-723Z",
+      "records": 9,
+      "incomingQueries": 0,
+      "outgoingQueries": 0,
+      "incomingNonces": 0,
+      "carriesToken": 0
+    }
+  ],
+  "zipSha256": "8d2301d89ac7ab8cb826cfa9ea5e1a8ed04285d44d4ceb3b4a4fc75a41305acf",
+  "note": "The single carriesToken record is the intentional ordinary outside-GF-fields positive control, not a marked-submission success. Transport was contained; only the boolean was retained."
+}

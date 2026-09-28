@@ -1,0 +1,37 @@
+The documentation for unit 3 is written, but the configured `bun test` run failed. It finished at 237 pass, 2 fail (239 tests, 1896 s), and its exit status was never recorded because the shell wrapping it died when my earlier session ended. The report is at `/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/helper-compat/helper-compat/implementation/worker-3.md`, with no placeholders left.
+
+**Test results**
+- **Failures:** both are in `test/forms/browser.test.ts`, a forms-checker file this leaf doesn't change:
+  - the IMAP-preflight case: a promise resolved when it should have rejected;
+  - the trace-scrubbing case: "browser has been closed".
+- **Diagnostic rerun:** I reran that one file on its own and it passed, 20 of 20, exit 0 (log at `/tmp/hc-evidence-3-browser.log`, no credential values in it). Why it failed inside the full run is not known. Chromium being closed from outside is only a guess and is recorded as one. No code was edited, and your final full suite decides criterion 6.
+- **Everything else passed:** all 22 other files, including every plugin suite.
+
+**What I changed**
+- **`plugin/pirax-form-test/README.md`:**
+  - a table of the exact version pins. FluentSMTP is pinned to 2.4.0 only, not any 2.4.x.
+  - the old "FF Pro blocks" example is gone. The fail-closed list is corrected and names the Pro modules that still block.
+  - a table of the 7 CleanTalk and Pro callbacks that are removed for marked submissions only, including the rule for when CleanTalk's check is off versus unrecognizable.
+  - a section saying CleanTalk's browser traffic and its email pre-check are not suppressed.
+  - a new section on the compatibility panel and what "ready" does and doesn't cover.
+  - narrower limitations about mail after `wp_mail` and callbacks registered late.
+  - Your two one-line corrections are still in place.
+- **`test/plugin/README.md`:**
+  - the `FLUENT_FORMS_PRO_ZIP` credential row.
+  - rows for the two new suites (`stack-harness`, `compatibility`) and a budget of about 25 minutes for the plugin suites.
+  - a new section on the full compatibility stack. It says CleanTalk bypasses `pre_http_request` and that raw cURL or sockets are not contained. It also keeps the three mail views separate: `wp_mail` arguments, the effective envelope and FluentSMTP's Simulator log.
+  - the callback audit table.
+  - the new evidence files, with redaction of both licensed ZIP paths.
+- **Root `README.md`:**
+  - the Pro ZIP prerequisite and the exact tested stack.
+  - a full-suite budget of about 35 minutes.
+  - a note that on a clean checkout you need to run `bun run build:plugin` first, because the forms suite uploads the existing `dist` ZIP.
+  - a `FLUENT_FORMS_PRO_ZIP` row in the configuration table.
+- **Lesson:** a new history file, `learnings/history/2026-09-28-helper-compat-credential-assertions.md`, plus one appended line in `learnings/LESSONS.md`. The lesson is that a failing assertion can print a credential-bearing return value even when error messages only name the variable. No secret value is recorded.
+
+**Not re-checked by me**
+- The vendor source line numbers and the runtime budgets come from the unit 1 and 2 worker reports.
+
+**Operator action:** add `FLUENT_FORMS_PRO_ZIP` with an empty value to `.env.example` if it isn't already listed. I didn't open or edit it.
+
+Nothing is committed.

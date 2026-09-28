@@ -1,0 +1,1 @@
+Both failures fit Chromium being closed from outside mid-test. The second error is literally "browser has been closed", and the first test's rejection would never happen if the scan fails early. Neither `src/` nor `test/forms` changed in this leaf, and worker 2's green run passed both on the same code. Once the suite ends, I'll confirm with a targeted rerun of that one file.

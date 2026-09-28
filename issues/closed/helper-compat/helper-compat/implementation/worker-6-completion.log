@@ -1,0 +1,40 @@
+Unit 6 code and wording are done and the report is written. The full suite on the final code did not finish green, though: the orphaned run ended at **239 pass / 8 fail** (247 tests, 2078 s). Its exit status can't be recovered. The wrapper that would have recorded it died with the previous session, so `worker-6-full-suite.exit` was never written.
+
+**The 8 failures** are all in `tests/capture.test.ts`, which tests the checker's `src/capture.ts`. This leaf doesn't touch that code. All eight began at the run's first seconds (22:03:49), when the previous session was torn down. Seven say "Target page, context or browser has been closed" and one is a null-image `TypeError`. Rerun on its own, that file passes 22/22 (exit 0, `worker-6-capture-rerun.log`). So I believe Chromium was killed during teardown, but a clean full-suite exit on the final code is still unproven and B's final run has to establish it. Every plugin suite passed in that run, including the two new tests.
+
+**Guard fix (`gravity-forms.php`).** `gf_ajax_guard()` now first scans every `input_<n>[_<m>]` POST field with the plugin's own code. Ordinary requests return there, with no GF call or database query. For a request carrying the token, it checks GF's version before calling GF's form-metadata functions:
+- **Audited GF 3.1.2:** it reads the stored form, applies the unchanged field scoping, and removes CleanTalk's generic AJAX check at priority 10.
+- **Missing or other GF version:** it refuses straight away.
+
+**Red/green:**
+- **Red, on worker 5's code:** an ordinary modern AJAX request made 1 early form read (exit 1).
+- **Targeted green:** 10 pass / 0 fail, exit 0.
+- **Audited GF:** ordinary requests make 0 early reads. Marked ones make exactly 1 read, confirm with one redirected mail, and send nothing carrying the token.
+- **GF at 3.1.3:** marked requests are refused with 0 reads and no CleanTalk request. Ordinary ones make 0 reads and keep CleanTalk's check.
+- **Logged-in admin:** with CleanTalk's logged-in protection off, no check is bound. With it on, marked submissions have the check removed and confirm. Ordinary ones keep it; CleanTalk runs it and then skips the request itself ("User is admin, editor, author"). There is no CleanTalk request or token-carrying traffic in any case.
+
+**Test fixtures.** I added three test-only fixtures to `mu-plugin.php`:
+- a read-only query logger for GF's form-meta table;
+- a logger of CleanTalk's own "skipped request" event, needed because CleanTalk skips admins before sending anything;
+- an admin-ajax-only runtime override of GF's version.
+
+I used the runtime override because editing GF's file would make GF run its real upgrade routine on every other request, including the harness's own calls. It proves the guard's version gate, not the behaviour of a real different GF release.
+
+**Wording (criteria 3–4):**
+- **Suppression comment:** now says the function can return false after removing the priority-10 check if another binding remains.
+- **Registration comment:** "wherever it was moved" now excludes a callback registered earlier at `PHP_INT_MIN`.
+- **README restoration paragraph:** scoped to the form-level bindings. It states that callbacks added after the early check aren't rechecked.
+- **Bootstrap claim:** the "found no submission request" claim is gone. The README now discloses CleanTalk's `ct_contact_form_validate()` path for `your-phone`/`your-email`/`your-message` and claims only what the GF field-layout tests showed.
+
+**Other checks:**
+- Typecheck and `git diff --check` pass.
+- The counts-only privacy scan found 0 credential hits across 54 files.
+- There's no local `php`, so the PHP was checked only by the Playground runs.
+- Version stays 0.2.0 and the ZIP still has its 10 files.
+- Nothing is committed and worker 5's changes are preserved.
+
+**Also unverified:** the missing-GF refusal is by code reading only, not tested natively.
+
+**Processes:** no test process is pending. The headless Chrome instances still running were started at 12:05, about ten hours before this unit began, and I left them alone.
+
+The report, which lists the worker-5 statements it replaces, is `implementation/worker-6.md`; the logs are the `worker-6-*` files beside it.

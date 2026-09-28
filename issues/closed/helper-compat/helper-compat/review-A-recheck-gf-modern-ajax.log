@@ -1,0 +1,9 @@
+panel GF verdict: ready
+rendered gform_submission_method: ajax
+admin-ajax gform_submit_form response: 200
+marked GF confirmed: true
+contained HTTP during marked GF true-AJAX submission: [{"purpose":"blocked","host":"api.cleantalk.org","action":null,"hooks":["parse_request"]}]
+CleanTalk request bodies (booleans): [{"hooks":["parse_request"],"action":null,"has_marker_id":false,"has_token":false}]
+wp_mail calls: 2 all to redirect: true tagged subjects: true
+GF entries before/after: 0 0
+exit 0

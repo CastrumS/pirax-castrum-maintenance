@@ -1,0 +1,37 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T19-07-56.902Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T19-07-56.902Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T19-07-56.902Z
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/2026-09-28T19-08-41.004Z/index.html
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-browser-5e7fa577-28ec-4d44-9191-9d1f7e7bce74
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-playground-d20c28aa-377d-4b3a-95e6-f18196756490/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-collision-b358e0f8-bd0b-426f-9be0-cddbd0773da7/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-report-tests-6e796395-9730-42fb-b58c-2042a75dc8f9/summary.json
+
+ 245 pass
+ 0 fail
+ 3074 expect() calls
+Ran 245 tests across 22 files. [2001.01s]
+Command: AKROGON_BASE=e2075daad1c5b0dd2438ff61d71e606c47819a39 bash -c ": \"${AKROGON_BASE:?AKROGON_BASE is required}\" && bun test"
+Exit: 0
+Elapsed seconds: 2001.0

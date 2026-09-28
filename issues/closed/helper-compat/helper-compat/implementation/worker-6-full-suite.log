@@ -1,0 +1,150 @@
+command: AKROGON_BASE=e2075daad1c5b0dd2438ff61d71e606c47819a39 bash -c ': "${AKROGON_BASE:?AKROGON_BASE is required}" && bun test'
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T20-03-49.414Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T20-03-49.414Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T20-03-49.414Z
+337 | 
+338 |     const a = await shoot(session, "/tall", { masks });
+339 |     const b = await shoot(session, "/tall", { masks });
+340 |     expect(pixel(a.image!.png, 150, 150)).toEqual([255, 0, 255]); // site mask
+341 |     expect(pixel(a.image!.png, 100, 400)).toEqual([255, 0, 255]); // page mask
+342 |     expect(comparePng(a.image!.png, b.image!.png, 0.01)).toMatchObject({ state: "same", diffPixels: 0 });
+                                            ^
+TypeError: null is not an object (evaluating 'b.image.png')
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:342:39)
+(fail) capture in real Chromium > site and page masks combine; masked captures are stable, unmasked ones change [1731.70ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:355:25
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > hides combine, remove elements from the full-page size, and warn or fail like masks [2.15ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:369:21
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > unmatched valid mask warns; invalid or non-CSS selectors are configuration errors [0.56ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:385:21
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > health: console/pageerror, 404 assets, transport failure; policy aborts are warnings; CAPTCHA text is not blocked [0.35ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:406:27
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > 404 page and critical error are captured health failures, not blocked [0.22ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:414:24
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > unreachable, 403 and challenge pages are blocked with reasons and a trace [0.27ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:441:21
+      at processTicksAndRejections (native:7:39)
+(fail) TLS and mixed content on a real HTTPS fixture > self-signed certificate is blocked unless the internal test option is set [0.49ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/tests/capture.test.ts:447:25
+      at processTicksAndRejections (native:7:39)
+(fail) TLS and mixed content on a real HTTPS fixture > HTTP resources on an HTTPS page are mixed content; plain HTTP links are not [0.36ms]
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/2026-09-28T20-04-14.642Z/index.html
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-browser-e31c7a22-c33f-4f81-ace5-f0d79a82310f
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-playground-f0069476-428f-4ba6-905e-431d12b67775/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-collision-d53c1790-4c1a-4840-b320-fd042bc9006e/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-report-tests-9eb28a3e-1687-4e8a-bc5a-d959f233710b/summary.json
+
+ 239 pass
+ 8 fail
+ 3086 expect() calls
+Ran 247 tests across 22 files. [2078.25s]

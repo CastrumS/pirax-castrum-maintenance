@@ -1,0 +1,62 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T15-54-06.086Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T15-54-06.086Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/capture-test-2026-09-28T15-54-06.086Z
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/2026-09-28T15-54-50.087Z/index.html
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+266 |     names.forEach(name => delete process.env[name]);
+267 |     expect((await scanPageForms(site('/upload'), { path: '/upload', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+268 |     expect((await scanPageForms(site('/ambiguous-ff', 'fluent', 2), { path: '/ambiguous-ff', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+269 |     process.env.FORM_TEST_TOKEN = config.token; process.env.FORM_TEST_ADDRESS = config.address;
+270 |     expect((await scanPageForms(site('/constrained'), { path: '/constrained', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+271 |     await expect(scanPageForms(site('/plain'), { path: '/plain', mask: [] }, { runDir })).rejects.toThrow('IMAP_HOST');
+                                                                                                        ^
+error: expect(received).rejects.toThrow(expected)
+
+Expected promise that rejects
+Received promise that resolved: Promise { <resolved> }
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/test/forms/browser.test.ts:271:99)
+(fail) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [3831.51ms]
+111 | }
+112 | beforeAll(async () => { await mkdir(runDir, { recursive: true }); browser = await chromium.launch(); });
+113 | afterAll(async () => { await browser?.close(); server.stop(true); });
+114 | let sequence = 0;
+115 | async function visit(path: string, fn: (page: import("playwright").Page, policy: Awaited<ReturnType<typeof installFormPolicy>>) => Promise<void>, content?: string) {
+116 |   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: "block" });
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/test/forms/browser.test.ts:116:33)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/test/forms/browser.test.ts:407:9
+      at processTicksAndRejections (native:7:39)
+(fail) encoded URLs and browser exceptions are scrubbed from retained action traces [0.53ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-browser-7b88eead-f3a3-4597-8de5-0d6e6c5af862
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-playground-d69722ca-887e-4266-8021-c2f284c29bb2/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-collision-19b0f536-b724-4759-be7e-af3cf788a969/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/runs/forms-report-tests-86ce9519-03a2-436b-a42f-943a5a235fd6/summary.json
+
+ 237 pass
+ 2 fail
+ 2953 expect() calls
+Ran 239 tests across 22 files. [1896.00s]

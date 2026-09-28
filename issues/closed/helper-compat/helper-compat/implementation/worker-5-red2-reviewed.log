@@ -1,0 +1,66 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/compatibility.test.ts:
+375 |     await note("GF modern AJAX refusals", { malformed: malformed.ok, invalidConfig: invalidConfig.ok, unknownField: unknownField.ok, http: done.http, added: done.added });
+376 |     expect(malformed.ok).toBe(false);
+377 |     expect(malformed.text).toContain(INVALID_MARKER);
+378 |     expect(invalidConfig.ok).toBe(false);
+379 |     expect(invalidConfig.text).toContain(INVALID_CONFIG);
+380 |     expect(unknownField.ok).toBe(false);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/test/plugin/compatibility.test.ts:380:29)
+(fail) GF modern AJAX early boundary: malformed markers, invalid configuration and the token in a field input the stored form lacks are refused without CleanTalk; the token outside field inputs (query, cookie, other POST names) stays ordinary and keeps CleanTalk [26129.03ms]
+408 |       const marked = await gfAjaxSubmit(`Pirax rebound ${marker}`);
+409 |       const ordinary = await gfAjaxSubmit(`gf ordinary with ${mode} generic check`);
+410 |       await h.drainQueues();
+411 |       const done = await since(m);
+412 |       await note(`GF modern AJAX generic check ${mode}`, { marked: marked.ok, ordinary: ordinary.ok, http: done.http, added: done.added });
+413 |       expect(marked.ok).toBe(false);
+                              ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/test/plugin/compatibility.test.ts:413:25)
+(fail) GF modern AJAX: CleanTalk's generic check wrapped (unrecognizable) refuses marked submissions before it runs; ordinary ones keep it [24657.82ms]
+408 |       const marked = await gfAjaxSubmit(`Pirax rebound ${marker}`);
+409 |       const ordinary = await gfAjaxSubmit(`gf ordinary with ${mode} generic check`);
+410 |       await h.drainQueues();
+411 |       const done = await since(m);
+412 |       await note(`GF modern AJAX generic check ${mode}`, { marked: marked.ok, ordinary: ordinary.ok, http: done.http, added: done.added });
+413 |       expect(marked.ok).toBe(false);
+                              ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/test/plugin/compatibility.test.ts:413:25)
+(fail) GF modern AJAX: CleanTalk's generic check moved to plugins_loaded priority 1 refuses marked submissions before it runs; ordinary ones keep it [22414.04ms]
+437 |     const marked = await submit(`Pirax dynamic ${marker}`);
+438 |     const ordinary = await submit("ordinary dynamic value");
+439 |     await h.drainQueues();
+440 |     const done = await since(m);
+441 |     await note("GF modern AJAX dynamic field", { marked: marked.ok, ordinary: ordinary.ok, http: done.http, added: done.added });
+442 |     expect(marked.ok).toBe(false);
+                            ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-compat/test/plugin/compatibility.test.ts:442:23)
+(fail) GF modern AJAX: the marker only in a field a GF form filter adds is refused before CleanTalk's generic check; ordinary submissions with that field keep it [22286.36ms]
+
+ 0 pass
+ 16 filtered out
+ 4 fail
+ 17 expect() calls
+Ran 4 tests across 1 file. [146.90s]
+exit 1

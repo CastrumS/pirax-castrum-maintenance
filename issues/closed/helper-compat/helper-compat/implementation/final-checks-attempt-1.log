@@ -1,0 +1,6 @@
+build: started
+build: exit 0; 0.0 seconds; final-build.log
+typecheck: started
+typecheck: exit 0; 0.3 seconds; final-typecheck.log
+full-suite: started
+full-suite: exit 1; 1959.7 seconds; final-full-suite.log

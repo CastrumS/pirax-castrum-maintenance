@@ -1,0 +1,8 @@
+Command: bun run build:plugin
+AKROGON_BASE=e2075daad1c5b0dd2438ff61d71e606c47819a39
+Exit: 0
+Elapsed seconds: 0.0
+
+dist/pirax-form-test.zip (10 files, sha256 19988f1807ff9e90301272ff9ae454b438021e310866a2b8954c6996f5b0fba5)
+
+$ bun scripts/build-plugin.ts

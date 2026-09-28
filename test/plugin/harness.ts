@@ -46,7 +46,7 @@ export interface QueueState {
   actionScheduler: { pending: number; running: number; nonce: string };
   ff: { statuses: Record<string, number>; nonce: string };
 }
-/** One contained outgoing HTTP request (compatibility stack): request line facts, never query, headers or body. */
+/** One contained outgoing HTTP request (compatibility stack): request line facts, never a query, header or body value. */
 export interface HttpRecord {
   purpose: "cleantalk-moderation" | "webhook-capture" | "blocked";
   method: string;
@@ -60,6 +60,9 @@ export interface HttpRecord {
   api?: string;
   /** Webhook capture: the FF entry id the Pro feed sent ({submission.id}). */
   entry?: number | null;
+  /** Whether the URL or body held the configured marker token (raw, URL-encoded or JSON-escaped); never the value. */
+  carriesToken: boolean;
+  /** Path of the incoming WordPress request that made it, without its query ("cli" outside a web request). */
   request: string;
   time: number;
 }

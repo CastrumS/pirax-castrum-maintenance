@@ -46,6 +46,9 @@ const OPTIONAL_PLUGINS = array(
 /** CleanTalk's per-integration closure (Cleantalk\Antispam\Integrations::__construct), bound to 'FluentForm'. */
 const CLEANTALK_FF_CLOSURE = 'closure:cleantalk-spam-protect/lib/Cleantalk/Antispam/Integrations.php';
 
+/** CleanTalk's generic admin-ajax check (cleantalk.php:777-787): sends the whole POST at plugins_loaded 10. */
+const CLEANTALK_AJAX_CHECK = 'ct_ajax_hook';
+
 /** hook => callbacks allowed on it (besides this plugin's own). Form-specific GF variants allow none. */
 function audited_hooks( $plugin ) {
 	$gf_honeypot = 'Gravity_Forms\Gravity_Forms\Honeypot\GF_Honeypot_Handler::';
@@ -266,6 +269,41 @@ function cleantalk_unrecognized( $plugin, array $suppress ) {
 		$expected = has_action( 'plugins_loaded', 'apbct_init' ) ? array( 'gform_entry_is_spam', 'gform_confirmation' ) : array();
 	}
 	return array_values( array_diff( $expected, array_column( $suppress, 'hook' ) ) );
+}
+
+/**
+ * True when CleanTalk binds its generic admin-ajax check for this admin-ajax $action, by CleanTalk 6.88's
+ * own condition (cleantalk.php:745-787): a POSTed action it does not integrate directly, from a
+ * visitor it treats as logged out unless it also protects logged-in users. Reads only.
+ */
+function cleantalk_ajax_check_expected( $action ) {
+	global $apbct, $_cleantalk_hooked_actions, $_cleantalk_ajax_actions_to_check;
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- the same read CleanTalk makes.
+	$posted = isset( $_POST['action'] ) && is_string( $_POST['action'] ) ? wp_unslash( $_POST['action'] ) : '';
+	return $action === $posted
+		&& ( ! function_exists( 'apbct_is_user_logged_in' ) || ! apbct_is_user_logged_in() || ! empty( $apbct->settings['data__protect_logged_in'] ) )
+		&& ( ! in_array( $action, (array) $_cleantalk_hooked_actions, true ) || in_array( $action, (array) $_cleantalk_ajax_actions_to_check, true ) );
+}
+
+/**
+ * Before plugins_loaded reaches priority 10: remove CleanTalk's generic admin-ajax check for this
+ * request of $plugin's $action. True when $plugin and CleanTalk are the audited versions and no such
+ * check is left: exactly the audited binding was there and is gone, or CleanTalk binds none here.
+ * False, with nothing removed, for another version, a check only at another priority, or one CleanTalk
+ * expects here that is not its audited binding (changed or wrapped). Also false, after removing the
+ * priority-10 binding, when another binding of the check remains; the caller then refuses the request.
+ */
+function suppress_cleantalk_ajax_check( $plugin, $action ) {
+	if ( ! version_is_audited( $plugin, detected_version( $plugin ) ) || ! version_is_audited( 'cleantalk', detected_version( 'cleantalk' ) ) ) {
+		return false;
+	}
+	$priority = has_action( 'plugins_loaded', CLEANTALK_AJAX_CHECK );
+	if ( 10 === $priority ) {
+		remove_action( 'plugins_loaded', CLEANTALK_AJAX_CHECK, 10 );
+	} elseif ( false !== $priority || cleantalk_ajax_check_expected( $action ) ) {
+		return false;
+	}
+	return false === has_action( 'plugins_loaded', CLEANTALK_AJAX_CHECK );
 }
 
 /**

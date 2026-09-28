@@ -11,6 +11,12 @@
  *   removed when the submission is classified, kept removed at dispatch, put back for ordinary ones.
  * Unsafe marked submissions (unsupported integrations, bad marker or settings) fail validation
  * with the literal rejection message before anything is saved. Ordinary submissions are untouched.
+ *
+ * GF's modern AJAX submission (admin-ajax.php action=gform_submit_form) also passes an earlier
+ * boundary: CleanTalk's generic AJAX check posts the whole request to CleanTalk at plugins_loaded 10,
+ * long before GF validates. gf_ajax_guard() runs first on plugins_loaded and, only when GF field
+ * inputs hold the token, removes that check (then gf_detect() decides as above) or refuses the
+ * request with GF's JSON error before the check runs.
  */
 
 namespace Pirax\FormTest;
@@ -26,6 +32,9 @@ add_action( 'gform_after_submission', __NAMESPACE__ . '\gf_delete_entry', PHP_IN
 // Just before CleanTalk's bindings (999), so one re-registered earlier in the same dispatch is caught too.
 add_filter( 'gform_entry_is_spam', __NAMESPACE__ . '\gf_guard', 998, 2 );
 add_filter( 'gform_confirmation', __NAMESPACE__ . '\gf_guard', 998, 2 );
+// Before CleanTalk's generic AJAX check (plugins_loaded 10, or any priority it was moved to), unless that was registered
+// earlier at PHP_INT_MIN itself; every plugin file is loaded by then. Callbacks added after this runs are not rechecked.
+add_action( 'plugins_loaded', __NAMESPACE__ . '\gf_ajax_guard', PHP_INT_MIN );
 
 /** Per-request verdict for each GF form: 'supported' or the rejection message. */
 function &gf_verdicts() {
@@ -33,17 +42,70 @@ function &gf_verdicts() {
 	return $verdicts;
 }
 
-/** Posted values of the form's own field inputs (input_<field>[_<sub>]), unslashed once. */
-function gf_posted_values( array $form ) {
+/**
+ * Posted values of the form's own field inputs (input_<field>[_<sub>]), unslashed once; with $others,
+ * those of field-shaped inputs that are not the form's fields instead.
+ */
+function gf_posted_values( array $form, $others = false ) {
 	$ids    = array_map( 'intval', wp_list_pluck( $form['fields'], 'id' ) );
 	$values = array();
 	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- read-only classification of the submission GF is validating.
 	foreach ( $_POST as $name => $value ) {
-		if ( preg_match( '/^input_(\d+)(?:_\d+)?$/', (string) $name, $m ) && in_array( (int) $m[1], $ids, true ) ) {
+		if ( preg_match( '/^input_(\d+)(?:_\d+)?$/', (string) $name, $m ) && in_array( (int) $m[1], $ids, true ) !== $others ) {
 			$values[] = wp_unslash( $value );
 		}
 	}
 	return $values;
+}
+
+/** True for GF's modern AJAX submission request (admin-ajax.php action=gform_submit_form). */
+function gf_is_ajax_submission() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- admin-ajax.php dispatches on the same value.
+	return wp_doing_ajax() && isset( $_REQUEST['action'] ) && 'gform_submit_form' === $_REQUEST['action'];
+}
+
+/**
+ * The fields (with their ids) of form $form_id as stored, read like GFFormsModel::get_form_meta() reads
+ * them but without building field objects, running its filters or filling its form cache, none of
+ * which may happen before GF initializes on init.
+ */
+function gf_stored_form( $form_id ) {
+	global $wpdb;
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery -- GF's own read, without its cache.
+	$meta = $form_id ? $wpdb->get_var( $wpdb->prepare( 'SELECT display_meta FROM %i WHERE form_id = %d', \GFFormsModel::get_meta_table_name(), $form_id ) ) : null;
+	$form = $meta ? \GFFormsModel::unserialize( $meta ) : null;
+	return array( 'fields' => isset( $form['fields'] ) && is_array( $form['fields'] ) ? array_values( $form['fields'] ) : array() );
+}
+
+/**
+ * Early boundary of a GF modern AJAX submission while CleanTalk is active, before its generic AJAX
+ * check can send the request. Ordinary requests (no token in any GF field-shaped input) return after a
+ * scan by this plugin's own code alone. A token-bearing one needs the audited GF core, whose stored
+ * fields (of the posted form_id, as GF reads it) then scope the values like gf_detect(), and that
+ * check removed. It is refused here with the rejection message if GF is missing or at another version
+ * (before any GF form API is called), the check cannot be removed (another CleanTalk version, an
+ * unrecognized or unremovable check), or the token is in a field-shaped input the stored form does not
+ * have (e.g. a field a form filter adds, which only GF's later form load knows).
+ */
+function gf_ajax_guard() {
+	if ( ! gf_is_ajax_submission() || null === detected_version( 'cleantalk' ) || '' === token() ) {
+		return;
+	}
+	$parsed = parse( gf_posted_values( array( 'fields' => array() ), true ) );
+	if ( 'ordinary' === $parsed['state'] ) {
+		return;
+	}
+	if ( version_is_audited( 'gf', detected_version( 'gf' ) ) ) {
+		$form = gf_stored_form( absint( rgpost( 'form_id' ) ) );
+		if ( 'ordinary' === parse( gf_posted_values( $form, true ) )['state'] && suppress_cleantalk_ajax_check( 'gf', 'gform_submit_form' ) ) {
+			return;
+		}
+	}
+	$message = 'invalid-marker' === $parsed['state'] ? MARKER_MESSAGE : ( config_error() ? CONFIG_MESSAGE : BLOCKED_MESSAGE );
+	if ( is_callable( array( 'GFCommon', 'send_json_error' ) ) ) {
+		\GFCommon::send_json_error( $message ); // GF's own AJAX error response; ends the request.
+	}
+	wp_send_json_error( $message );
 }
 
 function gf_detect( $form ) {

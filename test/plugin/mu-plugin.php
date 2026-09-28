@@ -19,10 +19,11 @@ defined( 'ABSPATH' ) || exit;
 
 const PIRAX_FORM_TEST_HARNESS = true;
 
+/** Appends $record with the incoming request URI as 'request', unless the record already set a safer one. */
 function pirax_harness_log( $name, array $record ) {
 	$dir = WP_CONTENT_DIR . '/pirax-harness';
 	wp_mkdir_p( $dir );
-	$record['request'] = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : 'cli';
+	$record['request'] = $record['request'] ?? ( isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : 'cli' );
 	$record['time']    = microtime( true );
 	file_put_contents( "$dir/$name.jsonl", wp_json_encode( $record ) . "\n", FILE_APPEND | LOCK_EX );
 }
@@ -96,7 +97,9 @@ if ( defined( 'PIRAX_HARNESS_COMPAT' ) ) {
 	 * The only Requests transport, so WordPress HTTP and direct Requests calls (CleanTalk's "WordPress
 	 * HTTP API" mode calls Requests itself, bypassing pre_http_request) cannot leave the machine.
 	 * Loopback goes to the real transport; the capture URL, CleanTalk moderation and everything
-	 * else are answered here and logged as method, host, path and purpose (no query, headers or body).
+	 * else are answered here and logged as method, host, path and purpose (no query, headers or body),
+	 * the incoming request's path (no query) and a boolean for whether the URL or body carried the
+	 * marker token.
 	 */
 	class Pirax_Harness_Transport implements \WpOrg\Requests\Transport {
 		const CAPTURE = '/pirax-harness/capture/';
@@ -114,12 +117,18 @@ if ( defined( 'PIRAX_HARNESS_COMPAT' ) ) {
 				throw new \WpOrg\Requests\Exception( 'Pirax harness: no loopback transport', 'pirax_harness_loopback' );
 			}
 			$body   = is_string( $data ) ? json_decode( $data, true ) : null;
+			$raw    = $url . ' ' . ( is_string( $data ) ? $data : http_build_query( (array) $data ) );
+			$token  = (string) get_option( 'pirax_form_test_token' );
 			$record = array(
-				'method' => strtoupper( $options['type'] ?? 'GET' ),
-				'host'   => $host,
-				'path'   => $path,
-				'hooks'  => array_values( $GLOBALS['wp_current_filter'] ),
-				'action' => isset( $_REQUEST['action'] ) && is_string( $_REQUEST['action'] ) ? sanitize_key( $_REQUEST['action'] ) : null, // phpcs:ignore
+				'method'       => strtoupper( $options['type'] ?? 'GET' ),
+				'host'         => $host,
+				'path'         => $path,
+				'hooks'        => array_values( $GLOBALS['wp_current_filter'] ),
+				'action'       => isset( $_REQUEST['action'] ) && is_string( $_REQUEST['action'] ) ? sanitize_key( $_REQUEST['action'] ) : null, // phpcs:ignore
+				// Whether the URL or body holds the configured marker token (raw, URL-encoded or JSON-escaped); never the value.
+				'carriesToken' => '' !== $token && ( false !== strpos( $raw, $token ) || false !== strpos( urldecode( $raw ), $token ) || false !== strpos( stripslashes( $raw ), $token ) ),
+				// The incoming request's path only: its query can hold nonces or other values.
+				'request'      => isset( $_SERVER['REQUEST_URI'] ) ? explode( '?', (string) $_SERVER['REQUEST_URI'], 2 )[0] : 'cli',
 			);
 			if ( 0 === strpos( $path, self::CAPTURE ) ) {
 				$record += array( 'purpose' => 'webhook-capture', 'entry' => isset( $body['pirax_entry'] ) ? (int) $body['pirax_entry'] : null );
@@ -442,6 +451,74 @@ if ( get_option( 'pirax_harness_ff_delete_on_notify' ) ) {
 	);
 }
 
+// pirax_harness_gf_ajax: Gravity Forms renders its forms with the modern AJAX submission method
+// (admin-ajax.php action=gform_submit_form) instead of a page postback, as a site may choose.
+if ( get_option( 'pirax_harness_gf_ajax' ) ) {
+	add_filter(
+		'gform_form_args',
+		static function ( $args ) {
+			$args['submission_method'] = 'ajax';
+			return $args;
+		}
+	);
+}
+
+// pirax_harness_gf_dynamic_field: <form id>. A documented GF form filter adds a paragraph field
+// (id 50, input_50) to that form whenever GF loads it; the stored form does not have it.
+if ( get_option( 'pirax_harness_gf_dynamic_field' ) ) {
+	add_filter(
+		'gform_form_post_get_meta',
+		static function ( $form ) {
+			if ( (int) $form['id'] === (int) get_option( 'pirax_harness_gf_dynamic_field' ) ) {
+				$form['fields'][] = GF_Fields::create( array( 'type' => 'textarea', 'id' => 50, 'label' => 'Dynamic', 'formId' => (int) $form['id'], 'pageNumber' => 1 ) );
+			}
+			return $form;
+		}
+	);
+}
+
+// pirax_harness_gf_ajax_version: <version>. On admin-ajax requests only, GF's declared runtime version
+// (GFForms::$version) reads as this right after GF's file loads. Not on other requests, where GF
+// would run its own upgrade routine for a changed version.
+if ( get_option( 'pirax_harness_gf_ajax_version' ) ) {
+	add_action(
+		'plugin_loaded',
+		static function ( $plugin ) {
+			if ( wp_doing_ajax() && str_ends_with( wp_normalize_path( $plugin ), '/gravityforms/gravityforms.php' ) ) {
+				GFForms::$version = (string) get_option( 'pirax_harness_gf_ajax_version' );
+			}
+		}
+	);
+}
+
+// pirax_harness_gf_meta_probe: log each read of GF's form meta table during plugins_loaded, before GF
+// initializes, as gf-meta.jsonl (the admin-ajax action and the request path only). Reads only.
+if ( get_option( 'pirax_harness_gf_meta_probe' ) ) {
+	add_filter(
+		'query',
+		static function ( $query ) {
+			global $wpdb;
+			if ( doing_action( 'plugins_loaded' ) && false !== stripos( $query, $wpdb->prefix . 'gf_form_meta' ) ) {
+				// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only observation.
+				$action = isset( $_REQUEST['action'] ) && is_string( $_REQUEST['action'] ) ? sanitize_key( $_REQUEST['action'] ) : null;
+				pirax_harness_log( 'gf-meta', array( 'action' => $action, 'request' => explode( '?', (string) ( $_SERVER['REQUEST_URI'] ?? 'cli' ), 2 )[0] ) );
+			}
+			return $query;
+		}
+	);
+}
+
+// pirax_harness_ct_skip_probe: log where CleanTalk skipped a check it ran (its own apbct_skipped_request
+// action) as ct-skips.jsonl: file basename, function, line and reason only, never the POST it passes.
+if ( get_option( 'pirax_harness_ct_skip_probe' ) ) {
+	add_action(
+		'apbct_skipped_request',
+		static function ( $where ) {
+			pirax_harness_log( 'ct-skips', array( 'where' => preg_replace( '#^\S*/#', '', (string) $where ), 'request' => explode( '?', (string) ( $_SERVER['REQUEST_URI'] ?? 'cli' ), 2 )[0] ) );
+		}
+	);
+}
+
 /*
  * CleanTalk binding fixtures (compatibility stack; off unless a test sets the option):
  * - pirax_harness_ct_rebind: after CleanTalk has bound its Fluent Forms check, replace that closure
@@ -449,6 +526,10 @@ if ( get_option( 'pirax_harness_ff_delete_on_notify' ) ) {
  * - pirax_harness_ct_late: re-register CleanTalk's real checks after a submission was classified and
  *   before its hooks run (on unaudited hooks in between): a new Integrations closure for Fluent Forms
  *   (fluentform/filter_insert_data), and GF's testSpam callback (gform_field_validation).
+ * - pirax_harness_ct_ajax_rebind: right after CleanTalk's file has loaded (plugin_loaded), before any
+ *   plugins_loaded callback, rebind its generic admin-ajax check (ct_ajax_hook, priority 10) so it
+ *   still runs: 'wrap' replaces it with a wrapper defined here that calls it (unrecognizable), and
+ *   'early' moves it to priority 1.
  */
 if ( get_option( 'pirax_harness_ct_rebind' ) ) {
 	add_action(
@@ -464,6 +545,22 @@ if ( get_option( 'pirax_harness_ct_rebind' ) ) {
 			}
 		},
 		20
+	);
+}
+if ( get_option( 'pirax_harness_ct_ajax_rebind' ) ) {
+	add_action(
+		'plugin_loaded',
+		static function ( $plugin ) {
+			if ( ! str_ends_with( wp_normalize_path( $plugin ), '/cleantalk-spam-protect/cleantalk.php' ) || 10 !== has_action( 'plugins_loaded', 'ct_ajax_hook' ) ) {
+				return;
+			}
+			remove_action( 'plugins_loaded', 'ct_ajax_hook', 10 );
+			if ( 'early' === get_option( 'pirax_harness_ct_ajax_rebind' ) ) {
+				add_action( 'plugins_loaded', 'ct_ajax_hook', 1 );
+			} else {
+				add_action( 'plugins_loaded', static fn() => ct_ajax_hook(), 10, 0 );
+			}
+		}
 	);
 }
 if ( get_option( 'pirax_harness_ct_late' ) ) {

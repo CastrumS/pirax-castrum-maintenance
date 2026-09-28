@@ -1,6 +1,7 @@
 // Opt-in compatibility stack (plan D5–D7): GF + FF + FF Pro + CleanTalk + FluentSMTP in one Playground,
-// with WordPress/browser egress contained, CleanTalk moderation and the Pro webhook answered at
-// pre_http_request, and FluentSMTP's real Simulator as the mail transport. Ordinary controls only.
+// with WordPress/browser egress contained, CleanTalk moderation and the Pro webhook answered at the
+// test Requests transport (Pirax_Harness_Transport), and FluentSMTP's real Simulator as the mail
+// transport. Ordinary controls only.
 // bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/stack-harness.test.ts
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { findSecret } from "./artifacts";
@@ -44,17 +45,18 @@ test("optional plugins are real, exact, active, and activated after the safeguar
   expect(activations).toEqual(expect.arrayContaining(["fluentformpro/fluentformpro.php", "cleantalk-spam-protect/cleantalk.php", "fluent-smtp/fluent-smtp.php"]));
 });
 
-test("third-party WordPress HTTP is blocked and logged without query strings or bodies", async () => {
+test("third-party WordPress HTTP is blocked and logged without the outgoing or incoming request's query strings or bodies", async () => {
   const before = (await h.http()).length;
+  // The incoming request carries a synthetic query and nonce, as wp-admin requests do.
   const result = await h.php<{ code: string; message: string }>(`
+    $_SERVER['REQUEST_URI'] = '/wp-admin/admin.php?page=pirax-probe&_wpnonce=pirax-inbound-nonce&q=pirax-inbound-secret';
     $r = wp_remote_post('https://api.example.test/collect?key=pirax-query-secret', ['body' => ['field' => 'pirax-body-secret']]);
     return is_wp_error($r) ? ['code' => $r->get_error_code(), 'message' => $r->get_error_message()] : ['code' => 'sent', 'message' => ''];
   `);
   expect(result).toEqual({ code: "http_request_failed", message: "Pirax harness: third-party HTTP is contained" });
   const [record] = (await h.http()).slice(before);
-  expect(record).toMatchObject({ purpose: "blocked", method: "POST", host: "api.example.test", path: "/collect" });
-  expect(JSON.stringify(record)).not.toContain("pirax-query-secret");
-  expect(JSON.stringify(record)).not.toContain("pirax-body-secret");
+  expect(record).toMatchObject({ purpose: "blocked", method: "POST", host: "api.example.test", path: "/collect", request: "/wp-admin/admin.php", carriesToken: false });
+  for (const value of ["pirax-query-secret", "pirax-body-secret", "pirax-inbound-secret", "pirax-inbound-nonce", "_wpnonce", "?"]) expect(JSON.stringify(record)).not.toContain(value);
 });
 
 test("Pro feature fixtures write native settings that Pro's own getters read", async () => {
@@ -140,6 +142,10 @@ test("evidence names every version and ZIP hash and retains no token, licensed p
   for (const hash of Object.values(manifest.zips)) expect(hash).toMatch(/^[0-9a-f]{64}$/);
   const secrets = [h.token, process.env.GRAVITY_FORMS_ZIP!, process.env.FLUENT_FORMS_PRO_ZIP!];
   expect(await findSecret(h.artifactDir, secrets)).toEqual([]);
+  // Real activation and admin requests included: no retained HTTP record keeps an incoming query.
+  const http = (await Bun.file(`${h.artifactDir}/http.jsonl`).text()).trim().split("\n").map((l) => JSON.parse(l));
+  expect(http.length).toBeGreaterThan(0);
+  expect(http.filter((r) => r.request.includes("?") || r.path.includes("?")).length).toBe(0);
   expect(await Bun.$`unzip -Z1 ${evidence.trace!}`.text()).not.toMatch(/\.(jpe?g|png|webm)$/m);
 
   // The browser reached nothing but the loopback site.

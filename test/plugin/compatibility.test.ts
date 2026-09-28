@@ -18,6 +18,8 @@ const ZIP = join(ROOT, "dist/pirax-form-test.zip");
 const REDIRECT = "form-tests+pirax@operator.test";
 const ID = "abc123";
 const BLOCKED = "Pirax test blocked: integrations could not be suppressed";
+const INVALID_MARKER = "Pirax test blocked: invalid test marker";
+const INVALID_CONFIG = "Pirax test blocked: test configuration is invalid";
 const SETTINGS = "/wp-admin/options-general.php?page=pirax-form-test";
 const EMAIL_PRECHECK = "/wp-json/cleantalk-antispam/v1/check_email_before_post";
 
@@ -143,6 +145,45 @@ async function gfSubmit(message: string) {
   const ok = (await page.locator(`#gform_confirmation_message_${id}`).count()) > 0;
   return { ok, text: await page.locator(ok ? `#gform_confirmation_message_${id}` : `#gform_wrapper_${id}`).innerText() };
 }
+
+/**
+ * Submit the fixture GF form with GF's modern AJAX method (admin-ajax.php action=gform_submit_form;
+ * needs pirax_harness_gf_ajax). `hidden` adds inputs to the form, `query` goes on GF's AJAX URL and
+ * `cookie` is set for the site. `keepPage` submits the already loaded (and partly filled) page.
+ * `session` defaults to the anonymous visitor (e.g. `admin` for a logged-in submission).
+ */
+async function gfAjaxSubmit(
+  message: string,
+  { hidden = {}, query = "", cookie, keepPage = false, session = visitor }: { hidden?: Record<string, string>; query?: string; cookie?: string; keepPage?: boolean; session?: { context: BrowserContext; page: Page } } = {},
+) {
+  const { page, context } = session;
+  const id = h.fixtures.gf;
+  if (cookie) await context.addCookies([{ name: "pirax_probe", value: cookie, url: h.url }]);
+  try {
+    if (!keepPage) await page.goto(h.fixtures.page);
+    const form = page.locator(`#gform_${id}`);
+    expect(await form.locator("[name=gform_submission_method]").getAttribute("value")).toBe("ajax");
+    for (const [name, value] of Object.entries(gfValues(message))) await form.locator(`[name='${name}']`).fill(value);
+    await form.evaluate((f, fields) => {
+      for (const [name, value] of Object.entries(fields)) f.appendChild(Object.assign(document.createElement("input"), { type: "hidden", name, value }));
+    }, hidden);
+    if (query) await page.evaluate((q) => ((window as any).gform_theme_config.common.form.ajax.ajaxurl += q), query);
+    const response = page.waitForResponse((r) => r.url().includes("admin-ajax.php") && r.request().method() === "POST" && (r.request().postData() ?? "").includes("gform_submit_form"));
+    await form.locator("[type=submit]").click();
+    const res = await response;
+    await page.locator(`#gform_confirmation_message_${id}, #gform_${id}_validation_container`).first().waitFor();
+    const ok = (await page.locator(`#gform_confirmation_message_${id}`).count()) > 0;
+    return { status: res.status(), queried: new URL(res.url()).search !== "", ok, text: await page.locator(ok ? `#gform_confirmation_message_${id}` : `#gform_wrapper_${id}`).innerText() };
+  } finally {
+    if (cookie) await context.clearCookies({ name: "pirax_probe" });
+  }
+}
+
+/** Contained HTTP whose URL or body held the marker token (booleans only are recorded). */
+const tokenBearing = (records: HttpRecord[]) => records.filter((r) => r.carriesToken);
+
+/** CleanTalk's generic admin-ajax check on a GF modern AJAX submission (plugins_loaded, action gform_submit_form). */
+const genericCheck = (records: HttpRecord[]) => records.filter((r) => r.purpose === "cleantalk-moderation" && r.hooks.includes("plugins_loaded") && r.action === "gform_submit_form");
 
 function expectRedirected(envelopes: EnvelopeRecord[]) {
   expect(envelopes.length).toBeGreaterThan(0);
@@ -283,7 +324,249 @@ test("full stack: marked FF and GF each confirm with one redirected Simulator ma
     })),
   );
   expect(done.mail.map((x) => x.to)).toEqual([[REDIRECT], [REDIRECT]]);
+  expect(tokenBearing(done.http)).toEqual([]);
 }, 300_000);
+
+test("GF modern AJAX (admin-ajax gform_submit_form): marked confirms with one redirected Simulator mail and no CleanTalk request or token-bearing HTTP; ordinary keeps CleanTalk's generic check, its entry, ledger feed and original mail", async () => {
+  await setOptions({ pirax_harness_gf_ajax: true });
+  try {
+    let m = await mark();
+    const marked = await gfAjaxSubmit(`Pirax check ${marker}`);
+    expect(marked).toMatchObject({ status: 200, ok: true, text: "Pirax GF thanks" });
+    await h.drainQueues();
+    let done = await since(m);
+    await note("marked GF modern AJAX", { http: done.http, jobs: done.jobs, added: done.added });
+    expect(cleantalkAttempts(done.http)).toEqual([]);
+    expect(tokenBearing(done.http)).toEqual([]);
+    expect(done.added).toEqual([]);
+    expect(done.feeds).toEqual([]);
+    expect(done.env.map((e) => e.subject)).toEqual([`[pirax-test ${ID}] gf-${h.fixtures.gf} notification A`]);
+    expectRedirected(done.env);
+    expect(done.sim.map((s) => ({ to: s.to, provider: s.provider, status: s.status }))).toEqual([{ to: [REDIRECT], provider: "Simulator", status: "sent" }]);
+
+    m = await mark();
+    const ordinary = await gfAjaxSubmit("gf ordinary modern ajax");
+    expect(ordinary).toMatchObject({ status: 200, ok: true, text: "Pirax GF thanks" });
+    await h.drainQueues();
+    done = await since(m);
+    await note("ordinary GF modern AJAX", { http: done.http, added: done.added, feeds: done.feeds });
+    expect(genericCheck(done.http).length).toBeGreaterThanOrEqual(1);
+    expect(tokenBearing(done.http)).toEqual([]);
+    expect(done.added.map((r) => r.plugin)).toEqual(["gf"]);
+    expect(done.feeds.map((f) => [f.plugin, f.entry])).toEqual([["gf", done.added[0]!.id]]);
+    const mail = done.env.filter((e) => e.subject === `gf-${h.fixtures.gf} notification A`);
+    expect(mail.length).toBe(1);
+    expectOriginal(mail, "owner@client.test");
+  } finally {
+    await setOptions({ pirax_harness_gf_ajax: null });
+  }
+}, 300_000);
+
+test("GF modern AJAX early boundary: malformed markers, invalid configuration and the token in a field input the stored form lacks are refused without CleanTalk; the token outside field inputs (query, cookie, other POST names) stays ordinary and keeps CleanTalk", async () => {
+  await setOptions({ pirax_harness_gf_ajax: true });
+  try {
+    let m = await mark();
+    const malformed = await gfAjaxSubmit(`Pirax check ${h.token}-AB`);
+    await setOptions({ pirax_form_test_redirect: null });
+    let invalidConfig;
+    try {
+      invalidConfig = await gfAjaxSubmit(`Pirax check ${marker}`);
+    } finally {
+      await setOptions({ pirax_form_test_redirect: REDIRECT });
+    }
+    const unknownField = await gfAjaxSubmit("gf with the marker in an input of no stored field", { hidden: { input_99: `Pirax ${marker}` } });
+    let done = await since(m);
+    await note("GF modern AJAX refusals", { malformed: malformed.ok, invalidConfig: invalidConfig.ok, unknownField: unknownField.ok, http: done.http, added: done.added });
+    expect(malformed.ok).toBe(false);
+    expect(malformed.text).toContain(INVALID_MARKER);
+    expect(invalidConfig.ok).toBe(false);
+    expect(invalidConfig.text).toContain(INVALID_CONFIG);
+    expect(unknownField.ok).toBe(false);
+    expect(unknownField.text).toContain(BLOCKED);
+    expect(cleantalkAttempts(done.http)).toEqual([]);
+    expect(tokenBearing(done.http)).toEqual([]);
+    expect(done.added).toEqual([]);
+    expect(done.env).toEqual([]);
+
+    m = await mark();
+    const outside = await gfAjaxSubmit("gf ordinary with the marker outside its fields", { hidden: { pirax_unrelated: `Pirax ${marker}` }, query: `?pirax_probe=${encodeURIComponent(marker)}`, cookie: encodeURIComponent(marker) });
+    await h.drainQueues();
+    done = await since(m);
+    await note("GF modern AJAX marker outside fields", { http: done.http, added: done.added });
+    expect(outside).toMatchObject({ status: 200, queried: true, ok: true, text: "Pirax GF thanks" });
+    expect(done.added.map((r) => r.plugin)).toEqual(["gf"]);
+    // Ordinary: CleanTalk's generic check still runs, and sees the whole POST (the observer detects the token in it).
+    expect(genericCheck(done.http).length).toBeGreaterThanOrEqual(1);
+    expect(tokenBearing(genericCheck(done.http)).length).toBeGreaterThanOrEqual(1);
+    expectOriginal(done.env.filter((e) => e.subject === `gf-${h.fixtures.gf} notification A`), "owner@client.test");
+  } finally {
+    await setOptions({ pirax_harness_gf_ajax: null });
+  }
+}, 300_000);
+
+for (const mode of ["wrap", "early"] as const) {
+  test(`GF modern AJAX: CleanTalk's generic check ${mode === "wrap" ? "wrapped (unrecognizable)" : "moved to plugins_loaded priority 1"} refuses marked submissions before it runs; ordinary ones keep it`, async () => {
+    await setOptions({ pirax_harness_gf_ajax: true, pirax_harness_ct_ajax_rebind: mode });
+    try {
+      const m = await mark();
+      const marked = await gfAjaxSubmit(`Pirax rebound ${marker}`);
+      const ordinary = await gfAjaxSubmit(`gf ordinary with ${mode} generic check`);
+      await h.drainQueues();
+      const done = await since(m);
+      await note(`GF modern AJAX generic check ${mode}`, { marked: marked.ok, ordinary: ordinary.ok, http: done.http, added: done.added });
+      expect(marked.ok).toBe(false);
+      expect(marked.text).toContain(BLOCKED);
+      expect(ordinary).toMatchObject({ ok: true, text: "Pirax GF thanks" });
+      expect(tokenBearing(done.http)).toEqual([]);
+      expect(done.added.map((r) => r.plugin)).toEqual(["gf"]);
+      // The rebound check still runs for the ordinary submission, and only for it.
+      expect(genericCheck(done.http).length).toBe(1);
+      expect(done.env.filter((e) => e.subject.startsWith("[pirax-test"))).toEqual([]);
+    } finally {
+      await setOptions({ pirax_harness_gf_ajax: null, pirax_harness_ct_ajax_rebind: null });
+    }
+  }, 300_000);
+}
+
+test("GF modern AJAX: the marker only in a field a GF form filter adds is refused before CleanTalk's generic check; ordinary submissions with that field keep it", async () => {
+  await setOptions({ pirax_harness_gf_ajax: true, pirax_harness_gf_dynamic_field: h.fixtures.gf });
+  try {
+    const m = await mark();
+    const submit = async (dynamic: string) => {
+      const { page } = visitor;
+      await page.goto(h.fixtures.page);
+      await page.locator(`#gform_${h.fixtures.gf} [name='input_50']`).fill(dynamic);
+      return gfAjaxSubmit("gf dynamic field", { keepPage: true });
+    };
+    const marked = await submit(`Pirax dynamic ${marker}`);
+    const ordinary = await submit("ordinary dynamic value");
+    await h.drainQueues();
+    const done = await since(m);
+    await note("GF modern AJAX dynamic field", { marked: marked.ok, ordinary: ordinary.ok, http: done.http, added: done.added });
+    expect(marked.ok).toBe(false);
+    expect(marked.text).toContain(BLOCKED);
+    expect(ordinary).toMatchObject({ ok: true, text: "Pirax GF thanks" });
+    expect(tokenBearing(done.http)).toEqual([]);
+    expect(genericCheck(done.http).length).toBe(1);
+    expect(done.added.map((r) => r.plugin)).toEqual(["gf"]);
+    expect(await h.php<string>(`return (string) GFAPI::get_entry(${done.added[0]!.id})['50'];`)).toBe("ordinary dynamic value");
+    expect(done.env.filter((e) => e.subject.startsWith("[pirax-test"))).toEqual([]);
+  } finally {
+    await setOptions({ pirax_harness_gf_ajax: null, pirax_harness_gf_dynamic_field: null });
+  }
+}, 300_000);
+
+/** Rows of a probe ledger in the site's pirax-harness directory (gf-meta: pirax_harness_gf_meta_probe, ct-skips: pirax_harness_ct_skip_probe). */
+const probe = <T = { request: string }>(name: string) =>
+  h.php<T[]>(`$f = WP_CONTENT_DIR . '/pirax-harness/${name}.jsonl'; return file_exists($f) ? array_map(fn($l) => json_decode($l, true), file($f, FILE_IGNORE_NEW_LINES)) : [];`);
+
+/** Reads of GF's form meta table during plugins_loaded, before GF initializes. */
+const gfMetaReads = async () => (await probe("gf-meta")).length;
+
+/** gfAjaxSubmit(), plus how many early stored-form reads the request made. */
+async function gfAjaxCounted(message: string, options?: Parameters<typeof gfAjaxSubmit>[1]) {
+  const before = await gfMetaReads();
+  const result = await gfAjaxSubmit(message, options);
+  return { ...result, reads: (await gfMetaReads()) - before };
+}
+
+test("GF modern AJAX before GF initializes: ordinary requests read no stored form; a marked one reads it only under the audited GF core, and another GF version refuses it before any form read or CleanTalk request", async () => {
+  await setOptions({ pirax_harness_gf_ajax: true, pirax_harness_gf_meta_probe: true });
+  try {
+    let m = await mark();
+    const ordinary = await gfAjaxCounted("gf ordinary with the audited GF core");
+    const marked = await gfAjaxCounted(`Pirax audited GF core ${marker}`);
+    await h.drainQueues();
+    let done = await since(m);
+    await note("GF modern AJAX early reads: audited GF", { ordinary: [ordinary.ok, ordinary.reads], marked: [marked.ok, marked.reads], http: done.http, added: done.added });
+    expect(ordinary).toMatchObject({ ok: true, text: "Pirax GF thanks", reads: 0 });
+    expect(marked).toMatchObject({ ok: true, text: "Pirax GF thanks", reads: 1 });
+    expect(genericCheck(done.http).length).toBe(1); // the ordinary one only
+    expect(tokenBearing(done.http)).toEqual([]);
+    expect(done.added.map((r) => r.plugin)).toEqual(["gf"]);
+    expectRedirected(done.env.filter((e) => e.subject.startsWith("[pirax-test")));
+    expectOriginal(done.env.filter((e) => e.subject === `gf-${h.fixtures.gf} notification A`), "owner@client.test");
+
+    await setOptions({ pirax_harness_gf_ajax_version: "3.1.3" });
+    try {
+      m = await mark();
+      const wrongMarked = await gfAjaxCounted(`Pirax GF version ${marker}`);
+      const wrongOrdinary = await gfAjaxCounted("gf ordinary with another GF version");
+      await h.drainQueues();
+      done = await since(m);
+      await note("GF modern AJAX early reads: GF 3.1.3", { marked: [wrongMarked.ok, wrongMarked.reads], ordinary: [wrongOrdinary.ok, wrongOrdinary.reads], http: done.http, added: done.added });
+      expect(wrongMarked).toMatchObject({ ok: false, reads: 0 });
+      expect(wrongMarked.text).toContain(BLOCKED);
+      expect(wrongOrdinary).toMatchObject({ ok: true, text: "Pirax GF thanks", reads: 0 });
+      expect(genericCheck(done.http).length).toBe(1); // the ordinary one only
+      expect(tokenBearing(done.http)).toEqual([]);
+      expect(done.added.map((r) => r.plugin)).toEqual(["gf"]);
+      expect(done.env.filter((e) => e.subject.startsWith("[pirax-test"))).toEqual([]);
+    } finally {
+      await setOptions({ pirax_harness_gf_ajax_version: null });
+    }
+  } finally {
+    await setOptions({ pirax_harness_gf_ajax: null, pirax_harness_gf_meta_probe: null });
+  }
+}, 300_000);
+
+test("GF modern AJAX from a logged-in admin: with CleanTalk's logged-in protection off it binds no generic check; on, marked submissions have it removed and ordinary ones keep it (it runs, and skips this admin)", async () => {
+  const original = await h.php<number | null>(`$s = get_option('cleantalk_settings'); return isset($s['data__protect_logged_in']) ? (int) $s['data__protect_logged_in'] : null;`);
+  const protect = (value: number | null) =>
+    h.php(`$s = get_option('cleantalk_settings'); if (null === ${lit(value)}) unset($s['data__protect_logged_in']); else $s['data__protect_logged_in'] = ${lit(value)}; update_option('cleantalk_settings', $s); return true;`);
+  /** CleanTalk's generic check running (and skipping) during one submission. */
+  const submit = async (message: string) => {
+    const before = (await probe<{ where: string }>("ct-skips")).length;
+    const result = await gfAjaxSubmit(message, { session: admin });
+    const skips = (await probe<{ where: string }>("ct-skips")).slice(before).filter((r) => r.where.includes("ct_ajax_hook()"));
+    return { ...result, ran: skips.length, skips: skips.map((r) => r.where) };
+  };
+  await setOptions({ pirax_harness_gf_ajax: true, pirax_harness_ct_skip_probe: true });
+  try {
+    for (const on of [0, 1]) {
+      await protect(on);
+      const m = await mark();
+      const marked = await submit(`Pirax logged in ${marker}`);
+      const ordinary = await submit(`gf ordinary logged in, protection ${on}`);
+      await h.drainQueues();
+      const done = await since(m);
+      await note(`GF modern AJAX logged in, protection ${on}`, { marked: [marked.ok, marked.ran], ordinary: [ordinary.ok, ordinary.ran, ordinary.skips], http: done.http, added: done.added });
+      expect(marked).toMatchObject({ ok: true, text: "Pirax GF thanks", ran: 0 });
+      expect(ordinary).toMatchObject({ ok: true, text: "Pirax GF thanks", ran: on });
+      // CleanTalk's own skip for this admin means no moderation request either way.
+      expect(cleantalkAttempts(done.http)).toEqual([]);
+      expect(tokenBearing(done.http)).toEqual([]);
+      expect(done.added.map((r) => r.plugin)).toEqual(["gf"]);
+      expect(done.feeds.map((f) => [f.plugin, f.entry])).toEqual([["gf", done.added[0]!.id]]);
+      expect(done.env.filter((e) => e.subject.startsWith("[pirax-test")).map((e) => e.subject)).toEqual([`[pirax-test ${ID}] gf-${h.fixtures.gf} notification A`]);
+      expectRedirected(done.env.filter((e) => e.subject.startsWith("[pirax-test")));
+      expectOriginal(done.env.filter((e) => e.subject === `gf-${h.fixtures.gf} notification A`), "owner@client.test");
+    }
+  } finally {
+    await protect(original);
+    await setOptions({ pirax_harness_gf_ajax: null, pirax_harness_ct_skip_probe: null });
+  }
+}, 300_000);
+
+test("marked wp_mail through FluentSMTP: control-padded and folded recipient headers never reach the effective envelope or the Simulator log; ordinary mail keeps them", async () => {
+  const headers = `implode("\\r\\n", [chr(11) . 'Cc: cc@client.test', 'Bcc' . chr(11) . ': bcc@client.test', 'X-Keep: 1', "\\tCc: folded@client.test", ' Bcc: folded-bcc@client.test', 'Reply-To: visitor@example.test'])`;
+  const send = (marked: boolean, subject: string) =>
+    h.php<boolean>(`${marked ? `if (true !== \\Pirax\\FormTest\\mark('${ID}')) return false;` : ""} return wp_mail('owner@client.test', '${subject}', 'Body', ${headers});`);
+  const m = await mark();
+  expect(await send(false, "N2 ordinary")).toBe(true);
+  expect(await send(true, "N2 marked")).toBe(true);
+  const done = await since(m);
+  const [ordinary = [], marked = []] = ["N2 ordinary", `[pirax-test ${ID}] N2 marked`].map((subject) => done.env.filter((e) => e.subject === subject));
+  expect(ordinary).toEqual([expect.objectContaining({ to: ["owner@client.test"], cc: ["cc@client.test", "folded@client.test"], bcc: ["bcc@client.test", "folded-bcc@client.test"], transport: "fluentsmtp-simulator" })]);
+  expect(marked).toEqual([expect.objectContaining({ to: [REDIRECT], cc: [], bcc: [], replyTo: ["visitor@example.test"], mailer: "fluent-smtp.php", transport: "fluentsmtp-simulator" })]);
+  expectRedirected(marked);
+  const sim = done.sim.filter((s) => s.subject.includes("N2 "));
+  expect(sim.map((s) => [s.subject, s.to.join(","), s.provider, s.status])).toEqual([
+    ["N2 ordinary", "owner@client.test", "Simulator", "sent"],
+    [`[pirax-test ${ID}] N2 marked`, REDIRECT, "Simulator", "sent"],
+  ]);
+  expect(sim[1]!.headers.some((x) => /client\.test/.test(x) && /^(cc|bcc|to)\s*:/i.test(x))).toBe(false);
+}, 120_000);
 
 test("full stack after marked submissions: ordinary controls are unchanged", async () => {
   await ordinaryControls("after");
@@ -560,6 +843,31 @@ for (const v of VERSIONS) {
       }
       expect(done.added).toEqual([]);
       expect(cleantalkAttempts(done.http)).toEqual([]);
+      expect(tokenBearing(done.http)).toEqual([]);
+
+      // GF modern AJAX: a wrong CleanTalk version is refused before CleanTalk's generic check can run;
+      // the other versions are refused later by the submission gate, with that check already removed.
+      await setOptions({ pirax_harness_gf_ajax: true });
+      try {
+        const m2 = await mark();
+        const ajax = await gfAjaxSubmit(`Pirax version ${marker}`);
+        await h.drainQueues();
+        const done2 = await since(m2);
+        await note(`version gate (GF modern AJAX): ${v.name}`, { gf: ajax.ok, http: done2.http, added: done2.added });
+        if (v.gf) {
+          expect(ajax.ok).toBe(false);
+          expect(ajax.text).toContain(BLOCKED);
+          expect(done2.env).toEqual([]);
+        } else {
+          expect(ajax).toMatchObject({ ok: true, text: "Pirax GF thanks" });
+          expectRedirected(done2.env);
+        }
+        expect(done2.added).toEqual([]);
+        expect(cleantalkAttempts(done2.http)).toEqual([]);
+        expect(tokenBearing(done2.http)).toEqual([]);
+      } finally {
+        await setOptions({ pirax_harness_gf_ajax: null });
+      }
     });
     // Restored: ready again for both.
     expect([(await panel("gf")).verdict, (await panel("ff")).verdict]).toEqual(["ready", "ready"]);

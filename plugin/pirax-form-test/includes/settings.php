@@ -98,7 +98,7 @@ function render_settings() {
 	<?php
 }
 
-/** Read-only compatibility_report() of each form plugin; nothing is changed or stored. */
+/** Read-only compatibility_report() of each form plugin and the last blocked test submission; nothing is changed or stored. */
 function render_compatibility() {
 	?>
 	<section id="pirax-form-test-compatibility">
@@ -140,6 +140,22 @@ function render_compatibility() {
 				<?php endif; ?>
 			</div>
 		<?php endforeach; ?>
+		<?php
+		$last = get_option( LAST_BLOCK_OPTION );
+		if ( is_array( $last ) && isset( $last['plugin'] ) && is_string( $last['plugin'] ) && array_key_exists( $last['plugin'], PLUGIN_LABELS ) && ! empty( $last['reasons'] ) ) :
+			?>
+			<div id="pirax-form-test-last-block">
+				<h3>Last blocked test submission</h3>
+				<p class="pirax-form-test-last-reasons"><?php echo esc_html( sprintf( '%s, %s form %d: %s', wp_date( 'Y-m-d H:i', (int) $last['time'] ), PLUGIN_LABELS[ $last['plugin'] ], (int) $last['form'], implode( '; ', array_map( 'strval', (array) $last['reasons'] ) ) ) ); ?></p>
+				<?php if ( ! empty( $last['unaudited'] ) ) : ?>
+					<ul class="pirax-form-test-last-unaudited">
+						<?php foreach ( (array) $last['unaudited'] as $callback ) : ?>
+							<li><code><?php echo esc_html( (string) $callback['hook'] ); ?></code>: <code><?php echo esc_html( (string) $callback['id'] ); ?></code> (priority <?php echo esc_html( (string) $callback['priority'] ); ?>)</li>
+						<?php endforeach; ?>
+					</ul>
+				<?php endif; ?>
+			</div>
+		<?php endif; ?>
 	</section>
 	<?php
 }

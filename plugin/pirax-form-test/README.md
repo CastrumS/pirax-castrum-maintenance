@@ -55,7 +55,7 @@ If the redirect is unusable, or a later filter undoes the change, marked mail **
 
 ## Supported versions and behaviour
 
-Version 0.2.2. Marked submissions are accepted only on these exact audited versions, compared as exact strings:
+Version 0.2.3. Marked submissions are accepted only on these exact audited versions, compared as exact strings:
 
 | Plugin | Audited version | Applies to |
 |---|---|---|
@@ -135,6 +135,8 @@ Settings → Pirax Form Test shows a read-only **Compatibility** section below t
 - every unaudited callback, grouped by hook, with its callback identity and priority. A version failure does not hide these.
 
 All values are escaped. The panel has no JavaScript, endpoint, toggle or bypass. It stores nothing, removes no callbacks and submits nothing.
+
+**Last blocked test submission.** When a marked submission is rejected with "integrations could not be suppressed", the helper stores why in the option `pirax_form_test_last_block` (autoload off, replaced by the next block, removed on uninstall): the time, form plugin, form id, the reasons, and the unaudited callbacks seen in that request, by hook, callback identity and priority. It never stores submitted values, the marker or the token. The panel shows it below both sections. This matters because the submission request can load callbacks that the admin page does not, so the panel can say `ready` while a real test is still blocked.
 
 `ready` covers only the plugins, versions and callbacks loaded for that admin page. It does not cover every form (payment, non-`form` and GF post-field forms are still rejected at submission), the marker, CAPTCHA, callbacks that only load on public pages or in later requests (such as CleanTalk's GF bindings on public pages and its generic check on GF modern AJAX requests), or mail delivery. Each marked submission is checked again when it arrives, and that check decides.
 

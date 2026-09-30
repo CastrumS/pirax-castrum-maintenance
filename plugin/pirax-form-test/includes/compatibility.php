@@ -393,5 +393,49 @@ function restore_suppressed() {
  * was removed before the submission's hooks run. The adapters' dispatch guards keep them removed.
  */
 function prepare_marked_submission( $plugin, $form ) {
-	return ( 'gf' === $plugin ? gf_supported( $form ) : ff_supported( $form ) ) && suppress( $plugin );
+	$ok = ( 'gf' === $plugin ? gf_supported( $form ) : ff_supported( $form ) ) && suppress( $plugin );
+	if ( ! $ok ) {
+		record_block( $plugin, $form );
+	}
+	return $ok;
+}
+
+/** Option with the latest blocked marked submission's diagnosis, for the panel (autoload off). */
+const LAST_BLOCK_OPTION = 'pirax_form_test_last_block';
+
+/**
+ * Store why this marked submission was blocked: plugin labels, versions, the form id and callback
+ * identities only, never submitted values, the marker or the token.
+ */
+function record_block( $plugin, $form ) {
+	$report  = compatibility_report( $plugin, 'gf' === $plugin ? $form : null );
+	$reasons = $report['reasons'];
+	if ( 'gf' === $plugin ) {
+		if ( ! class_exists( 'GFForms' ) ) {
+			$reasons[] = 'Gravity Forms is not loaded';
+		} elseif ( \GFCommon::has_post_field( $form['fields'] ) ) {
+			$reasons[] = 'the form has post-creation fields';
+		}
+	} else {
+		if ( ! empty( $form->has_payment ) ) {
+			$reasons[] = 'the form is a payment form';
+		}
+		if ( 'form' !== $form->type ) {
+			$reasons[] = 'the form type is not "form"';
+		}
+	}
+	if ( ! $reasons ) {
+		$reasons[] = 'an audited binding could not be removed';
+	}
+	update_option(
+		LAST_BLOCK_OPTION,
+		array(
+			'time'      => time(),
+			'plugin'    => $plugin,
+			'form'      => (int) ( 'gf' === $plugin ? $form['id'] : $form->id ),
+			'reasons'   => $reasons,
+			'unaudited' => $report['unaudited'],
+		),
+		false
+	);
 }

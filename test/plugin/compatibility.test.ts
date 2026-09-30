@@ -890,8 +890,21 @@ test("an unaudited optional Pro module (Inventory) keeps blocking marked FF; the
     expect(marked.text).toContain(BLOCKED);
     expect(done.added).toEqual([]);
     expect(done.env).toEqual([]);
+
+    // The blocked request's own diagnosis is kept for the panel: reasons and callback identities, no values.
+    const last = await h.php<any>(`return get_option('pirax_form_test_last_block');`);
+    expect(last).toMatchObject({ plugin: "ff", form: expect.any(Number) });
+    expect(last.reasons.join("; ")).toMatch(/\d+ unaudited callback\(s\) on submission hooks/);
+    expect(last.unaudited).toContainEqual({ hook: "fluentform/submission_inserted", priority: expect.any(Number), id: "FluentFormPro\\classes\\Inventory\\InventoryController::insertGlobalInventory" });
+    const raw = JSON.stringify(last);
+    expect([raw.includes(h.token), raw.includes(marker), raw.includes("Pirax inventory")]).toEqual([false, false, false]);
+    await admin.page.goto(`${h.url}${SETTINGS}`);
+    const note = admin.page.locator("#pirax-form-test-last-block");
+    expect(await note.locator(".pirax-form-test-last-reasons").innerText()).toMatch(/Fluent Forms form \d+: .*unaudited callback/);
+    expect(await note.locator("ul.pirax-form-test-last-unaudited").innerText()).toContain("InventoryController::insertGlobalInventory");
   } finally {
     await module(false);
+    await h.php(`delete_option('pirax_form_test_last_block'); return true;`);
   }
   expect((await panel("ff")).verdict).toBe("ready");
 }, 300_000);

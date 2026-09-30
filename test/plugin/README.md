@@ -23,9 +23,9 @@ The [forms checker suites](../forms/README.md) reuse this native harness with re
 - **Compiler toolchain** (`g++`, `make`, `python3`): `bun install` builds the addon with `node-gyp` when no prebuilt binary matches your Node version, which is the case for Node 26. After switching Node major versions, run `bun install` again.
 - **`zip` and `unzip`** for the build, the version checks and trace scrubbing.
 - **Chromium:** `bunx playwright install chromium`.
-- **Network access** on the first run, to fetch WordPress 7.1.2, Fluent Forms 6.2.14, CleanTalk 6.88 (`cleantalk-spam-protect`) and FluentSMTP 2.4.0 from wordpress.org. The ZIPs are cached in `.cache/plugin-test/` and their `Version` headers are checked.
+- **Network access** on the first run, to fetch WordPress 7.1.2, Fluent Forms 6.2.14, CleanTalk 6.88 (`cleantalk-spam-protect`) and FluentSMTP 2.4.1 from wordpress.org. The ZIPs are cached in `.cache/plugin-test/` and their `Version` headers are checked.
 
-The pinned versions are `@wp-playground/cli` 3.1.55, `playwright` 1.63.0, WordPress 7.1.2, PHP 8.3, Fluent Forms 6.2.14, CleanTalk 6.88 and FluentSMTP 2.4.0. The Gravity Forms and Fluent Forms Pro versions are read from the licensed ZIPs; the harness requires Pro 6.2.14 exactly. The plugin accepts marked submissions only on GF 3.1.2 and the other exact versions in the [plugin guide](../../plugin/pirax-form-test/README.md#supported-versions-and-behaviour).
+The pinned versions are `@wp-playground/cli` 3.1.55, `playwright` 1.63.0, WordPress 7.1.2, PHP 8.3, Fluent Forms 6.2.14, CleanTalk 6.88 and FluentSMTP 2.4.1. The Gravity Forms and Fluent Forms Pro versions are read from the licensed ZIPs; the harness requires Pro 6.2.14 exactly. The plugin accepts marked submissions only on GF 3.1.2 and the other exact versions in the [plugin guide](../../plugin/pirax-form-test/README.md#supported-versions-and-behaviour).
 
 ## Credentials
 
@@ -87,7 +87,7 @@ The mu-plugin is written before any plugin is installed, so its safeguards are a
 
 ## Full compatibility stack
 
-`startHarness({ run, compatibility: true })` also installs and activates Fluent Forms Pro (from `FLUENT_FORMS_PRO_ZIP`), CleanTalk 6.88 and FluentSMTP 2.4.0 after GF and FF. The default stack is unchanged: only GF and FF, no Pro prerequisite, and `h.compatibility` is `false`.
+`startHarness({ run, compatibility: true })` also installs and activates Fluent Forms Pro (from `FLUENT_FORMS_PRO_ZIP`), CleanTalk 6.88 and FluentSMTP 2.4.1 after GF and FF. The default stack is unchanged: only GF and FF, no Pro prerequisite, and `h.compatibility` is `false`.
 
 **Setup.** The blueprint defines `FLUENTMAIL_SIMULATE_EMAILS` before any request, so FluentSMTP hands mail to its Simulator provider. `fixtures.php` keeps CleanTalk's WordPress HTTP API mode and contact-form check on, seeds its moderation server as `https://moderate.cleantalk.org`, consumes its one-shot activation redirect, enables Pro's `webhook` module and adds one enabled Pro WebHook feed on the FF form, pointing at a loopback capture URL (`h.fixtures.stack`). GF has no Pro feed.
 
@@ -101,7 +101,7 @@ This covers PHP HTTP through Requests (`wp_remote_*` and direct Requests calls) 
 - `h.envelopes()`: the effective PHPMailer envelope at `phpmailer_init` (To, Cc, Bcc, Reply-To, From, subject, headers, `mailer`, `transport`), which is what FluentSMTP hands to its provider;
 - `h.simulator()`: FluentSMTP's own `fsmpt_email_logs` rows for the Simulator provider. They have no Cc/Bcc, so use `envelopes()` for those.
 
-This proves what FluentSMTP 2.4.0 hands to its provider in simulation. It does not prove real SMTP/IMAP delivery, other providers or other 2.4.x releases.
+This proves what FluentSMTP 2.4.1 hands to its provider in simulation. It does not prove real SMTP/IMAP delivery, other providers or other 2.4.x releases.
 
 **Readers.** All additive; existing harness contracts are unchanged.
 
@@ -111,7 +111,7 @@ This proves what FluentSMTP 2.4.0 hands to its provider in simulation. It does n
 
 Pro webhook jobs run from Action Scheduler: nothing reaches the capture URL before `drainQueues()`.
 
-**Wrong-version fixtures.** `compatibility.test.ts` edits the version declaration of the installed plugin inside the disposable site (CleanTalk to 6.88.1, Pro to 6.2.15, FluentSMTP to 2.4.1), makes fresh requests and restores the file. It asserts the restored file's SHA-256 equals the original, and keeps the original and altered hashes in `compatibility-notes.jsonl`. No production override exists for this.
+**Wrong-version fixtures.** `compatibility.test.ts` edits the version declaration of the installed plugin inside the disposable site (CleanTalk to 6.88.1, Pro to 6.2.15, FluentSMTP to 2.4.2), makes fresh requests and restores the file. It asserts the restored file's SHA-256 equals the original, and keeps the original and altered hashes in `compatibility-notes.jsonl`. No production override exists for this.
 
 ### Callback audit
 
@@ -131,7 +131,7 @@ Callbacks the plugin accepts on the full stack as suppressed for marked submissi
 Other dispositions:
 
 - **Pro WebHook** (`fluentform_webhook_feed`): not a callback exception. The existing email-feed-only narrowing drops it before enqueue, so marked submissions have zero jobs and zero capture hits.
-- **FluentSMTP 2.4.0:** no callbacks on the audited hooks; version pin only.
+- **FluentSMTP 2.4.1:** no callbacks on the audited hooks; version pin only.
 - **CleanTalk generic paths:** `fluentform_submit` is in CleanTalk's `$_cleantalk_hooked_actions` (`inc/cleantalk-ajax.php:119`), so its generic AJAX check skips FF submissions. `gform_submit_form` is not, so GF modern AJAX submissions get the generic check (row above) and not the GF bindings, which `apbct_init` registers on public requests only (`cleantalk.php:837`). GF postbacks get only the GF bindings.
 - **Still blocking** (not audited; a native test covers Inventory): Pro Inventory (`InventoryController::insertGlobalInventory` on `fluentform/submission_inserted` and its closure on `fluentform/before_insert_submission`), Post `Components\Post\Bootstrap`, `PaymentHandler::maybeHandlePayment`, UserRegistration `captureUpdateTarget` and `AffiliateWPFF::addPendingReferral`.
 

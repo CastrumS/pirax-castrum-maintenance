@@ -32,7 +32,7 @@ export const PHP_VERSION = "8.3";
 /** Compatibility stack pins (exact versions, as the plugin audits them). */
 export const FF_PRO_VERSION = "6.2.14";
 export const CLEANTALK_VERSION = "6.88";
-export const FLUENT_SMTP_VERSION = "2.4.0";
+export const FLUENT_SMTP_VERSION = "2.4.1";
 
 const ROOT = resolve(import.meta.dir, "../..");
 const CACHE = join(ROOT, ".cache/plugin-test");

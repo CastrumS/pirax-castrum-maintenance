@@ -55,7 +55,7 @@ If the redirect is unusable, or a later filter undoes the change, marked mail **
 
 ## Supported versions and behaviour
 
-Version 0.2.0. Marked submissions are accepted only on these exact audited versions, compared as exact strings:
+Version 0.2.1. Marked submissions are accepted only on these exact audited versions, compared as exact strings:
 
 | Plugin | Audited version | Applies to |
 |---|---|---|
@@ -63,9 +63,9 @@ Version 0.2.0. Marked submissions are accepted only on these exact audited versi
 | Fluent Forms (free) | 6.2.14 | FF |
 | Fluent Forms Pro | 6.2.14 | FF, when active |
 | Anti-Spam by CleanTalk | 6.88 | GF and FF, when active |
-| FluentSMTP | 2.4.0 | GF and FF, when active |
+| FluentSMTP | 2.4.1 | GF and FF, when active |
 
-Pro, CleanTalk and FluentSMTP are optional: a site without them is checked against the core rows only. When one is active at any other version, marked submissions of the adapters it applies to are rejected with the "integrations could not be suppressed" message. This includes later patch releases such as FluentSMTP 2.4.1 or CleanTalk 6.88.1: 2.4.0 is the only audited FluentSMTP release, not 2.4.x. An active plugin whose version cannot be read counts as not audited. A new version is supported only after it is re-audited. Ordinary submissions still work with any version. The plugin also loads without either form plugin; each adapter is simply inactive.
+Pro, CleanTalk and FluentSMTP are optional: a site without them is checked against the core rows only. When one is active at any other version, marked submissions of the adapters it applies to are rejected with the "integrations could not be suppressed" message. This includes later patch releases such as FluentSMTP 2.4.2 or CleanTalk 6.88.1: 2.4.1 is the only audited FluentSMTP release, not 2.4.x. An active plugin whose version cannot be read counts as not audited. A new version is supported only after it is re-audited. Ordinary submissions still work with any version. The plugin also loads without either form plugin; each adapter is simply inactive.
 
 Tested only on a single WordPress 7.1.2 / PHP 8.3 site. The plugin header declares WordPress 6.4+ and PHP 7.4+, but those are untested. Multisite is untested.
 
@@ -122,7 +122,7 @@ Pro's WebHook feeds (`fluentform_webhook_feed`) are removed before they are queu
 
 **CleanTalk browser traffic is not suppressed.** Only the marked form POST is covered, on each route above. Before that POST exists, CleanTalk's frontend JavaScript runs in the visitor's browser: its bot detector, telemetry and a pre-submit email check (`/wp-json/cleantalk-antispam/v1/check_email_before_post`, which calls `api.cleantalk.org`). The plugin cannot tell that a visit is a test at that point, so on a live site CleanTalk still receives those signals and the checker's email address. The checker puts the marker in a text or textarea field, never an email field, so these earlier checks do not carry the marker. That is the checker's behaviour, not a guarantee: a marker typed by hand into an email field could reach CleanTalk through the pre-check.
 
-**FluentSMTP 2.4.0** has no callbacks on the audited hooks, so only its version is checked. The helper's mail changes run inside FluentSMTP's replacement `wp_mail()` before FluentSMTP hands the message to its provider.
+**FluentSMTP 2.4.1** has no callbacks on the audited hooks, so only its version is checked. The helper's mail changes run inside FluentSMTP's replacement `wp_mail()` before FluentSMTP hands the message to its provider.
 
 **FluentSMTP's email log keeps test mail.** FluentSMTP logs every email by default (`log_emails`), body included. The redirected notification of a marked submission normally lists the submitted fields, so its log row holds the marker and therefore the token. Deleting the entry does not touch that log, and neither does the sweep; the row stays in `fsmpt_email_logs` and FluentSMTP's log view. Other mail loggers behave the same. The plugin never deletes client logs automatically. Deciding whether to turn off logging, purge test rows or shorten log retention on sites that run tests is the operator's policy. Rotate the token if a log holding it may have been exposed.
 
@@ -168,7 +168,7 @@ A site whose form-plugin, Pro, CleanTalk or FluentSMTP versions or integrations 
 
 ## Known limitations
 
-- **After `wp_mail`:** anything that changes recipients after `wp_mail` (for example in `phpmailer_init` or an SMTP plugin's transport), or arbitrary PHP outside the audited hooks, is out of reach. For FluentSMTP 2.4.0 only, the tests check the effective PHPMailer envelope and the entry in FluentSMTP's Simulator log. They do not cover other versions, its real providers or SMTP/IMAP delivery. This also includes a callback that registers a new FF feed-type filter after the pre-dispatch move. No plugin can prove safety against all other code.
+- **After `wp_mail`:** anything that changes recipients after `wp_mail` (for example in `phpmailer_init` or an SMTP plugin's transport), or arbitrary PHP outside the audited hooks, is out of reach. For FluentSMTP 2.4.1 only, the tests check the effective PHPMailer envelope and the entry in FluentSMTP's Simulator log. They do not cover other versions, its real providers or SMTP/IMAP delivery. This also includes a callback that registers a new FF feed-type filter after the pre-dispatch move. No plugin can prove safety against all other code.
 - **Late re-registration:** a suppressed callback re-registered after the guard (GF priority 998, FF priority 9) in the same dispatch, or registered on another hook later in the request, is not caught. Restored bindings go to the end of their priority; the order among callbacks at the same priority is preserved for the audited stack only.
 - **Checker browser limits:** invisible/reCAPTCHA v3 client flows are unverified and may time out under the checker's frozen request policy despite this helper's server-side bypass. Specialized GF phone formats/widgets are also unverified by the checker and may reject its fixed data; basic telephone filling is not proof of support.
 - **Delivery is not verified here:** the local tests log `wp_mail()` arguments, and on the full stack FluentSMTP's simulated send. They do not verify SMTP delivery or mailbox arrival.

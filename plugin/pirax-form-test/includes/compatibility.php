@@ -26,7 +26,7 @@ const AUDITED_VERSIONS = array(
 	'ff'          => '6.2.14',
 	'ff_pro'      => '6.2.14',
 	'cleantalk'   => '6.88',
-	'fluent_smtp' => '2.4.0',
+	'fluent_smtp' => '2.4.1',
 );
 
 const PLUGIN_LABELS = array(

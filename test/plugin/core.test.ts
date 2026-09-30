@@ -80,7 +80,7 @@ test("build:plugin produces only the allowlisted uploadable ZIP with no tests, s
   // Code only: comments may name wp_mail() when documenting what the filters do.
   const source = (await Bun.$`unzip -p ${ZIP} ${"*.php"}`.text()).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   expect(source).not.toMatch(/register_rest_route|rest_api_init|\bwp_mail\s*\(|PHPMailer|PIRAX_FORM_TEST_HARNESS/);
-  expect(await Bun.$`unzip -p ${ZIP} pirax-form-test/pirax-form-test.php`.text()).toMatch(/^ \* Version:\s+0\.2\.0$/m);
+  expect(await Bun.$`unzip -p ${ZIP} pirax-form-test/pirax-form-test.php`.text()).toMatch(/^ \* Version:\s+0\.2\.1$/m);
   expect(await findSecret(join(ROOT, "dist"), [h.token, process.env.GRAVITY_FORMS_ZIP ?? ""])).toEqual([]);
 });
 

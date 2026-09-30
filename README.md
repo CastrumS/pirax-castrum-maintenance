@@ -19,7 +19,7 @@ bunx playwright install chromium
 bun run test:plugin            # real WordPress + Gravity Forms + Fluent Forms suites, plus the full stack; needs credentials
 ```
 
-The plugin suites need `GRAVITY_FORMS_ZIP`, `FLUENT_FORMS_PRO_ZIP` and `FORM_TEST_TOKEN`. Two of them (`stack-harness`, `compatibility`) run the full audited stack: Gravity Forms 3.1.2, Fluent Forms free and Pro 6.2.14, CleanTalk 6.88 and FluentSMTP 2.4.0 (simulated sending only). From a worktree, pass the registered repository's environment file with `bun --env-file=<registered-repo>/.env run test:plugin`. `dist/`, `artifacts/` and `.cache/` are generated and ignored by git.
+The plugin suites need `GRAVITY_FORMS_ZIP`, `FLUENT_FORMS_PRO_ZIP` and `FORM_TEST_TOKEN`. Two of them (`stack-harness`, `compatibility`) run the full audited stack: Gravity Forms 3.1.2, Fluent Forms free and Pro 6.2.14, CleanTalk 6.88 and FluentSMTP 2.4.1 (simulated sending only). From a worktree, pass the registered repository's environment file with `bun --env-file=<registered-repo>/.env run test:plugin`. `dist/`, `artifacts/` and `.cache/` are generated and ignored by git.
 
 ## Setup
 

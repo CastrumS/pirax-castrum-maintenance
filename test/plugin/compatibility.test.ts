@@ -1,5 +1,5 @@
 // Production plugin on the opt-in compatibility stack (helper-compat plan D1–D7; AC1–AC7): GF 3.1.2,
-// FF + FF Pro 6.2.14, CleanTalk 6.88 and FluentSMTP 2.4.0 active together, with HTTP contained,
+// FF + FF Pro 6.2.14, CleanTalk 6.88 and FluentSMTP 2.4.1 active together, with HTTP contained,
 // CleanTalk moderation and the Pro webhook answered at the Requests transport and FluentSMTP's
 // Simulator as the mail transport. Forms are submitted in headless Chromium; queues run natively.
 // bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/compatibility.test.ts
@@ -795,13 +795,13 @@ test("admin panel on the full stack: exact versions audited per form plugin and 
   expect(gf.rows).toEqual([
     ["Gravity Forms", "3.1.2", "audited"],
     ["Anti-Spam by CleanTalk", "6.88", "audited"],
-    ["FluentSMTP", "2.4.0", "audited"],
+    ["FluentSMTP", "2.4.1", "audited"],
   ]);
   expect(ff.rows).toEqual([
     ["Fluent Forms", "6.2.14", "audited"],
     ["Fluent Forms Pro", "6.2.14", "audited"],
     ["Anti-Spam by CleanTalk", "6.88", "audited"],
-    ["FluentSMTP", "2.4.0", "audited"],
+    ["FluentSMTP", "2.4.1", "audited"],
   ]);
   expect([gf.verdict, ff.verdict]).toEqual(["ready", "ready"]);
   expect([gf.hooks, ff.hooks]).toEqual([{}, {}]);
@@ -810,7 +810,7 @@ test("admin panel on the full stack: exact versions audited per form plugin and 
 const VERSIONS = [
   { name: "CleanTalk", file: "cleantalk-spam-protect/cleantalk.php", search: "Version: 6.88\n", replace: "Version: 6.88.1\n", label: "Anti-Spam by CleanTalk 6.88.1 is not the audited 6.88", gf: true },
   { name: "Fluent Forms Pro", file: "fluentformpro/fluentformpro.php", search: "define('FLUENTFORMPRO_VERSION', '6.2.14');", replace: "define('FLUENTFORMPRO_VERSION', '6.2.15');", label: "Fluent Forms Pro 6.2.15 is not the audited 6.2.14", gf: false },
-  { name: "FluentSMTP", file: "fluent-smtp/boot.php", search: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.0');", replace: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.1');", label: "FluentSMTP 2.4.1 is not the audited 2.4.0", gf: true },
+  { name: "FluentSMTP", file: "fluent-smtp/boot.php", search: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.1');", replace: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.2');", label: "FluentSMTP 2.4.2 is not the audited 2.4.1", gf: true },
 ];
 
 for (const v of VERSIONS) {
@@ -906,7 +906,7 @@ test("retained evidence names every version and ZIP hash and contains no token o
   const evidence = await h.saveEvidence();
   expect(evidence.files).toEqual(expect.arrayContaining(["http.jsonl", "envelopes.jsonl", "simulator.jsonl", "manifest.json"]));
   const manifest = await Bun.file(`${h.artifactDir}/manifest.json`).json();
-  expect(manifest.versions).toMatchObject({ gf: "3.1.2", ff: "6.2.14", ffPro: "6.2.14", cleantalk: "6.88", fluentSmtp: "2.4.0" });
+  expect(manifest.versions).toMatchObject({ gf: "3.1.2", ff: "6.2.14", ffPro: "6.2.14", cleantalk: "6.88", fluentSmtp: "2.4.1" });
   expect(Object.keys(manifest.zips).sort()).toEqual(["cleantalk", "fluentSmtp", "fluentform", "fluentformpro", "gravityforms"]);
   expect(await findSecret(h.artifactDir, [h.token, process.env.GRAVITY_FORMS_ZIP!, process.env.FLUENT_FORMS_PRO_ZIP!])).toEqual([]);
 }, 120_000);

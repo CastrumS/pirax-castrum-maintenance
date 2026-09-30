@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Pirax Form Test
  * Description:       Redirects marked Pirax test form submissions to the operator's test mailbox and keeps them away from clients.
- * Version:           0.2.1
+ * Version:           0.2.2
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            Pirax

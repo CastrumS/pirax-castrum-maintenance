@@ -24,7 +24,7 @@ defined( 'ABSPATH' ) || exit;
 const AUDITED_VERSIONS = array(
 	'gf'          => '3.1.2',
 	'ff'          => '6.2.14',
-	'ff_pro'      => '6.2.14',
+	'ff_pro'      => '6.2.15',
 	'cleantalk'   => '6.88',
 	'fluent_smtp' => '2.4.1',
 );

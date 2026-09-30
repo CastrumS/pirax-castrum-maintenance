@@ -391,7 +391,7 @@ test("optional plugin pins are exact strings, and on this stack (none of them ac
     $audited = fn($plugin, $versions) => array_combine($versions, array_map(fn($v) => Pirax\\FormTest\\version_is_audited($plugin, $v), $versions));
     $report = fn($plugin) => array_intersect_key(Pirax\\FormTest\\compatibility_report($plugin), array_flip(['versions', 'unaudited', 'reasons', 'ready']));
     return [
-      'ff_pro' => $audited('ff_pro', ['6.2.14', '6.2.15', '6.2.1', '6.2', '6.2.14.1', '6.2.14-beta', '']),
+      'ff_pro' => $audited('ff_pro', ['6.2.15', '6.2.16', '6.2.1', '6.2', '6.2.15.1', '6.2.15-beta', '']),
       'cleantalk' => $audited('cleantalk', ['6.88', '6.88.1', '6.89', '6.8', '6.880', '6.88-rc1', '']),
       'fluent_smtp' => $audited('fluent_smtp', ['2.4.1', '2.4.2', '2.4', '2.4.10', '2.4.1-beta', '']),
       'gf' => $report('gf'),
@@ -399,7 +399,7 @@ test("optional plugin pins are exact strings, and on this stack (none of them ac
     ];
   `);
   expect(result).toEqual({
-    ff_pro: { "6.2.14": true, "6.2.15": false, "6.2.1": false, "6.2": false, "6.2.14.1": false, "6.2.14-beta": false, "": false },
+    ff_pro: { "6.2.15": true, "6.2.16": false, "6.2.1": false, "6.2": false, "6.2.15.1": false, "6.2.15-beta": false, "": false },
     cleantalk: { "6.88": true, "6.88.1": false, "6.89": false, "6.8": false, "6.880": false, "6.88-rc1": false, "": false },
     fluent_smtp: { "2.4.1": true, "2.4.2": false, "2.4": false, "2.4.10": false, "2.4.1-beta": false, "": false },
     gf: { versions: { gf: { version: "3.1.2", audited: true } }, unaudited: [], reasons: [], ready: true },

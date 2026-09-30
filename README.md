@@ -19,7 +19,7 @@ bunx playwright install chromium
 bun run test:plugin            # real WordPress + Gravity Forms + Fluent Forms suites, plus the full stack; needs credentials
 ```
 
-The plugin suites need `GRAVITY_FORMS_ZIP`, `FLUENT_FORMS_PRO_ZIP` and `FORM_TEST_TOKEN`. Two of them (`stack-harness`, `compatibility`) run the full audited stack: Gravity Forms 3.1.2, Fluent Forms free and Pro 6.2.14, CleanTalk 6.88 and FluentSMTP 2.4.1 (simulated sending only). From a worktree, pass the registered repository's environment file with `bun --env-file=<registered-repo>/.env run test:plugin`. `dist/`, `artifacts/` and `.cache/` are generated and ignored by git.
+The plugin suites need `GRAVITY_FORMS_ZIP`, `FLUENT_FORMS_PRO_ZIP` and `FORM_TEST_TOKEN`. Two of them (`stack-harness`, `compatibility`) run the full audited stack: Gravity Forms 3.1.2, Fluent Forms free 6.2.14 and Pro 6.2.15, CleanTalk 6.88 and FluentSMTP 2.4.1 (simulated sending only). From a worktree, pass the registered repository's environment file with `bun --env-file=<registered-repo>/.env run test:plugin`. `dist/`, `artifacts/` and `.cache/` are generated and ignored by git.
 
 ## Setup
 
@@ -249,7 +249,7 @@ Obtain a **new dedicated mailbox**, not anyone's personal inbox. Enable IMAP/app
 | `IMAP_FOLDER`, `IMAP_SPAM_FOLDER` | Exact existing provider folder names, no outer whitespace, controls or `*`/`%`; no automatic discovery or creation. Equal names are checked once and treated as spam. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Selftest only: provider's authenticated sender settings (port 465 implicit TLS, others required STARTTLS), same dedicated account; port 1–65535, nonblank credentials without controls. |
 | `GRAVITY_FORMS_ZIP` | Native tests only: absolute licensed **3.1.2** ZIP path from gravityforms.com → account → Downloads. |
-| `FLUENT_FORMS_PRO_ZIP` | Native plugin tests only: absolute licensed Fluent Forms Pro **6.2.14** ZIP path from fluentforms.com → account → Downloads. |
+| `FLUENT_FORMS_PRO_ZIP` | Native plugin tests only: absolute licensed Fluent Forms Pro **6.2.15** ZIP path from fluentforms.com → account → Downloads. |
 
 IMAP uses only the two literal folders with `EXAMINE`, tag-specific UID SEARCH and candidate Subject-only `BODY.PEEK`; no body reads, discovery, flag writes, moves, deletes or mailbox creation. ImapFlow is pinned to **2.0.7**, with the reproducible Bun patch `patches/imapflow@2.0.7.patch` disabling namespace/path rewriting and implicit LIST in opt-in literal-mailbox mode (both runtime builds). Keep the pin/patch and installed-contract tests together when upgrading.
 

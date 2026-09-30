@@ -30,7 +30,7 @@ export const FF_VERSION = "6.2.14";
 export const WP_VERSION = "7.1.2";
 export const PHP_VERSION = "8.3";
 /** Compatibility stack pins (exact versions, as the plugin audits them). */
-export const FF_PRO_VERSION = "6.2.14";
+export const FF_PRO_VERSION = "6.2.15";
 export const CLEANTALK_VERSION = "6.88";
 export const FLUENT_SMTP_VERSION = "2.4.1";
 

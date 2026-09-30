@@ -55,13 +55,13 @@ If the redirect is unusable, or a later filter undoes the change, marked mail **
 
 ## Supported versions and behaviour
 
-Version 0.2.1. Marked submissions are accepted only on these exact audited versions, compared as exact strings:
+Version 0.2.2. Marked submissions are accepted only on these exact audited versions, compared as exact strings:
 
 | Plugin | Audited version | Applies to |
 |---|---|---|
 | Gravity Forms | 3.1.2 | GF |
 | Fluent Forms (free) | 6.2.14 | FF |
-| Fluent Forms Pro | 6.2.14 | FF, when active |
+| Fluent Forms Pro | 6.2.15 | FF, when active |
 | Anti-Spam by CleanTalk | 6.88 | GF and FF, when active |
 | FluentSMTP | 2.4.1 | GF and FF, when active |
 
@@ -109,10 +109,10 @@ Which CleanTalk check applies depends on the submission route:
 | CleanTalk 6.88 | `gform_entry_is_spam` (999) | `apbct_form__gravityForms__testSpam` | Moderation request, spam verdict and entry deletion |
 | CleanTalk 6.88 | `gform_confirmation` (999) | `apbct_form__gravityForms__showResponse` | CleanTalk's spam text replacing the confirmation |
 | CleanTalk 6.88 | `plugins_loaded` (10), GF modern AJAX only | `ct_ajax_hook` | Moderation request with the whole POST, token included, before GF validates |
-| FF Pro 6.2.14 | `fluentform/before_form_actions_processing` (10) | `DoubleOptin::processOnSubmission` | Opt-in mail to the visitor, `unconfirmed` status, early response instead of notifications |
-| FF Pro 6.2.14 | `fluentform/before_form_actions_processing` (10) | `AdminApproval::processOnSubmission` | Approval mail, `unapproved` status, early response |
-| FF Pro 6.2.14 | `fluentform/submission_inserted` (10) | `DraftSubmissionsManager::delete` | Deleting the visitor's saved and step-form drafts |
-| FF Pro 6.2.14 | `fluentform/global_notify_completed` (10) | Pro's closure in `fluentformpro.php` | "Delete entry on submission" racing the helper's own cleanup |
+| FF Pro 6.2.15 | `fluentform/before_form_actions_processing` (10) | `DoubleOptin::processOnSubmission` | Opt-in mail to the visitor, `unconfirmed` status, early response instead of notifications |
+| FF Pro 6.2.15 | `fluentform/before_form_actions_processing` (10) | `AdminApproval::processOnSubmission` | Approval mail, `unapproved` status, early response |
+| FF Pro 6.2.15 | `fluentform/submission_inserted` (10) | `DraftSubmissionsManager::delete` | Deleting the visitor's saved and step-form drafts |
+| FF Pro 6.2.15 | `fluentform/global_notify_completed` (10) | Pro's closure in `fluentformpro.php` | "Delete entry on submission" racing the helper's own cleanup |
 
 CleanTalk's FF check is recognized only if it is CleanTalk's closure with its `FluentForm` integration. For FF, if CleanTalk's contact-form check is switched off, there is no binding to remove and the submission proceeds. If the check is on but its binding was changed or wrapped, the submission is rejected. CleanTalk registers its GF bindings only on public requests, and its generic AJAX check only on admin-ajax requests from visitors it treats as logged out (or from everyone when it protects logged-in users). CleanTalk's options, spam state and moderation results are never changed, and no spam approval is faked.
 

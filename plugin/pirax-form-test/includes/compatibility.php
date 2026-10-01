@@ -354,9 +354,14 @@ function gf_supported( array $form ) {
 	return class_exists( 'GFForms' ) && ! \GFCommon::has_post_field( $form['fields'] ) && compatibility_report( 'gf', $form )['ready'];
 }
 
+/** An ordinary FF form: type `form`, or empty, as FF's own activation demo form is stored (`post` and others are not). */
+function ff_plain_form( $form ) {
+	return in_array( (string) $form->type, array( 'form', '' ), true );
+}
+
 /** True when a marked submission of this FF form can be fully suppressed. */
 function ff_supported( $form ) {
-	return empty( $form->has_payment ) && 'form' === $form->type && compatibility_report( 'ff' )['ready'];
+	return empty( $form->has_payment ) && ff_plain_form( $form ) && compatibility_report( 'ff' )['ready'];
 }
 
 /** Bindings removed for marked work in this request, for restore_suppressed(). */
@@ -420,8 +425,8 @@ function record_block( $plugin, $form ) {
 		if ( ! empty( $form->has_payment ) ) {
 			$reasons[] = 'the form is a payment form';
 		}
-		if ( 'form' !== $form->type ) {
-			$reasons[] = 'the form type is not "form"';
+		if ( ! ff_plain_form( $form ) ) {
+			$reasons[] = sprintf( 'the form type "%s" is not an ordinary form', sanitize_key( (string) $form->type ) );
 		}
 	}
 	if ( ! $reasons ) {

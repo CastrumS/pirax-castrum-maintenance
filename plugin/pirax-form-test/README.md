@@ -55,7 +55,7 @@ If the redirect is unusable, or a later filter undoes the change, marked mail **
 
 ## Supported versions and behaviour
 
-Version 0.2.3. Marked submissions are accepted only on these exact audited versions, compared as exact strings:
+Version 0.2.4. Marked submissions are accepted only on these exact audited versions, compared as exact strings:
 
 | Plugin | Audited version | Applies to |
 |---|---|---|
@@ -86,7 +86,7 @@ Tested only on a single WordPress 7.1.2 / PHP 8.3 site. The plugin header declar
 - a callback outside the small audited inventory is hooked on the submission side-effect, feed-dispatch or notification hooks, including GF's form-specific `<hook>_<form id>` variants (in `includes/compatibility.php`). Examples: FF Pro modules not listed below (such as Inventory, Post/CPT, payments, user registration or AffiliateWP), GF payment or user-registration add-ons, or custom `gform_after_submission` code;
 - CleanTalk's check is switched on for the submission but its audited binding cannot be recognized or removed (see below). For a GF modern AJAX submission this is decided, and the request refused, before CleanTalk's generic AJAX check can run;
 - the GF form has post-creation fields;
-- the FF form is a payment form (`has_payment`) or not of type `form`.
+- the FF form is a payment form (`has_payment`) or not an ordinary form: its type must be `form` or empty (FF stores its own activation demo form, often reused as the contact form, with an empty type); `post` and other types are rejected.
 
 An unaudited generic callback blocks that form plugin's marked submissions site-wide; a GF form-specific callback blocks that form. FF Pro itself does not block; only its callbacks outside the audited list do. Custom forms and optional Pro modules that were not audited stay unsupported.
 

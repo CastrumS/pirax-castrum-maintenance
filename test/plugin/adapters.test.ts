@@ -277,6 +277,36 @@ test("FF marked browser submission: both notifications redirected, only the emai
   expect((await h.mail()).length).toBe(before.mail + 2);
 }, 180_000);
 
+test("FF marked submission of an empty-type form (FF's activation demo form) is supported like type form; type post stays blocked", async () => {
+  const setType = (type: string) =>
+    h.php(`global $wpdb; $wpdb->update($wpdb->prefix . 'fluentform_forms', ['type' => '${type}'], ['id' => ${h.fixtures.ff}]); return true;`);
+  await setType("");
+  try {
+    const before = await counts();
+    const result = await ffSubmit(h.fixtures.ff, h.fixtures.page, ffValues(`Pirax check ${marker}`));
+    expect(result.ok).toBe(true);
+    const mail = (await h.mail()).slice(before.mail);
+    expect(mail.map((m) => m.subject).sort()).toEqual([
+      `[pirax-test ${ID}] ff-${h.fixtures.ff} notification A`,
+      `[pirax-test ${ID}] ff-${h.fixtures.ff} notification B`,
+    ]);
+    expectRedirected(mail);
+    expect(await ffRows([result.insertId!])).toEqual([]);
+
+    await setType("post");
+    const beforePost = await counts();
+    const post = await ffSubmit(h.fixtures.ff, h.fixtures.page, ffValues(`Pirax check ${marker}`));
+    expect(post.ok).toBe(false);
+    expect(post.text).toContain(BLOCKED);
+    expect((await h.mail()).length).toBe(beforePost.mail);
+    const last = await h.php<any>(`return get_option('pirax_form_test_last_block');`);
+    expect(last.reasons).toContain('the form type "post" is not an ordinary form');
+  } finally {
+    await setType("form");
+    await h.php(`delete_option('pirax_form_test_last_block'); return true;`);
+  }
+}, 180_000);
+
 test("FF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries", async () => {
   const before = await counts();
   const ids: number[] = [];

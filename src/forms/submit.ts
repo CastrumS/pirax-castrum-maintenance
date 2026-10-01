@@ -4,11 +4,11 @@ import { formLocator } from "./detect.ts";
 import { inspectForm, intactMarker, nativeValidation, type PreparedForm } from "./fill.ts";
 import { secretRedactor, type Redactor } from "./evidence.ts";
 
-export type FormPolicy = { freeze(): void; arm(page: Page, prepared: PreparedForm): Promise<void>; disarm(): Promise<void>; submitted(): boolean; transportFailed(): boolean };
+export type FormPolicy = { freeze(): void; arm(page: Page, prepared: PreparedForm): Promise<void>; disarm(): Promise<void>; submitted(): boolean; transportFailed(): boolean; redirected(): string | undefined };
 /** Installed before navigation. Frozen typing permits no outgoing request, including GET serialization.
  * One native browser submit may spend one same-origin, marker-bearing audited POST authorization. */
 export async function installFormPolicy(context: BrowserContext): Promise<FormPolicy> {
-  let frozen = false, allowed: PreparedForm | undefined, selectedPage: Page | undefined, spent = false, transportFailure = false;
+  let frozen = false, allowed: PreparedForm | undefined, selectedPage: Page | undefined, spent = false, transportFailure = false, redirect: string | undefined;
   const key = `__pirax_${randomUUID().replaceAll('-', '')}`;
   await context.addInitScript(({ key }) => {
     let selected: { selector: string; marker: string; markerName: string } | undefined;
@@ -62,6 +62,21 @@ export async function installFormPolicy(context: BrowserContext): Promise<FormPo
           const expected = new URLSearchParams(action.search); expected.delete('t');
           valid = url.pathname === action.pathname && query.toString() === expected.toString() && (timestamps.length === 0 || timestamps.length === 1 && /^\d{10,16}$/.test(timestamps[0]!)) && data.getAll('action').length === 1 && data.get('action') === 'fluentform_submit' && data.getAll('form_id').length === 1 && data.get('form_id') === p.descriptor.pluginId && data.getAll('data').length === 1 && new URLSearchParams(String(data.get('data') ?? '')).getAll(p.markerName).length === 1 && new URLSearchParams(String(data.get('data') ?? '')).get(p.markerName) === p.marker;
         }
+        if (valid && p.descriptor.plugin === 'fluent') {
+          // FF's "redirect to a page/URL" confirmation: this POST's own 200 JSON names the target, then FF's
+          // script navigates there, which the frozen policy blocks. Read the body here (a page-side read can
+          // stall once that navigation starts) and keep only the target's path; its query may carry values.
+          spent = true; approved.add(r);
+          let response: Awaited<ReturnType<typeof route.fetch>>, body: Buffer;
+          try { response = await route.fetch({ maxRedirects: 0 }); body = await response.body(); }
+          catch { transportFailure = true; return route.abort('failed'); }
+          try {
+            const json = JSON.parse(body.toString('utf8')) as { success?: unknown; data?: { insert_id?: unknown; result?: { redirectUrl?: unknown } } };
+            const target = json?.data?.result?.redirectUrl;
+            if (response.status() === 200 && json?.success === true && json.data?.insert_id && typeof target === 'string' && target) redirect = new URL(target, r.url()).pathname;
+          } catch { /* Not FF's JSON success; never a confirmation. */ }
+          return route.fulfill({ response, body });
+        }
         if (valid) { spent = true; approved.add(r); return route.continue(); }
       } catch { /* Unparseable or unfamiliar serialization is never authorized. */ }
     }
@@ -81,7 +96,7 @@ export async function installFormPolicy(context: BrowserContext): Promise<FormPo
   return {
     freeze() { frozen = true; },
     async arm(page, prepared) {
-      frozen = true; allowed = prepared; selectedPage = page; spent = false; transportFailure = false;
+      frozen = true; allowed = prepared; selectedPage = page; spent = false; transportFailure = false; redirect = undefined;
       await page.evaluate(({ key, selector, marker, markerName }) => (window as unknown as Record<string, (v: unknown) => void>)[key]!({ selector, marker, markerName }), { key, selector: prepared.descriptor.selector, marker: prepared.marker, markerName: prepared.markerName });
     },
     async disarm() {
@@ -90,6 +105,7 @@ export async function installFormPolicy(context: BrowserContext): Promise<FormPo
     },
     submitted: () => spent,
     transportFailed: () => transportFailure,
+    redirected: () => redirect,
   };
 }
 
@@ -130,6 +146,8 @@ export async function submitForm(page: Page, prepared: PreparedForm, policy: For
     await form.locator('input,textarea,select,button,fieldset,object,output').nth(prepared.submitIndex).click({ timeout, noWaitAfter: true });
     while (Date.now() < deadline) {
       if (policy.transportFailed()) return result('failed', 'Submission transport failed; not retried.');
+      const redirectedTo = gravity ? undefined : policy.redirected();
+      if (redirectedTo && policy.submitted()) return result('confirmed', `Native Fluent Forms confirmation: redirect to ${redirectedTo}`);
       try {
         const observed = await page.evaluate(({ success, error, staleKey, selector, ordinal }) => {
           const visible = (e: Element) => e.checkVisibility() && !!e.getClientRects().length;

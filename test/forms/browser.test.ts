@@ -16,11 +16,13 @@ const config = { token: "fixture-Private+Token/=123", address: "checker+fixture@
 const redact = secretRedactor(config.token, [config.address]);
 const runDir = resolve("runs", `forms-browser-${crypto.randomUUID()}`);
 let browser: Browser;
-let writes = 0, traps = 0, sockets = 0, chunkReads = 0;
+let writes = 0, traps = 0, sockets = 0, chunkReads = 0, thanks = 0;
 const gfChunk = '/wp-content/plugins/gravityforms/assets/js/dist/vendor-theme-dompurify.b0876f45cc06deeb8174.min.js';
 const gf = (id = 1, fields = '<input name="input_1" required><input name="input_2" type="email" required><textarea name="input_3"></textarea>', extra = "") => `<div class="gform_wrapper" id="gform_wrapper_${id}"><form id="gform_${id}" method="post" ${extra}><input type="hidden" name="gform_submit" value="${id}"><input type="hidden" name="nonce" value="untouched">${fields}<button type="submit">Send</button></form></div>`;
 const ff = `<div class="fluentform"><form class="frm-fluent-form" id="fluentform_2" data-form_id="2"><input name="email" type="email"><textarea name="message"></textarea><button type="submit">Send</button></form></div>`;
 const ffScript = `<script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const form=e.target;await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});form.parentElement.insertAdjacentHTML('beforeend','<div class="ff-message-success">FF accepted</div>')};</script>`;
+// FF "redirect to a page" confirmation: FF answers the POST with the target, then its script navigates there.
+const ffRedirect = (mode: string) => ff.replace('<button', `<input type="hidden" name="_ff_confirm" value="${mode}"><button`) + `<script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const form=e.target;const r=await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});const j=await r.json();if(j.data&&j.data.result&&j.data.result.redirectUrl)location.href=j.data.result.redirectUrl;};</script>`;
 const trapScript = `<script>
 new WebSocket('ws://'+location.host+'/socket');
 fetch('/trap',{method:'POST',body:'onload'}).catch(()=>{});
@@ -37,10 +39,14 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
   const url = new URL(req.url);
   if (url.pathname === "/socket") { sockets++; return srv.upgrade(req, { data: undefined }) ? undefined : new Response(); }
   if (url.pathname === "/trap") { traps++; return new Response("trap"); }
+  if (url.pathname === "/hvala-vam/") { thanks++; return html("Hvala vam"); }
   if (url.pathname === gfChunk) { chunkReads++; return new Response('window.nativeChunkLoaded=true;', { headers: { 'content-type': 'text/javascript' } }); }
   if (req.method === "POST") {
     writes++;
     const data = await req.formData();
+    const confirm = new URLSearchParams(String(data.get("data") ?? "")).get("_ff_confirm");
+    if (confirm === "redirect") return Response.json({ success: true, data: { insert_id: 7, result: { redirectUrl: `${url.origin}/hvala-vam/?name=${encodeURIComponent(config.token)}`, message: "" }, error: "" } });
+    if (confirm === "redirect-no-entry") return Response.json({ success: true, data: { result: { redirectUrl: `${url.origin}/hvala-vam/` } } });
     if (url.pathname === "/reject" || url.pathname === "/reject-duplicates") return html(`<div id="gform_wrapper_1"><div id="gform_1_validation_container">Refused ${config.token} ${encodeURIComponent(config.address)}</div></div>`, 400);
     if (url.pathname === "/foreign") return html('<div id="gform_confirmation_message_99">Wrong form</div>');
     if (url.pathname === "/no-confirmation") return html("HTTP 200 is not confirmation");
@@ -62,6 +68,8 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
     case "/constrained": return html(gf(1, '<textarea name="input_3" maxlength="3"></textarea>'));
     case "/ambiguous-ff": return html(ff.replace('<div class="fluentform">', '').replace('</form></div>', '</form>'));
     case "/ff": return html(ff + ffScript);
+    case "/ff-redirect": return html(ffRedirect("redirect"));
+    case "/ff-redirect-no-entry": return html(ffRedirect("redirect-no-entry"));
     case "/gf-ajax": return html(gf(1, '<textarea name="input_3"></textarea><input type="hidden" name="gform_submission_method" data-js="gform_submission_method_1" value="ajax">') + `<script>window.gform_theme_config={common:{form:{ajax:{ajaxurl:location.origin+'/wp-admin/admin-ajax.php'}}}};document.querySelector('form').onsubmit=async e=>{e.preventDefault();const data=new FormData(e.target);data.append('action','gform_submit_form');data.append('form_id','1');const response=await fetch('/wp-admin/admin-ajax.php',{method:'POST',body:data});const body=await response.text();await fetch('${gfChunk}?field='+encodeURIComponent(data.get('input_3'))).catch(()=>{});await fetch('${gfChunk}').catch(()=>{});await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='${gfChunk}';s.onload=resolve;s.onerror=reject;document.head.append(s)});if(window.nativeChunkLoaded)document.body.innerHTML=body;};</script>`);
     case "/stale": return html(gf() + '<div id="gform_confirmation_message_1">Old</div>');
     case "/ff-stale": return html(ff + '<div class="ff-message-success">Foreign success</div>');
@@ -199,7 +207,7 @@ test("no-helper blocks autonomous input/change GET/POST/image/navigation and soc
 });
 function restore(name: string, value: string | undefined) { if (value === undefined) delete process.env[name]; else process.env[name] = value; }
 test("specific new GF and associated FF confirmations; errors sanitized; no retry", async () => {
-  for (const [path, expected] of [["/plain", "confirmed"], ["/ff", "confirmed"], ["/gf-ajax", "confirmed"], ["/save-trap", "failed"], ["/reject", "rejected"], ["/foreign", "failed"], ["/no-confirmation", "failed"], ["/stale", "failed"], ["/ff-stale", "failed"], ["/ff-foreign", "failed"]] as const) {
+  for (const [path, expected] of [["/plain", "confirmed"], ["/ff", "confirmed"], ["/gf-ajax", "confirmed"], ["/save-trap", "failed"], ["/reject", "rejected"], ["/foreign", "failed"], ["/no-confirmation", "failed"], ["/stale", "failed"], ["/ff-stale", "failed"], ["/ff-foreign", "failed"], ["/ff-redirect", "confirmed"], ["/ff-redirect-no-entry", "failed"]] as const) {
     await visit(path, async (page, policy) => {
       policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
       expect(prepared.state).toBe("prepared"); if (prepared.state !== "prepared") return;
@@ -211,6 +219,9 @@ test("specific new GF and associated FF confirmations; errors sanitized; no retr
       if (path === '/gf-ajax') expect(chunkReads - chunksBefore).toBe(1); // script only, never fetch/query serialization
       expect(redact(result.detail)).toBe(result.detail);
       if (path === "/reject") expect(result.detail).toContain("<token>");
+      // The target's path only (its query may carry submitted values); the blocked navigation never happens.
+      if (path === "/ff-redirect") expect(result.detail).toBe("Native Fluent Forms confirmation: redirect to /hvala-vam/");
+      if (path.startsWith("/ff-redirect")) expect(thanks).toBe(0);
     });
   }
 });

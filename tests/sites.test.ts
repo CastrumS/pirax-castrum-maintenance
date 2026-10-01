@@ -118,7 +118,8 @@ describe("loadSites valid input", () => {
       instrukcijezasve: { page: "/kontakt/", plugin: "gravity", id: 4 },
     });
     expect("test_form" in sites.find((s) => s.slug === "downstairs")!).toBe(false);
-    expect(sites.every((s) => s.form_helper === false)).toBe(true);
+    // Submission is opted in only where the helper is installed and its panel reads ready.
+    expect(sites.filter((s) => s.form_helper).map((s) => s.slug)).toEqual(["stolarijabanek"]);
   });
 });
 

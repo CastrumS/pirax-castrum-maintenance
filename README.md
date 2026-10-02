@@ -52,7 +52,7 @@ Create `.env` in the repository root with the four names from `.env.example`:
 | `bun run approve <slug> [pagePath] [--sites file]` | Promote exact actual PNG/health bytes from the latest completed remote check containing that site. | Yes |
 | `bun --no-env-file test tests` | Credential-free unit/helper, CLI and local browser tests; browser cases require installed Chromium. `bunfig.toml` excludes `issues/**` worktrees from discovery. | No |
 | `bun --env-file=.env test` | Full suite, including native [plugin](test/plugin/README.md) and [forms](test/forms/README.md) integration and scoped real R2; budget about 35 minutes. Needs licensed GF and Fluent Forms Pro ZIPs, forms/IMAP and R2 configuration. On a clean checkout run `bun run build:plugin` first: the forms suite uploads the existing `dist/pirax-form-test.zip` and can run before a plugin suite builds it. Missing prerequisites fail, never skip. | Yes |
-| `bun --env-file=.env run test:forms` | Browser/config/mail helpers, native Playground checker and scoped report tests. | Yes |
+| `bun --env-file=.env run test:forms` | Browser/config/mail helpers, native Playground checker, scoped report tests and awaiting-audit state/command tests. | Yes |
 | `bun --env-file=.env run mail:selftest` | Independent real SMTP/IMAP proof; sends one message and leaves it in the dedicated mailbox. | No |
 | `bun run typecheck` | `tsc --noEmit` over `src`, `scripts`, `tests` and `test` fixtures. | No |
 | `bun run store:selftest` | Real-bucket storage test (see [Storage selftest](#storage-selftest)); runs `bun --env-file=.env scripts/store-selftest.ts`. | Yes |
@@ -62,8 +62,8 @@ Use a listed slug (for example `acme`) or `all` for baseline/check/forms. `appro
 
 Exit codes for baseline/check/forms/approve:
 
-- `0`: pass or warnings only, successful approval, or an empty selection.
-- `1`: visual, health, rejected/failed form, missing/corrupt baseline, blocked capture or operational failure, including report upload/pruning and approval failures.
+- `0`: pass or warnings only (including an `awaiting-audit` form for at most 72 hours), successful approval, or an empty selection.
+- `1`: visual, health, rejected/failed form (including an awaiting-audit refusal that has lasted longer than 72 hours), missing/corrupt baseline, blocked capture or operational failure, including report upload/pruning and approval failures.
 - `2`: usage, site-list, CSS-selector or missing/blank/invalid credential configuration error.
 
 ### Before and after manual updates
@@ -184,7 +184,10 @@ reports/<runId>/actual/<slug>/<viewport>/<pageKey>.health.json
 reports/<runId>/baseline/<slug>/<viewport>/<pageKey>.png          # when available
 reports/<runId>/baseline/<slug>/<viewport>/<pageKey>.health.json  # when available
 reports/<runId>/diff/<slug>/<viewport>/<pageKey>.png              # when available
+state/awaiting-audit/<slug>.json                                   # per-site awaiting-audit clock
 ```
+
+`state/` sits outside `reports/`, so report pruning never removes it. Baseline and approve never read or write it. See [awaiting-audit refusals](#awaiting-audit-refusals).
 
 `runId` is `new Date().toISOString().replaceAll(":", "-")`, for example `2026-09-25T13-45-07.123Z`, so names sort chronologically.
 
@@ -221,8 +224,34 @@ A new, form-associated native confirmation is required before polling. GF postba
 | `delivered` | Pass: exact tagged Subject found in configured inbox folder. |
 | `delivered-spam` | Warning: spam match wins even if also found in inbox. |
 | `not-verified`, `unsupported` | Warning, not proof of delivery. |
+| `awaiting-audit` | Warning while the site has been awaiting a helper audit for at most 72 hours. After that the form is reported `failed` (exit 1). Never a confirmation or delivery evidence. |
 | `skipped` | Neutral (counts as pass): not the designated test form, or no `test_form`; never filled or submitted, and not delivery evidence. |
 | `rejected`, `failed` | Failure, exit 1 (including missing confirmation, delivery timeout or `test form not found`). |
+
+### Awaiting-audit refusals
+
+The helper refuses a test submission while installed plugin versions are not yet audited. Its message is `Pirax test blocked: awaiting audit of <Plugin label> <version>`, with further `<label> <version>` items joined by `, `. The checker does not keep its own list of plugins or versions. The selected form's result is `awaiting-audit` only when every fresh, visible refusal message of that form matches this text exactly: case-sensitive, at the start of the message, and with a nonempty label and version in each item. GF's native summary heading around the helper paragraph is framing, not a separate refusal. Everything else stays `rejected`:
+
+- the older generic `Pirax test blocked: integrations could not be suppressed`;
+- near matches, such as a different case, a blank payload, a missing version or the text in the middle of a sentence;
+- an awaiting message next to a field error or any other refusal;
+- an awaiting message while the selected form is also natively invalid.
+
+Stale messages, another form's messages and messages outside the selected instance are still `failed`. An awaiting-audit refusal is never a confirmation: no mailbox polling, no retry and no other form.
+
+Each site slug has one clock, stored as `{"firstSeen": "<canonical UTC ISO timestamp>"}` at `state/awaiting-audit/<slug>.json` in the command's Store. It holds no submitted values, message text or credentials. The clock works as follows:
+
+- **Start.** The first completed `check` or `forms` pass of a site that has an awaiting-audit result records the time.
+- **Keep.** Later sightings in either command keep that time, even when the form, plugin or versions in the message change.
+- **Warn, then fail.** While at most exactly 72 hours have passed, the result is a warning, and its detail gives the first-seen time and the elapsed duration. Once strictly more than 72 hours have passed, the form becomes `failed`. Its detail keeps the version message and adds the elapsed duration and the 72-hour threshold. Repeated failed sightings do not restart the clock.
+- **Clear.** A completed pass of that site with no awaiting-audit result deletes the clock. That covers any other designated-form outcome, helper false, no designation, a designation that is not found, and pages without forms. The next sighting then starts a new clock.
+- **Not cleared.** Skipped forms, duplicate instances and other pages in the same pass do not clear the clock, and page order does not matter. A site that is not selected, or whose pass stops on a configuration error, keeps its clock.
+
+The clock is updated before the report is published, so a later upload failure does not undo it. Storage problems never crash the run or escalate on their own:
+
+- Missing state starts a clock.
+- Invalid, noncanonical or future-dated state, or a failed read, counts as a first sighting and is replaced.
+- A failed save or clear is disclosed in the form detail and in the command log as `Awaiting-audit state: <slug>: …`. A failed clear is retried on the next pass without an awaiting-audit result.
 
 ### Designated test form
 
@@ -354,7 +383,7 @@ Implementation lessons: [mechanisms and case histories](learnings/LESSONS.md).
 - Dynamic content, consent overlays, anti-bot challenges and browser/font changes can prevent stable comparison. Masks and consistent environments help; the checker does not bypass protection or prove reliability for all production sites.
 - Mixed-content detection combines observed requests, browser diagnostics and resource attributes. It does not exhaustively scan arbitrary JavaScript or nested CSS/imports.
 - Full-page PNGs, embedded report images and whole-site approval hold data in memory; reports/traces can be large. There is no tiled capture or streaming comparison.
-- Real integration evidence covers normal storage, authentication, cleanup and retention. Deliberate R2 network/list/upload/prune failures and partial replacement caused by a real network failure were not induced; nontransactional failure handling is not a claim of verified fault recovery.
+- Real integration evidence covers normal storage, authentication, cleanup and retention. Deliberate R2 network/list/upload/prune failures and partial replacement caused by a real network failure were not induced; nontransactional failure handling is not a claim of verified fault recovery. The exception is awaiting-audit state: its list, read, write and delete failures are induced against a closed loopback endpoint, with every other operation on real R2.
 - Playground 3.1.55 initially binds all interfaces; the fixture bridge closes and rebinds to loopback before readiness, leaving a short upstream startup interval. Download availability and other WordPress/theme/plugin versions remain outside the demonstrated fixture coverage.
 - The readable page-key format can collide. Collisions are rejected, not resolved.
 - Retention is not transactional. Prune only when no report run is in progress.
@@ -362,3 +391,7 @@ Implementation lessons: [mechanisms and case histories](learnings/LESSONS.md).
 - `pruneReports` deletes objects one request at a time. This is fine for tens of runs; very large reports will be slow.
 - The selftest proves behaviour for the configured bucket and token. It does not check token scope beyond what it exercises, such as whether the token can also reach other buckets.
 - If cleanup itself fails (for example the network drops), objects may remain under the printed `test/...` root. Delete that prefix by hand.
+- The awaiting-audit first-seen time is when the checker first saw the refusal, not when the plugin was updated or an audit was requested.
+- R2 has no conditional write or lock. Overlapping runs for one site can race the first write or the clear of its awaiting-audit clock.
+- A storage outage or corrupt clock object restarts the clock, which can postpone escalation. A failed clear can leave an old clock in place until a later successful pass.
+- Renaming a site leaves its old `state/awaiting-audit/<slug>.json` orphaned. Nothing garbage-collects state for removed slugs.

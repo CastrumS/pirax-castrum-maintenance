@@ -182,8 +182,9 @@ export async function submitForm(page: Page, prepared: PreparedForm, policy: For
         }, { success, error, summary: gravity ? `#gform_${id}_validation_container` : '', staleKey, selector: prepared.descriptor.selector, ordinal: prepared.descriptor.ordinal });
         if (observed.bad.length) {
           // GF's native summary heading only frames the helper's paragraph; any other message is its own refusal.
+          // A selected form that is natively invalid at the same time stays a rejection, never a warning.
           const refusals = [...new Set(observed.bad.filter(m => !m.summary).map(m => m.text))];
-          if (refusals.length && refusals.every(m => awaitingAudit.test(m))) return result('awaiting-audit', `Plugin refused submission: ${refusals.join('; ')}`);
+          if (!observed.invalid && refusals.length && refusals.every(m => awaitingAudit.test(m))) return result('awaiting-audit', `Plugin refused submission: ${refusals.join('; ')}`);
           return result('rejected', `Plugin refused submission: ${[...new Set(observed.bad.map(m => m.text))].join('; ')}`);
         }
         if (observed.good && policy.submitted()) return result('confirmed', `Native ${gravity ? 'Gravity Forms' : 'Fluent Forms'} confirmation: ${observed.good}`);

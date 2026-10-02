@@ -60,6 +60,8 @@ const gfRefusals: Record<string, string> = {
   "/gf-summary-only": gfRefusal(""),
   // Another form's refusal is never this attempt's result.
   "/gf-foreign-awaiting": gfRefusal(helperP(awaiting + "FluentSMTP 2.4.2"), "", 2),
+  // GF re-renders the selected form with a newly native-invalid (empty required) field beside the awaiting message.
+  "/gf-awaiting-invalid": gfRefusal(helperP(awaiting + "FluentSMTP 2.4.2"), '<form id="gform_1" method="post"><input name="input_1" required></form>'),
 };
 // FF's stack placement: an alert div holding the message span and a dismiss "×" span.
 const ffStack = (text: string) => `<div class="ff-errors-in-stack"><div class="error text-danger" role="alert"><span class="error-text" data-name="pirax_form_test">${text}</span><span class="error-clear">&times;</span></div></div>`;
@@ -106,6 +108,8 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
     case "/ff-awaiting-field": return html(ffAfterPost(ffStack(awaiting + "Fluent Forms Pro 6.2.16") + '<div class="ff-el-group ff-el-is-error"><div class="error text-danger">This field is required</div></div>'));
     case "/ff-generic": return html(ffAfterPost(ffStack("Pirax test blocked: integrations could not be suppressed")));
     case "/ff-blank": return html(ffAfterPost(ffStack(awaiting + " ")));
+    // A fresh awaiting message while the selected form newly fails native validation.
+    case "/ff-awaiting-invalid": return html(ffAfterPost(ffStack(awaiting + "FluentSMTP 2.4.2"), "(form.email.setCustomValidity('Server marked this field invalid'),form.parentElement)"));
     // A refusal already on the page before this attempt, and one rendered outside the selected instance.
     case "/ff-stale-awaiting": return html(ffAfterPost("").replace('</form>', '</form>' + ffStack(awaiting + "FluentSMTP 2.4.2")));
     case "/ff-foreign-awaiting": return html(ffAfterPost(ffStack(awaiting + "FluentSMTP 2.4.2"), "document.body"));
@@ -272,6 +276,8 @@ test("exact awaiting-audit refusals are classified per message; near matches, ex
     ["/gf-awaiting-generic-in-container", "rejected"], ["/gf-awaiting-extra-in-container", "rejected"], ["/gf-summary-only", "rejected"],
     ["/gf-awaiting-only-container", "awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of FluentSMTP 2.4.2"],
     ["/gf-awaiting-field", "rejected"], ["/gf-awaiting-second-helper", "rejected"], ["/ff-awaiting-field", "rejected"],
+    // Native validation failure is never masked as a warning by an awaiting message.
+    ["/gf-awaiting-invalid", "rejected"], ["/ff-awaiting-invalid", "rejected"],
     ["/gf-generic", "rejected"], ["/ff-generic", "rejected"], ["/gf-lowercase", "rejected"], ["/gf-blank", "rejected"], ["/ff-blank", "rejected"],
     ["/gf-no-version", "rejected"], ["/gf-bad-separator", "rejected"], ["/gf-mid-sentence", "rejected"],
     ["/gf-foreign-awaiting", "failed"], ["/ff-stale-awaiting", "failed"], ["/ff-foreign-awaiting", "failed"],
@@ -292,6 +298,7 @@ test("exact awaiting-audit refusals are classified per message; near matches, ex
       if (path === "/gf-awaiting-generic-in-container") expect(result.detail).toContain("integrations could not be suppressed");
       if (path === "/gf-awaiting-extra-in-container") expect(result.detail).toContain("Spam check failed.");
       if (path === "/gf-summary-only") expect(result.detail).toContain("There was a problem with your submission.");
+      if (path.endsWith("-awaiting-invalid")) expect(result.detail).toContain("Pirax test blocked: awaiting audit of FluentSMTP 2.4.2");
     });
   }
 });

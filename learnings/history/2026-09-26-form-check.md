@@ -2,6 +2,8 @@
 
 Recorded: 2026-09-26.
 
+Applied: 2026-10-02 — `test/forms/awaiting-audit-commands.test.ts` attributes mailbox connections to the installed ImapFlow client's local port, retaining a confirmed-submission positive control and recording unrelated probes; checker-awaiting-audit `implementation/worker-3.md` records the reproduced false count and corrected evidence.
+
 ## Case
 
 The form-check IMAP deadline test intermittently saw one server-side connection remaining after production polling had closed. The original assertion counted every connection accepted by its ephemeral loopback listener. Isolated reruns often passed; the complete integration suite exposed the failure.

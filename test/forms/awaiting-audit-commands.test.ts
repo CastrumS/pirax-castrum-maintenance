@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { basename, join, relative, resolve } from "node:path";
 import type { Socket } from "node:net";
 import { ImapFlow } from "imapflow";
-import { chromium } from "playwright";
+import { chromium, type Browser } from "playwright";
 import { runBaseline } from "../../src/commands/baseline.ts";
 import { runCheck } from "../../src/commands/check.ts";
 import { runForms } from "../../src/commands/forms.ts";
@@ -30,7 +30,8 @@ const ff = `<div class="fluentform"><form class="frm-fluent-form" id="fluentform
 const ffScript = `<script>document.querySelector('#fluentform_2').onsubmit=async e=>{e.preventDefault();const form=e.target;const r=await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});const j=await r.json();form.parentElement.insertAdjacentHTML('beforeend',j.success?'<div class="ff-message-success">FF accepted</div>':'<div class="ff-errors-in-stack"><div class="error text-danger" role="alert"><span class="error-text">'+j.message+'</span></div></div>')};</script>`;
 const refusal = () => reply === "generic" ? "Pirax test blocked: integrations could not be suppressed" : awaiting + version;
 const html = (body: string) => new Response(`<!doctype html><meta charset="utf-8"><title>Fixture</title>${body}`, { headers: { "content-type": "text/html" } });
-const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req) {
+// Started, with the mailbox listener and ImapFlow observer, only inside the test's cleanup protection.
+const fixture = async (req: Request) => {
   const url = new URL(req.url);
   if (req.method === "POST") {
     posts++;
@@ -46,15 +47,14 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req) {
   if (url.pathname === "/empty/") return html("<p>No forms</p>");
   if (url.pathname === "/favicon.ico") return new Response(null, { status: 204 });
   return new Response("missing", { status: 404 });
-} });
+};
+let base = "";
 // A real loopback mailbox listener. A local desktop service also probes listeners (see imap.test.ts), so a
 // connection counts as the checker's only when its peer port is a local port of the installed ImapFlow
 // client's socket; connect() is observed, not replaced. Foreign probes are recorded, not asserted.
 const peers: number[] = [], clientPorts = new Set<number>();
 let clientConnects = 0;
-const mailbox = Bun.listen({ hostname: "127.0.0.1", port: 0, socket: { open(s) { peers.push(s.remotePort); s.end(); }, data() {} } });
-const connect = ImapFlow.prototype.connect;
-ImapFlow.prototype.connect = function () {
+const observe = (connect: ImapFlow["connect"]): ImapFlow["connect"] => function (this: ImapFlow) {
   clientConnects++;
   const result = connect.call(this);
   const socket = (this as unknown as { socket?: Socket }).socket;
@@ -65,7 +65,7 @@ const owned = () => peers.filter(p => clientPorts.has(p)).length;
 
 const designate = (plugin: TestForm["plugin"], page = plugin === "gravity" ? "/gf/" : "/ff/"): TestForm => ({ page, plugin, id: plugin === "gravity" ? 1 : 2 });
 const site = (slug: string, paths: string[], test_form?: TestForm, form_helper = true): Site =>
-  ({ slug, url: `http://127.0.0.1:${server.port}`, form_helper, mask: [], max_diff_pixel_ratio: 0.01, pages: paths.map(path => ({ path, mask: [] })), ...(test_form ? { test_form } : {}) });
+  ({ slug, url: base, form_helper, mask: [], max_diff_pixel_ratio: 0.01, pages: paths.map(path => ({ path, mask: [] })), ...(test_form ? { test_form } : {}) });
 const shape = (report: AnyRunReport) => report.sites.flatMap(s => s.pages.map(p => (p.forms ?? []).map(f => `${f.plugin}:${f.outcome}`).join(",")));
 /** findSecrets per retained file, except visual capture traces, which keep screenshots/snapshots by design. */
 async function scan(dir: string, redact: Redactor) {
@@ -92,8 +92,8 @@ test("production forms/check age, escalate, share and clear the awaiting-audit c
   const evidence: Record<string, any> = { note: "Checker behavior evidence from loopback fixtures; not released-helper audit evidence.", root, directory: dir, scenarios: {} };
   const names = Object.keys(synthetic).concat("IMAP_PORT");
   const saved = names.map(n => process.env[n]);
-  Object.assign(process.env, synthetic, { IMAP_PORT: String(mailbox.port) });
-  const browser = await chromium.launch({ headless: true });
+  const connect = ImapFlow.prototype.connect;
+  let server: ReturnType<typeof Bun.serve> | undefined, mailbox: Bun.TCPSocketListener<undefined> | undefined, browser: Browser | undefined;
   let n = 0;
   /** One production invocation; retains safe facts and renders the fetched remote and local report bodies. */
   async function run(name: string, command: "forms" | "check" | "baseline", sites: Site[], expected: { exit: 0 | 1; status?: string; texts?: string[] }) {
@@ -115,7 +115,7 @@ test("production forms/check age, escalate, share and clear the awaiting-audit c
     const remote = parsePublishedManifest(JSON.parse(new TextDecoder().decode(await real.get(`reports/${report.runId}/manifest.json`))), report.runId);
     expect(remote.report).toEqual(report);
     const bodies = { remote: new TextDecoder().decode(await real.get(`reports/${report.runId}/index.html`)), local: await Bun.file(result.localPath!).text() };
-    const context = await browser.newContext();
+    const context = await browser!.newContext();
     const requests: string[] = [];
     await context.tracing.start({ screenshots: false, snapshots: false, sources: false });
     try {
@@ -132,6 +132,12 @@ test("production forms/check age, escalate, share and clear the awaiting-audit c
     return result;
   }
   try {
+    server = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: fixture });
+    base = `http://127.0.0.1:${server.port}`;
+    const listener = mailbox = Bun.listen<undefined>({ hostname: "127.0.0.1", port: 0, socket: { open(s) { peers.push(s.remotePort); s.end(); }, data() {} } });
+    ImapFlow.prototype.connect = observe(connect);
+    Object.assign(process.env, synthetic, { IMAP_PORT: String(listener.port) });
+    browser = await chromium.launch({ headless: true });
     await seed(Date.UTC(2026, 0, 1), other);
     const otherBytes = await stored(other);
     const a = (paths: string[], test_form?: TestForm, helper?: boolean) => site("awaiting-a", paths, test_form, helper);
@@ -206,17 +212,21 @@ test("production forms/check age, escalate, share and clear the awaiting-audit c
     expect(fixturePrivacy.hits).toEqual([]);
     expect(fixturePrivacy.captureTraces).toBeGreaterThan(0);
   } finally {
-    await browser.close();
-    server.stop(true); mailbox.stop(true); ImapFlow.prototype.connect = connect;
+    // Synchronous restoration first, so no later cleanup failure can leave a patched client or changed environment.
+    ImapFlow.prototype.connect = connect;
     names.forEach((name, i) => { if (saved[i] === undefined) delete process.env[name]; else process.env[name] = saved[i]; });
-    let deleted = 0;
-    for (const k of await real.list("")) { await real.delete(k); deleted++; }
-    const remaining = await real.list("");
-    evidence.cleanup = { deleted, remaining: remaining.length };
-    mkdirSync(dir, { recursive: true });
-    await Bun.write(join(dir, "summary.json"), JSON.stringify(evidence, null, 2) + "\n");
-    console.log(`Awaiting-audit command evidence: ${join(dir, "summary.json")}`);
-    expect(remaining).toEqual([]);
+    server?.stop(true); mailbox?.stop(true);
+    try { await browser?.close(); }
+    finally {
+      let deleted = 0;
+      for (const k of await real.list("")) { await real.delete(k); deleted++; }
+      const remaining = await real.list("");
+      evidence.cleanup = { deleted, remaining: remaining.length };
+      mkdirSync(dir, { recursive: true });
+      await Bun.write(join(dir, "summary.json"), JSON.stringify(evidence, null, 2) + "\n");
+      console.log(`Awaiting-audit command evidence: ${join(dir, "summary.json")}`);
+      expect(remaining).toEqual([]);
+    }
   }
   // Real credentials restored: no environment value leaked into retained evidence.
   expect((await scan(dir, secretRedactor())).hits).toEqual([]);

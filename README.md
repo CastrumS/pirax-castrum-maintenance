@@ -217,7 +217,7 @@ Both commands scan each listed page once for forms at desktop 1440×900, separat
 
 With helper false, a supported designated form is filled/client-validated but never submitted (`not-verified`). With helper true, the checker permits one selected, marker-bearing native GF/FF browser submission on its audited same-origin route. No direct submission API or automatic retry is used. Initial GET/assets are allowed; requests during filling and unrelated submissions/WebSockets are blocked. This cannot prove arbitrary site JavaScript or GET endpoints side-effect-free. Discovery has a bounded initialization window; indefinitely delayed forms/custom widgets are not covered.
 
-A new, form-associated native confirmation is required before polling. GF postback/modern AJAX and FF AJAX are supported; GF 3.1.2's exact default-path DOMPurify script may load only after its authorized AJAX POST. An FF "redirect to a page/URL" confirmation counts only when the authorized POST's own HTTP 200 reply is FF's JSON success with an entry id and a `redirectUrl`; the report keeps only the target's path, and the navigation itself stays blocked. Relocated/custom chunks, GF redirect-only and other unfamiliar confirmations fail rather than infer success. Client/native server validation refusals are `rejected`; later pages and sites still run, but no other form of that site is tried instead. Per-page navigation and confirmation normally allow 30 seconds each. The one confirmed ID per site then gets **at most five minutes** for real mailbox verification, including connection/command waits; sites run sequentially. Delayed queues can arrive after a failed result. There is no public polling-shortcut flag.
+A new, form-associated native confirmation is required before polling. GF postback/modern AJAX and FF AJAX are supported; GF 3.1.2's exact default-path DOMPurify script may load only after its authorized AJAX POST. An FF "redirect to a page/URL" confirmation counts only when the authorized POST's own HTTP 200 reply is FF's JSON success with an entry id and a `redirectUrl`; the report keeps only the target's path, and the navigation itself stays blocked. Relocated/custom chunks, GF redirect-only and other unfamiliar confirmations fail rather than infer success. Client/native server validation refusals are `rejected`, except an exact helper [awaiting-audit refusal](#awaiting-audit-refusals), which is a time-limited warning; later pages and sites still run, but no other form of that site is tried instead. Per-page navigation and confirmation normally allow 30 seconds each. The one confirmed ID per site then gets **at most five minutes** for real mailbox verification, including connection/command waits; sites run sequentially. Delayed queues can arrive after a failed result. There is no public polling-shortcut flag.
 
 | Outcome | Run effect |
 | --- | --- |
@@ -237,7 +237,7 @@ The helper refuses a test submission while installed plugin versions are not yet
 - an awaiting message next to a field error or any other refusal;
 - an awaiting message while the selected form is also natively invalid.
 
-Stale messages, another form's messages and messages outside the selected instance are still `failed`. An awaiting-audit refusal is never a confirmation: no mailbox polling, no retry and no other form.
+Stale messages, another form's messages and messages outside the selected instance are ignored: they cannot establish this attempt's result. Without another fresh, form-associated result the attempt times out as `failed`. An awaiting-audit refusal is never a confirmation: no mailbox polling, no retry and no other form.
 
 Each site slug has one clock, stored as `{"firstSeen": "<canonical UTC ISO timestamp>"}` at `state/awaiting-audit/<slug>.json` in the command's Store. It holds no submitted values, message text or credentials. The clock works as follows:
 
@@ -245,13 +245,13 @@ Each site slug has one clock, stored as `{"firstSeen": "<canonical UTC ISO times
 - **Keep.** Later sightings in either command keep that time, even when the form, plugin or versions in the message change.
 - **Warn, then fail.** While at most exactly 72 hours have passed, the result is a warning, and its detail gives the first-seen time and the elapsed duration. Once strictly more than 72 hours have passed, the form becomes `failed`. Its detail keeps the version message and adds the elapsed duration and the 72-hour threshold. Repeated failed sightings do not restart the clock.
 - **Clear.** A completed pass of that site with no awaiting-audit result deletes the clock. That covers any other designated-form outcome, helper false, no designation, a designation that is not found, and pages without forms. The next sighting then starts a new clock.
-- **Not cleared.** Skipped forms, duplicate instances and other pages in the same pass do not clear the clock, and page order does not matter. A site that is not selected, or whose pass stops on a configuration error, keeps its clock.
+- **Not cleared.** Alongside a current awaiting-audit result, skipped forms, duplicate instances and other pages in the same pass do not clear the clock, and page order does not matter. Skipped rows alone keep nothing: a completed pass whose forms are all skipped clears it. A site that is not selected, or whose pass stops on a configuration error, keeps its clock.
 
 The clock is updated before the report is published, so a later upload failure does not undo it. Storage problems never crash the run or escalate on their own:
 
 - Missing state starts a clock.
-- Invalid, noncanonical or future-dated state, or a failed read, counts as a first sighting and is replaced.
-- A failed save or clear is disclosed in the form detail and in the command log as `Awaiting-audit state: <slug>: …`. A failed clear is retried on the next pass without an awaiting-audit result.
+- Invalid, noncanonical or future-dated state, or a failed read, counts as a first sighting, and the checker attempts to replace it with the current time.
+- A failed save is disclosed in the awaiting-audit form's detail and in the command log as `Awaiting-audit state: <slug>: …`. A failed clear is added to the detail of the site's first form row when one exists, otherwise it appears only in the command log. A failed clear is retried on the next pass without an awaiting-audit result.
 
 ### Designated test form
 

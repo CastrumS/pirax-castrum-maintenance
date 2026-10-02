@@ -39,7 +39,7 @@ bun --no-env-file test test/forms/config.test.ts test/forms/imap.test.ts test/fo
 
 - `awaiting-audit`: single and multiple version items, the helper paragraph nested in the validation container, and awaiting text directly in that container.
 - `rejected`: the old generic block, wrong case, blank payload, missing version, a bad separator, a mid-sentence mention, a field error or a second refusal next to an awaiting message, a bare native summary, and an awaiting message while the selected form is newly natively invalid.
-- `failed`: another form's, stale or outside-instance awaiting messages.
+- `failed` by timeout: another form's, stale or outside-instance awaiting messages are ignored and never establish the result.
 
 A scanner case shows that an awaiting result never connects to a real loopback mailbox listener, with a confirmed positive control. These fixtures are checker evidence, not output of a released helper.
 

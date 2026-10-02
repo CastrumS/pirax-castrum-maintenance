@@ -156,25 +156,32 @@ export async function submitForm(page: Page, prepared: PreparedForm, policy: For
           const visible = (e: Element) => e.checkVisibility() && !!e.getClientRects().length;
           const errors = new Set(document.querySelectorAll(error));
           // Each error node's own message: text inside nested error nodes (overlapping selectors) is theirs,
-          // and FF's stacked-error dismiss "×" is not message text.
-          const own = (e: Element) => {
+          // FF's stacked-error dismiss "×" is not message text, and GF's native summary heading is framing.
+          const own = (e: Element, skip: string) => {
             let text = '';
             const walker = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
             for (let n = walker.nextNode(); n; n = walker.nextNode()) {
               let p = n.parentElement;
-              while (p && p !== e && !errors.has(p) && !p.matches('.error-clear')) p = p.parentElement;
+              while (p && p !== e && !errors.has(p) && !p.matches(skip)) p = p.parentElement;
               if (p === e) text += n.textContent;
             }
             return text.trim();
           };
-          const bad = [...errors].filter(e => visible(e) && e.getAttribute('data-pirax-stale') !== staleKey).map(e => ({ text: own(e), summary: !!summary && e.matches(summary) })).filter(m => m.text);
+          const heading = '.gform_submission_error';
+          const bad = [...errors].filter(e => visible(e) && e.getAttribute('data-pirax-stale') !== staleKey).flatMap(e => {
+            const framed = !!summary && e.matches(summary);
+            return [
+              { text: own(e, framed ? `.error-clear, ${heading}` : '.error-clear'), summary: false },
+              { text: framed ? [...e.querySelectorAll(heading)].map(h => h.textContent?.trim()).filter(Boolean).join(' ') : '', summary: true },
+            ];
+          }).filter(m => m.text);
           const good = [...document.querySelectorAll(success)].filter(visible).map(e => e.textContent?.trim()).filter(Boolean);
           const form = selector.startsWith('form >> nth=') ? document.forms[ordinal] : document.querySelector<HTMLFormElement>(selector);
           const invalid = form ? [...form.elements].filter((e): e is HTMLInputElement => 'willValidate' in e && (e as HTMLInputElement).willValidate && !(e as HTMLInputElement).validity.valid).map(e => e.validationMessage).join('; ') : '';
           return { bad, good: good.join('; '), invalid };
         }, { success, error, summary: gravity ? `#gform_${id}_validation_container` : '', staleKey, selector: prepared.descriptor.selector, ordinal: prepared.descriptor.ordinal });
         if (observed.bad.length) {
-          // GF's generic validation summary only frames the helper's paragraph; any other message is its own refusal.
+          // GF's native summary heading only frames the helper's paragraph; any other message is its own refusal.
           const refusals = [...new Set(observed.bad.filter(m => !m.summary).map(m => m.text))];
           if (refusals.length && refusals.every(m => awaitingAudit.test(m))) return result('awaiting-audit', `Plugin refused submission: ${refusals.join('; ')}`);
           return result('rejected', `Plugin refused submission: ${[...new Set(observed.bad.map(m => m.text))].join('; ')}`);

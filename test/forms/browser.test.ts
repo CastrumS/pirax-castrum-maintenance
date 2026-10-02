@@ -52,6 +52,12 @@ const gfRefusals: Record<string, string> = {
   "/gf-no-version": gfRefusal(helperP(awaiting + "FluentSMTP")),
   "/gf-bad-separator": gfRefusal(helperP(awaiting + "FluentSMTP 2.4.2,Gravity Forms 2.9.20")),
   "/gf-mid-sentence": gfRefusal(helperP("Note: Pirax test blocked: awaiting audit of FluentSMTP 2.4.2")),
+  // Only GF's native summary heading frames the helper paragraph; other text directly in the container is a refusal.
+  "/gf-awaiting-generic-in-container": `<div class="gform_wrapper" id="gform_wrapper_1"><div class="gform_validation_errors" id="gform_1_validation_container">${gfSummary}Pirax test blocked: integrations could not be suppressed</div>${helperP(awaiting + "FluentSMTP 2.4.2")}</div>`,
+  "/gf-awaiting-extra-in-container": `<div class="gform_wrapper" id="gform_wrapper_1"><div class="gform_validation_errors" id="gform_1_validation_container">${gfSummary}<span>Spam check failed.</span></div>${helperP(awaiting + "FluentSMTP 2.4.2")}</div>`,
+  "/gf-awaiting-only-container": `<div class="gform_wrapper" id="gform_wrapper_1"><div class="gform_validation_errors" id="gform_1_validation_container">${awaiting}FluentSMTP 2.4.2</div></div>`,
+  // Ordinary native validation failure: the summary alone is still a rejection.
+  "/gf-summary-only": gfRefusal(""),
   // Another form's refusal is never this attempt's result.
   "/gf-foreign-awaiting": gfRefusal(helperP(awaiting + "FluentSMTP 2.4.2"), "", 2),
 };
@@ -263,6 +269,8 @@ test("exact awaiting-audit refusals are classified per message; near matches, ex
     ["/gf-awaiting-multi", "awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of Gravity Forms 2.9.20, Anti-Spam by CleanTalk 6.89, Leaky <token>"],
     ["/gf-awaiting-nested", "awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of FluentSMTP 2.4.2"],
     ["/ff-awaiting", "awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16, FluentSMTP 2.4.2"],
+    ["/gf-awaiting-generic-in-container", "rejected"], ["/gf-awaiting-extra-in-container", "rejected"], ["/gf-summary-only", "rejected"],
+    ["/gf-awaiting-only-container", "awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of FluentSMTP 2.4.2"],
     ["/gf-awaiting-field", "rejected"], ["/gf-awaiting-second-helper", "rejected"], ["/ff-awaiting-field", "rejected"],
     ["/gf-generic", "rejected"], ["/ff-generic", "rejected"], ["/gf-lowercase", "rejected"], ["/gf-blank", "rejected"], ["/ff-blank", "rejected"],
     ["/gf-no-version", "rejected"], ["/gf-bad-separator", "rejected"], ["/gf-mid-sentence", "rejected"],
@@ -281,6 +289,9 @@ test("exact awaiting-audit refusals are classified per message; near matches, ex
       if (detail) expect(result.detail).toBe(detail);
       if (expected === "rejected") expect(result.detail).toStartWith("Plugin refused submission: ");
       if (path === "/ff-awaiting-field") expect(result.detail).toContain("This field is required");
+      if (path === "/gf-awaiting-generic-in-container") expect(result.detail).toContain("integrations could not be suppressed");
+      if (path === "/gf-awaiting-extra-in-container") expect(result.detail).toContain("Spam check failed.");
+      if (path === "/gf-summary-only") expect(result.detail).toContain("There was a problem with your submission.");
     });
   }
 });

@@ -34,6 +34,30 @@ f.addEventListener('change',()=>{f.method='get';f.action='/trap';f.submit();f.re
 const scopeForms = gf() + gf(2) + ff + '<form role="search"><input name="s"></form>' + gf(5, '<input name="input_1"><input type="password" name="input_2"><textarea name="input_3"></textarea>') + '<div class="gform_wrapper"><form id="gform_0" method="post"><input name="log"><input type="password" name="pwd"><button type="submit">Log in</button></form></div>';
 // Console-only browser observation of every input/change event, by document form index and id.
 const recorder = `<script>for(const t of ['input','change'])document.addEventListener(t,e=>{const f=e.target.form;console.log('pirax-event '+t+' '+(f?'form-'+[...document.forms].indexOf(f)+':'+f.id:'none'))},true);</script>`;
+// Helper refusals, by GET path. GF answers the native POST with its validation markup; FF's script renders the AJAX error.
+const awaiting = "Pirax test blocked: awaiting audit of ";
+const gfSummary = '<h2 class="gform_submission_error hide_summary">There was a problem with your submission. Please review the fields below.</h2>';
+const gfRefusal = (helper: string, extra = "", id = 1) => `<div class="gform_wrapper" id="gform_wrapper_${id}"><div class="gform_validation_errors" id="gform_${id}_validation_container">${gfSummary}</div>${helper}${extra}</div>`;
+const helperP = (text: string) => `<p class="pirax-form-test-rejected">${text}</p>`;
+const gfRefusals: Record<string, string> = {
+  "/gf-awaiting": gfRefusal(helperP(awaiting + "Fluent Forms Pro 6.2.16")),
+  "/gf-awaiting-multi": gfRefusal(helperP(awaiting + `Gravity Forms 2.9.20, Anti-Spam by CleanTalk 6.89, Leaky ${config.token}`)),
+  // Overlapping selectors: the helper paragraph inside the matched validation container.
+  "/gf-awaiting-nested": `<div class="gform_wrapper" id="gform_wrapper_1"><div class="gform_validation_errors" id="gform_1_validation_container">${gfSummary}${helperP(awaiting + "FluentSMTP 2.4.2")}</div></div>`,
+  "/gf-awaiting-field": gfRefusal(helperP(awaiting + "FluentSMTP 2.4.2"), '<div class="validation_message">This field is required.</div>'),
+  "/gf-awaiting-second-helper": gfRefusal(helperP(awaiting + "FluentSMTP 2.4.2") + helperP("Pirax test blocked: integrations could not be suppressed")),
+  "/gf-generic": gfRefusal(helperP("Pirax test blocked: integrations could not be suppressed")),
+  "/gf-lowercase": gfRefusal(helperP("pirax test blocked: awaiting audit of FluentSMTP 2.4.2")),
+  "/gf-blank": gfRefusal(helperP(awaiting)),
+  "/gf-no-version": gfRefusal(helperP(awaiting + "FluentSMTP")),
+  "/gf-bad-separator": gfRefusal(helperP(awaiting + "FluentSMTP 2.4.2,Gravity Forms 2.9.20")),
+  "/gf-mid-sentence": gfRefusal(helperP("Note: Pirax test blocked: awaiting audit of FluentSMTP 2.4.2")),
+  // Another form's refusal is never this attempt's result.
+  "/gf-foreign-awaiting": gfRefusal(helperP(awaiting + "FluentSMTP 2.4.2"), "", 2),
+};
+// FF's stack placement: an alert div holding the message span and a dismiss "×" span.
+const ffStack = (text: string) => `<div class="ff-errors-in-stack"><div class="error text-danger" role="alert"><span class="error-text" data-name="pirax_form_test">${text}</span><span class="error-clear">&times;</span></div></div>`;
+const ffAfterPost = (markup: string, where = "form.parentElement") => ff + `<script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const form=e.target;await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});${where}.insertAdjacentHTML('beforeend',${JSON.stringify(markup)})};</script>`;
 let shifting = 0;
 const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv) {
   const url = new URL(req.url);
@@ -48,6 +72,7 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
     if (confirm === "redirect") return Response.json({ success: true, data: { insert_id: 7, result: { redirectUrl: `${url.origin}/hvala-vam/?name=${encodeURIComponent(config.token)}`, message: "" }, error: "" } });
     if (confirm === "redirect-no-entry") return Response.json({ success: true, data: { result: { redirectUrl: `${url.origin}/hvala-vam/` } } });
     if (url.pathname === "/reject" || url.pathname === "/reject-duplicates") return html(`<div id="gform_wrapper_1"><div id="gform_1_validation_container">Refused ${config.token} ${encodeURIComponent(config.address)}</div></div>`, 400);
+    if (gfRefusals[url.pathname]) return html(gfRefusals[url.pathname]!);
     if (url.pathname === "/foreign") return html('<div id="gform_confirmation_message_99">Wrong form</div>');
     if (url.pathname === "/no-confirmation") return html("HTTP 200 is not confirmation");
     return html(`<div id="gform_confirmation_message_${data.get("gform_submit")}">GF accepted</div>`);
@@ -71,6 +96,13 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
     case "/ff-redirect": return html(ffRedirect("redirect"));
     case "/ff-redirect-no-entry": return html(ffRedirect("redirect-no-entry"));
     case "/gf-ajax": return html(gf(1, '<textarea name="input_3"></textarea><input type="hidden" name="gform_submission_method" data-js="gform_submission_method_1" value="ajax">') + `<script>window.gform_theme_config={common:{form:{ajax:{ajaxurl:location.origin+'/wp-admin/admin-ajax.php'}}}};document.querySelector('form').onsubmit=async e=>{e.preventDefault();const data=new FormData(e.target);data.append('action','gform_submit_form');data.append('form_id','1');const response=await fetch('/wp-admin/admin-ajax.php',{method:'POST',body:data});const body=await response.text();await fetch('${gfChunk}?field='+encodeURIComponent(data.get('input_3'))).catch(()=>{});await fetch('${gfChunk}').catch(()=>{});await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='${gfChunk}';s.onload=resolve;s.onerror=reject;document.head.append(s)});if(window.nativeChunkLoaded)document.body.innerHTML=body;};</script>`);
+    case "/ff-awaiting": return html(ffAfterPost(ffStack(awaiting + "Fluent Forms Pro 6.2.16, FluentSMTP 2.4.2")));
+    case "/ff-awaiting-field": return html(ffAfterPost(ffStack(awaiting + "Fluent Forms Pro 6.2.16") + '<div class="ff-el-group ff-el-is-error"><div class="error text-danger">This field is required</div></div>'));
+    case "/ff-generic": return html(ffAfterPost(ffStack("Pirax test blocked: integrations could not be suppressed")));
+    case "/ff-blank": return html(ffAfterPost(ffStack(awaiting + " ")));
+    // A refusal already on the page before this attempt, and one rendered outside the selected instance.
+    case "/ff-stale-awaiting": return html(ffAfterPost("").replace('</form>', '</form>' + ffStack(awaiting + "FluentSMTP 2.4.2")));
+    case "/ff-foreign-awaiting": return html(ffAfterPost(ffStack(awaiting + "FluentSMTP 2.4.2"), "document.body"));
     case "/stale": return html(gf() + '<div id="gform_confirmation_message_1">Old</div>');
     case "/ff-stale": return html(ff + '<div class="ff-message-success">Foreign success</div>');
     case "/ff-foreign": return html(ff + `<script>document.querySelector('form').onsubmit=e=>{e.preventDefault();document.body.insertAdjacentHTML('beforeend','<div class="ff-message-success">Foreign</div>')}</script>`);
@@ -224,6 +256,52 @@ test("specific new GF and associated FF confirmations; errors sanitized; no retr
       if (path.startsWith("/ff-redirect")) expect(thanks).toBe(0);
     });
   }
+});
+test("exact awaiting-audit refusals are classified per message; near matches, extra refusals, stale and foreign messages are not", async () => {
+  const cases: [string, string, string?][] = [
+    ["/gf-awaiting", "awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16"],
+    ["/gf-awaiting-multi", "awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of Gravity Forms 2.9.20, Anti-Spam by CleanTalk 6.89, Leaky <token>"],
+    ["/gf-awaiting-nested", "awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of FluentSMTP 2.4.2"],
+    ["/ff-awaiting", "awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16, FluentSMTP 2.4.2"],
+    ["/gf-awaiting-field", "rejected"], ["/gf-awaiting-second-helper", "rejected"], ["/ff-awaiting-field", "rejected"],
+    ["/gf-generic", "rejected"], ["/ff-generic", "rejected"], ["/gf-lowercase", "rejected"], ["/gf-blank", "rejected"], ["/ff-blank", "rejected"],
+    ["/gf-no-version", "rejected"], ["/gf-bad-separator", "rejected"], ["/gf-mid-sentence", "rejected"],
+    ["/gf-foreign-awaiting", "failed"], ["/ff-stale-awaiting", "failed"], ["/ff-foreign-awaiting", "failed"],
+  ];
+  for (const [path, expected, detail] of cases) {
+    await visit(path, async (page, policy) => {
+      policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+      expect(prepared.state).toBe("prepared"); if (prepared.state !== "prepared") return;
+      const before = writes;
+      const result = await submitForm(page, prepared, policy, { timeoutMs: 1_000, redact });
+      console.log(`Awaiting-audit fixture ${path}: ${result.state}`);
+      expect(`${path}: ${result.state}`).toBe(`${path}: ${expected}`);
+      expect(writes - before).toBe(1); // exactly the one native POST, never a retry
+      expect(redact(result.detail)).toBe(result.detail);
+      if (detail) expect(result.detail).toBe(detail);
+      if (expected === "rejected") expect(result.detail).toStartWith("Plugin refused submission: ");
+      if (path === "/ff-awaiting-field") expect(result.detail).toContain("This field is required");
+    });
+  }
+});
+test("scanner forwards awaiting-audit without polling the mailbox", async () => {
+  let connections = 0;
+  const listener = Bun.listen({ hostname: "127.0.0.1", port: 0, socket: { open(s) { connections++; s.end(); }, data() {} } });
+  try {
+    await withEnv({ ...mailbox, IMAP_PORT: String(listener.port) }, async () => {
+      // Positive control: a confirmed submission does connect to this mailbox listener.
+      const confirmed = await scanPageForms(local(["/plain"], true, { page: "/plain", plugin: "gravity", id: 1 }), { path: "/plain", mask: [] }, { runDir, deliveryTimeoutMs: 2_000 });
+      expect(shape(confirmed)).toEqual(["gravity:failed"]);
+      expect(connections).toBeGreaterThan(0);
+      for (const [path, plugin, id] of [["/gf-awaiting", "gravity", 1], ["/ff-awaiting", "fluent", 2]] as const) {
+        const before = { connections, writes, traps };
+        const results = await scanPageForms(local([path], true, { page: path, plugin, id }), { path, mask: [] }, { runDir, deliveryTimeoutMs: 2_000 });
+        expect(shape(results)).toEqual([`${plugin}:awaiting-audit`]);
+        expect(results[0]!.detail).toContain("Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16");
+        expect({ connections, writes: writes - before.writes, traps }).toEqual({ connections: before.connections, writes: 1, traps: before.traps });
+      }
+    });
+  } finally { listener.stop(true); }
 });
 test("marker changed after preparation is never submitted; native invalidity is rejection", async () => {
   await visit("/plain", async (page, policy) => {

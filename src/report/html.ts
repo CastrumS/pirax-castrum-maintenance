@@ -11,7 +11,7 @@ export function viewportStatus(v: ViewportResult): ResultStatus {
 export function aggregateStatus(states: ResultStatus[]): ResultStatus {
   return states.includes("failure") ? "failure" : states.includes("blocked") ? "blocked" : states.includes("warning") ? "warning" : "pass";
 }
-/** Rejected/failed forms fail; spam, not-verified and unsupported are warnings, never passes. Skipped is
+/** Rejected/failed forms fail; spam, not-verified, unsupported and awaiting-audit are warnings, never passes. Skipped is
  * neutral: nothing was attempted, so it passes aggregation without being delivery evidence. */
 export const formStatus = (f: FormResult): ResultStatus => ["delivered", "skipped"].includes(f.outcome) ? "pass" : ["failed", "rejected"].includes(f.outcome) ? "failure" : "warning";
 const skippedNote = "Skipped forms were intentionally not filled or submitted: neutral for status, not delivery evidence.";
@@ -28,7 +28,7 @@ function renderForms(report: FormsRunReport): string {
   return `${head("Form check", report.runId)}<body><h1>Form check</h1><p>Run ${e(report.runId)} · <strong class="${reportStatus(report)}">${reportStatus(report)}</strong></p>${report.sites.map(site =>
     `<section><h2>${e(site.slug)} — ${aggregateStatus(site.pages.map(pageStatus))}</h2><p>${e(site.url)}</p>${site.pages.map(page =>
       `<h3>${e(page.path)} — ${pageStatus(page)}</h3>${page.forms.length ? `<table><thead><tr><th>Outcome</th><th>Plugin</th><th>Form</th><th>Detail</th></tr></thead><tbody>${page.forms.map(f =>
-        `<tr><td class="${f.outcome === "skipped" ? "skipped" : formStatus(f)}"><strong>${e(f.outcome)}</strong></td><td>${e(f.plugin)}</td><td>${e(f.selector)}</td><td>${e(f.detail)}</td></tr>`).join("")}</tbody></table>` : "<p>No forms found.</p>"}`).join("")}</section>`).join("")}<p><small>Desktop 1440 × 900 form pass only; no screenshots or visual comparison. Failed/rejected forms fail the run; spam, not-verified and unsupported are warnings. ${skippedNote}</small></p></body></html>`;
+        `<tr><td class="${f.outcome === "skipped" ? "skipped" : formStatus(f)}"><strong>${e(f.outcome)}</strong></td><td>${e(f.plugin)}</td><td>${e(f.selector)}</td><td>${e(f.detail)}</td></tr>`).join("")}</tbody></table>` : "<p>No forms found.</p>"}`).join("")}</section>`).join("")}<p><small>Desktop 1440 × 900 form pass only; no screenshots or visual comparison. Failed/rejected forms fail the run; spam, not-verified, unsupported and awaiting-audit are warnings. ${skippedNote}</small></p></body></html>`;
 }
 
 /** Pure renderer: only caller-supplied PNG bytes become image sources. No remote URLs or scripts. */

@@ -109,7 +109,10 @@ export async function installFormPolicy(context: BrowserContext): Promise<FormPo
   };
 }
 
-export type SubmissionResult = { state: 'confirmed' | 'rejected' | 'failed'; id: string; detail: string };
+export type SubmissionResult = { state: 'confirmed' | 'rejected' | 'awaiting-audit' | 'failed'; id: string; detail: string };
+// The helper's version-only refusal: nonempty `<Plugin label> <version>` items joined by `, `. Not a version allowlist.
+const awaitingItem = String.raw`[^\s,](?:[^,]*[^\s,])? [^\s,]+`;
+const awaitingAudit = new RegExp(`^Pirax test blocked: awaiting audit of ${awaitingItem}(?:, ${awaitingItem})*$`);
 export type SubmitOptions = { timeoutMs?: number; redact?: Redactor };
 /** Never infers delivery; only one new, form-associated native confirmation starts mailbox polling. */
 export async function submitForm(page: Page, prepared: PreparedForm, policy: FormPolicy, options: SubmitOptions = {}): Promise<SubmissionResult> {
@@ -149,15 +152,33 @@ export async function submitForm(page: Page, prepared: PreparedForm, policy: For
       const redirectedTo = gravity ? undefined : policy.redirected();
       if (redirectedTo && policy.submitted()) return result('confirmed', `Native Fluent Forms confirmation: redirect to ${redirectedTo}`);
       try {
-        const observed = await page.evaluate(({ success, error, staleKey, selector, ordinal }) => {
+        const observed = await page.evaluate(({ success, error, summary, staleKey, selector, ordinal }) => {
           const visible = (e: Element) => e.checkVisibility() && !!e.getClientRects().length;
-          const bad = [...document.querySelectorAll(error)].filter(e => visible(e) && e.getAttribute('data-pirax-stale') !== staleKey).map(e => e.textContent?.trim()).filter(Boolean);
+          const errors = new Set(document.querySelectorAll(error));
+          // Each error node's own message: text inside nested error nodes (overlapping selectors) is theirs,
+          // and FF's stacked-error dismiss "×" is not message text.
+          const own = (e: Element) => {
+            let text = '';
+            const walker = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
+            for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+              let p = n.parentElement;
+              while (p && p !== e && !errors.has(p) && !p.matches('.error-clear')) p = p.parentElement;
+              if (p === e) text += n.textContent;
+            }
+            return text.trim();
+          };
+          const bad = [...errors].filter(e => visible(e) && e.getAttribute('data-pirax-stale') !== staleKey).map(e => ({ text: own(e), summary: !!summary && e.matches(summary) })).filter(m => m.text);
           const good = [...document.querySelectorAll(success)].filter(visible).map(e => e.textContent?.trim()).filter(Boolean);
           const form = selector.startsWith('form >> nth=') ? document.forms[ordinal] : document.querySelector<HTMLFormElement>(selector);
           const invalid = form ? [...form.elements].filter((e): e is HTMLInputElement => 'willValidate' in e && (e as HTMLInputElement).willValidate && !(e as HTMLInputElement).validity.valid).map(e => e.validationMessage).join('; ') : '';
-          return { bad: bad.join('; '), good: good.join('; '), invalid };
-        }, { success, error, staleKey, selector: prepared.descriptor.selector, ordinal: prepared.descriptor.ordinal });
-        if (observed.bad) return result('rejected', `Plugin refused submission: ${observed.bad}`);
+          return { bad, good: good.join('; '), invalid };
+        }, { success, error, summary: gravity ? `#gform_${id}_validation_container` : '', staleKey, selector: prepared.descriptor.selector, ordinal: prepared.descriptor.ordinal });
+        if (observed.bad.length) {
+          // GF's generic validation summary only frames the helper's paragraph; any other message is its own refusal.
+          const refusals = [...new Set(observed.bad.filter(m => !m.summary).map(m => m.text))];
+          if (refusals.length && refusals.every(m => awaitingAudit.test(m))) return result('awaiting-audit', `Plugin refused submission: ${refusals.join('; ')}`);
+          return result('rejected', `Plugin refused submission: ${[...new Set(observed.bad.map(m => m.text))].join('; ')}`);
+        }
         if (observed.good && policy.submitted()) return result('confirmed', `Native ${gravity ? 'Gravity Forms' : 'Fluent Forms'} confirmation: ${observed.good}`);
         if (observed.invalid) return result('rejected', observed.invalid);
       } catch { /* Execution contexts can change during the one native navigation. */ }

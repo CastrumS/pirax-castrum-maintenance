@@ -49,7 +49,7 @@ describe("private report", () => {
   });
   test("renders exact future Forms outcomes only when supplied", () => {
     const report = fixture();
-    const outcomes: FormResult["outcome"][] = ["delivered", "delivered-spam", "not-verified", "rejected", "unsupported", "failed", "skipped"];
+    const outcomes: FormResult["outcome"][] = ["delivered", "delivered-spam", "not-verified", "rejected", "unsupported", "failed", "skipped", "awaiting-audit"];
     report.sites[0]!.pages[0]!.forms = outcomes.map(outcome => ({ selector: '<form id="x">', plugin: "gravity", outcome, detail: "<detail>" }));
     const html = renderHtml(report, new Map());
     expect(html).toContain("<th>Forms</th>");
@@ -78,6 +78,24 @@ describe("private report", () => {
     const unknown = manifest(report) as any;
     unknown.report.sites[0].pages[0].forms[0].outcome = "passed";
     expect(() => parseManifest(unknown)).toThrow();
+  });
+  test("awaiting-audit is a warning with escaped versions, accepted by check manifests and approval; visual failures still fail", () => {
+    const report = fixture();
+    const detail = 'Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16, <b>Odd & Co</b> 1.0';
+    report.sites[0]!.pages[0]!.forms = [{ selector: "#fluentform_2", plugin: "fluent", outcome: "awaiting-audit", detail }];
+    expect(reportStatus(report)).toBe("warning");
+    const html = renderHtml(report, new Map());
+    expect(html).toContain("<strong>awaiting-audit</strong>");
+    expect(html).toContain("awaiting audit of Fluent Forms Pro 6.2.16, &lt;b&gt;Odd &amp; Co&lt;/b&gt; 1.0");
+    expect(html).not.toContain("<b>Odd");
+    expect(parseManifest(manifest(report), report.runId)).toEqual(manifest(report));
+    expect(validateApproval(parseManifest(manifest(report)), site)).toHaveLength(1);
+    report.sites[0]!.pages[0]!.viewports.mobile.visual.state = "changed";
+    expect(reportStatus(report)).toBe("failure");
+    for (const outcome of ["awaiting", "Awaiting-audit", "awaiting_audit"]) {
+      const bad = manifest(report) as any; bad.report.sites[0].pages[0].forms[0].outcome = outcome;
+      expect(() => parseManifest(bad)).toThrow();
+    }
   });
   test("aggregates blocked, failures and warnings while keeping capture separate", () => {
     const report = fixture();

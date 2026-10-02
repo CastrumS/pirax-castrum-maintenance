@@ -6,8 +6,9 @@ import type { HealthFinding } from "../health.ts";
 export type FormResult = {
   selector: string;
   plugin: "gravity" | "fluent" | "unknown";
-  /** `skipped`: not the site's designated test form, so never filled or submitted. */
-  outcome: "delivered" | "delivered-spam" | "not-verified" | "rejected" | "unsupported" | "failed" | "skipped";
+  /** `skipped`: not the site's designated test form, so never filled or submitted.
+   * `awaiting-audit`: the helper refused the submission only because a plugin version is not yet audited. */
+  outcome: "delivered" | "delivered-spam" | "not-verified" | "rejected" | "unsupported" | "failed" | "skipped" | "awaiting-audit";
   detail: string;
 };
 

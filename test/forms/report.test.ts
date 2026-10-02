@@ -82,13 +82,13 @@ describe("forms-only manifest", () => {
     expect(parsePublishedManifest(check)).toEqual(check);
     expect(() => parseManifest(envelope())).toThrow(/check manifest/);
   });
-  test("both manifest modes accept skipped; unknown outcomes still reject", () => {
-    const skipped = envelope(formsReport([form("skipped", "No test form configured; not filled or submitted."), form("failed", "test form not found")]));
+  test("both manifest modes accept skipped and awaiting-audit; unknown outcomes still reject", () => {
+    const skipped = envelope(formsReport([form("skipped", "No test form configured; not filled or submitted."), form("failed", "test form not found"), form("awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of FluentSMTP 2.4.2")]));
     expect(parsePublishedManifest(skipped)).toEqual(skipped as never);
     const check: Manifest = { schemaVersion: 1, command: "check", report: fixture() };
-    check.report.sites[0]!.pages[0]!.forms = [form("skipped")];
+    check.report.sites[0]!.pages[0]!.forms = [form("skipped"), form("awaiting-audit")];
     expect(parsePublishedManifest(check)).toEqual(check);
-    for (const outcome of ["skip", "Skipped", "passed", ""]) {
+    for (const outcome of ["skip", "Skipped", "passed", "", "awaiting", "Awaiting-audit"]) {
       const bad = structuredClone(skipped) as any; bad.report.sites[0].pages[0].forms[0].outcome = outcome;
       expect(() => parsePublishedManifest(bad)).toThrow(/manifest/);
       const badCheck = structuredClone(check) as any; badCheck.report.sites[0].pages[0].forms[0].outcome = outcome;
@@ -114,8 +114,8 @@ describe("forms-only manifest", () => {
 });
 
 describe("form outcome gating", () => {
-  test("failed/rejected fail, spam/not-verified/unsupported warn, delivered passes, skipped is neutral", () => {
-    const expected: Record<FormResult["outcome"], string> = { delivered: "pass", "delivered-spam": "warning", "not-verified": "warning", unsupported: "warning", rejected: "failure", failed: "failure", skipped: "pass" };
+  test("failed/rejected fail, spam/not-verified/unsupported/awaiting-audit warn, delivered passes, skipped is neutral", () => {
+    const expected: Record<FormResult["outcome"], string> = { delivered: "pass", "delivered-spam": "warning", "not-verified": "warning", unsupported: "warning", "awaiting-audit": "warning", rejected: "failure", failed: "failure", skipped: "pass" };
     for (const [outcome, status] of Object.entries(expected)) {
       expect(reportStatus(formsReport([form(outcome as FormResult["outcome"])]))).toBe(status as never);
       const check = fixture();
@@ -144,6 +144,14 @@ describe("form outcome gating", () => {
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toMatch(/<img|<figure|Viewport|Baseline|<script/);
     expect(html).toContain("default-src 'none'");
+  });
+  test("forms-only HTML renders awaiting-audit as a warning with escaped versions and explains it", () => {
+    const report = formsReport([form("awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16, <i>X</i> 2")]);
+    const html = renderHtml(report, new Map());
+    expect(html).toContain("acme — warning");
+    expect(html).toContain('<td class="warning"><strong>awaiting-audit</strong></td>');
+    expect(html).toContain("awaiting audit of Fluent Forms Pro 6.2.16, &lt;i&gt;X&lt;/i&gt; 2");
+    expect(html).toMatch(/spam, not-verified, unsupported and awaiting-audit are warnings/);
   });
   test("forms-only HTML renders skipped literally as neutral and explains it", () => {
     const report = formsReport([form("skipped", "No test form configured; not filled or submitted.")]);

@@ -26,7 +26,7 @@ export async function runForms(sites: Site[], store: Store, options: RunOptions 
     mkdirSync(runDir, { recursive: true, mode: 0o700 });
     result.runDir = runDir;
     result.report = { mode: 'forms', runId, sites: sites.map(s => ({ slug: s.slug, url: s.url, pages: s.pages.map(p => ({ path: p.path, pageKey: pageKey(p.path), forms: [] })) })) };
-    await populateForms(sites, result.report, { ...options.forms, runDir });
+    for (const line of await populateForms(sites, result.report, { ...options.forms, runDir }, { store })) log(`Awaiting-audit state: ${line}`);
     result.exitCode = reportStatus(result.report) === 'failure' ? 1 : 0;
     result.localPath = await writeLocalReport(result.report, runDir);
     log(`Local report: ${result.localPath}`);

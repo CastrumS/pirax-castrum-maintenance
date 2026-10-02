@@ -26,6 +26,7 @@ const runs = Array.from({ length: 12 }, (_, i) => run(i));
 const sentinels = [
   "baselines/acme/desktop/home.png",
   "baselines/acme/desktop/home.health.json",
+  "state/awaiting-audit/acme.json",
   "reports/index.html",
   "reports/not-a-run/x.json",
   "reports/2026-01-01T00-00-00Z/x.json",

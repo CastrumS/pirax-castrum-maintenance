@@ -56,7 +56,7 @@ async function executeCheck(sites: Site[], store: Store, options: RunOptions): P
   });
   try {
     if (!result.report || !result.runDir) throw new ReportError("check has no report");
-    await populateForms(sites, result.report, { ...options.forms, runDir: result.runDir });
+    for (const line of await populateForms(sites, result.report, { ...options.forms, runDir: result.runDir }, { store })) log(`Awaiting-audit state: ${line}`);
     if (["failure", "blocked"].includes(reportStatus(result.report))) result.exitCode = 1;
     result.localPath = await writeLocalReport(result.report, result.runDir);
     log(`Local report: ${result.localPath}`);

@@ -7,6 +7,8 @@ import { readImapConfig } from "../mail/config.ts";
 import { pollDelivery } from "../mail/imap.ts";
 import type { AnyRunReport, FormResult } from "../report/model.ts";
 import type { Site, Page as SitePage } from "../sites.ts";
+import type { Store } from "../store.ts";
+import { reconcileAwaitingAudit } from "./awaiting-audit.ts";
 import { readFormConfig } from "./config.ts";
 import { detectForms, formLocator, sameForm, type FormDescriptor } from "./detect.ts";
 import { retainTrace, secretRedactor } from "./evidence.ts";
@@ -96,19 +98,30 @@ export async function scanPageForms(site: Site, listedPage: SitePage, options: F
   return results;
 }
 
-/** Attaches one forms array per listed page to either strict report mode. */
-export async function populateForms(sites: Site[], report: AnyRunReport, options: FormsOptions): Promise<void> {
-  if (!sites.length) return;
+/** Persisted awaiting-audit aging. Omitted: raw browser classification only, no storage access. */
+export type FormsRuntime = { store: Store; now?: () => number };
+
+/** Attaches one forms array per listed page to either strict report mode; returns safe state diagnostics to log. */
+export async function populateForms(sites: Site[], report: AnyRunReport, options: FormsOptions, runtime?: FormsRuntime): Promise<string[]> {
+  const diagnostics: string[] = [];
+  if (!sites.length) return diagnostics;
   let browser: Browser | undefined;
   try { browser = await chromium.launch({ headless: true }); } catch { /* explicit failed page results below */ }
   try {
-    for (const site of sites) for (const page of site.pages) {
-      const target = report.sites.find(s => s.slug === site.slug)?.pages.find(p => p.path === page.path);
-      if (!target) throw new Error('Forms report identity mismatch.');
-      target.forms = browser ? await scanPageForms(site, page, options, browser) : [scanFailure('Forms browser launch failed.')];
+    for (const site of sites) {
+      const forms: FormResult[] = [];
+      for (const page of site.pages) {
+        const target = report.sites.find(s => s.slug === site.slug)?.pages.find(p => p.path === page.path);
+        if (!target) throw new Error('Forms report identity mismatch.');
+        target.forms = browser ? await scanPageForms(site, page, options, browser) : [scanFailure('Forms browser launch failed.')];
+        forms.push(...target.forms);
+      }
+      // Once per completed site pass, after every listed page; a configuration error throws before this.
+      if (runtime) for (const d of await reconcileAwaitingAudit(site.slug, forms, runtime.store, (runtime.now ?? Date.now)())) diagnostics.push(`${site.slug}: ${d}`);
     }
   } finally {
     if (browser) try { await browser.close(); }
     catch { report.sites[0]?.pages[0]?.forms?.push(scanFailure('Forms browser close failed.')); }
   }
+  return diagnostics;
 }

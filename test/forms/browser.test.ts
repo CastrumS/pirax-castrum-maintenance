@@ -1,6 +1,8 @@
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { chromium, type Browser } from "playwright";
 import { resolve, join } from "node:path";
+import { connect as tcpConnect, type Socket } from "node:net";
+import { ImapFlow } from "imapflow";
 import { mkdir, readdir } from "node:fs/promises";
 import { detectForms } from "../../src/forms/detect.ts";
 import { fillForm, newSubmissionId } from "../../src/forms/fill.ts";
@@ -303,23 +305,47 @@ test("exact awaiting-audit refusals are classified per message; near matches, ex
   }
 });
 test("scanner forwards awaiting-audit without polling the mailbox", async () => {
-  let connections = 0;
-  const listener = Bun.listen({ hostname: "127.0.0.1", port: 0, socket: { open(s) { connections++; s.end(); }, data() {} } });
+  // A local service also probes loopback listeners (see imap.test.ts), so a mailbox connection is the checker's
+  // only when its peer port is a local port of the installed ImapFlow client's socket; connect() is observed, not replaced.
+  const peers: number[] = [], clientPorts = new Set<number>();
+  const owned = () => peers.filter(p => clientPorts.has(p)).length;
+  const connect = ImapFlow.prototype.connect;
+  let listener: Bun.TCPSocketListener<undefined> | undefined;
+  const probes: Socket[] = [];
+  /** A deliberately unrelated real TCP connection to the mailbox listener, seen by it before returning. */
+  const probe = async () => {
+    const socket = tcpConnect(listener!.port, "127.0.0.1");
+    probes.push(socket);
+    await new Promise<void>((resolve, reject) => { socket.once("connect", resolve); socket.once("error", reject); });
+    for (let i = 0; i < 40 && !peers.includes(socket.localPort!); i++) await Bun.sleep(25);
+    expect(peers).toContain(socket.localPort!);
+    return socket.localPort!;
+  };
   try {
+    listener = Bun.listen<undefined>({ hostname: "127.0.0.1", port: 0, socket: { open(s) { peers.push(s.remotePort); s.end(); }, data() {} } });
+    ImapFlow.prototype.connect = function (this: ImapFlow) {
+      const result = connect.call(this);
+      const socket = (this as unknown as { socket?: Socket }).socket;
+      socket?.once("connect", () => { if (socket.localPort) clientPorts.add(socket.localPort); });
+      return result;
+    };
     await withEnv({ ...mailbox, IMAP_PORT: String(listener.port) }, async () => {
-      // Positive control: a confirmed submission does connect to this mailbox listener.
+      // Positive control: a confirmed submission does connect to this mailbox; an unrelated probe is not counted as that.
+      const foreign = await probe();
       const confirmed = await scanPageForms(local(["/plain"], true, { page: "/plain", plugin: "gravity", id: 1 }), { path: "/plain", mask: [] }, { runDir, deliveryTimeoutMs: 2_000 });
       expect(shape(confirmed)).toEqual(["gravity:failed"]);
-      expect(connections).toBeGreaterThan(0);
+      expect(owned()).toBeGreaterThan(0);
+      expect(clientPorts.has(foreign)).toBe(false);
       for (const [path, plugin, id] of [["/gf-awaiting", "gravity", 1], ["/ff-awaiting", "fluent", 2]] as const) {
-        const before = { connections, writes, traps };
+        const before = { owned: owned(), writes, traps };
+        await probe(); // Unrelated traffic during the awaiting interval must not read as polling.
         const results = await scanPageForms(local([path], true, { page: path, plugin, id }), { path, mask: [] }, { runDir, deliveryTimeoutMs: 2_000 });
         expect(shape(results)).toEqual([`${plugin}:awaiting-audit`]);
         expect(results[0]!.detail).toContain("Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16");
-        expect({ connections, writes: writes - before.writes, traps }).toEqual({ connections: before.connections, writes: 1, traps: before.traps });
+        expect({ owned: owned(), writes: writes - before.writes, traps }).toEqual({ owned: before.owned, writes: 1, traps: before.traps });
       }
     });
-  } finally { listener.stop(true); }
+  } finally { probes.forEach(p => p.destroy()); ImapFlow.prototype.connect = connect; listener?.stop(true); }
 });
 test("marker changed after preparation is never submitted; native invalidity is rejection", async () => {
   await visit("/plain", async (page, policy) => {

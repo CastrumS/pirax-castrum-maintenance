@@ -1,8 +1,8 @@
+import { SLUG } from "../sites.ts";
 import type { Store } from "../store.ts";
 
 /** A site may await a helper audit this long; strictly longer fails. */
 export const AWAITING_AUDIT_LIMIT_MS = 72 * 60 * 60 * 1000;
-const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/; // Same rule as sites.ts.
 
 /** Relative to the command's Store root, outside `reports/` retention. */
 export function awaitingAuditKey(slug: string): string {

@@ -230,9 +230,9 @@ A new, form-associated native confirmation is required before polling. GF postba
 
 ### Awaiting-audit refusals
 
-The helper refuses a test submission while installed plugin versions are not yet audited. Its message is `Pirax test blocked: awaiting audit of <Plugin label> <version>`, with further `<label> <version>` items joined by `, `. The checker does not keep its own list of plugins or versions. The selected form's result is `awaiting-audit` only when every fresh, visible refusal message of that form matches this text exactly: case-sensitive, at the start of the message, and with a nonempty label and version in each item. GF's native summary heading around the helper paragraph is framing, not a separate refusal. Everything else stays `rejected`:
+The checker recognizes a refusal from a helper that blocks test submissions while installed plugin versions are not yet audited and names them as `Pirax test blocked: awaiting audit of <Plugin label> <version>`, with further `<label> <version>` items joined by `, `. The in-tree helper (Pirax Form Test 0.2.4) does not emit this message yet: it still answers a version mismatch with `Pirax test blocked: integrations could not be suppressed`, which stays `rejected` (exit 1) until a helper that emits the awaiting message is installed. The checker does not keep its own list of plugins or versions. The selected form's result is `awaiting-audit` only when every fresh, visible refusal message of that form matches this text exactly: case-sensitive, at the start of the message, and with a nonempty label and version in each item. GF's native summary heading around the helper paragraph is framing, not a separate refusal. Everything else stays `rejected`:
 
-- the older generic `Pirax test blocked: integrations could not be suppressed`;
+- the generic `Pirax test blocked: integrations could not be suppressed`;
 - near matches, such as a different case, a blank payload, a missing version or the text in the middle of a sentence;
 - an awaiting message next to a field error or any other refusal;
 - an awaiting message while the selected form is also natively invalid.
@@ -244,7 +244,7 @@ Each site slug has one clock, stored as `{"firstSeen": "<canonical UTC ISO times
 - **Start.** The first completed `check` or `forms` pass of a site that has an awaiting-audit result records the time.
 - **Keep.** Later sightings in either command keep that time, even when the form, plugin or versions in the message change.
 - **Warn, then fail.** While at most exactly 72 hours have passed, the result is a warning, and its detail gives the first-seen time and the elapsed duration. Once strictly more than 72 hours have passed, the form becomes `failed`. Its detail keeps the version message and adds the elapsed duration and the 72-hour threshold. Repeated failed sightings do not restart the clock.
-- **Clear.** A completed pass of that site with no awaiting-audit result deletes the clock. That covers any other designated-form outcome, helper false, no designation, a designation that is not found, and pages without forms. The next sighting then starts a new clock.
+- **Clear.** A completed pass of that site with no awaiting-audit result deletes the clock. That covers any other designated-form outcome, helper false, no designation, a designation that is not found, and pages without forms. It also covers page-scan failures: a navigation error, a challenge or interstitial page, or a browser launch failure. Such a run still exits 1. The next sighting then starts a new clock.
 - **Not cleared.** Alongside a current awaiting-audit result, skipped forms, duplicate instances and other pages in the same pass do not clear the clock, and page order does not matter. Skipped rows alone keep nothing: a completed pass whose forms are all skipped clears it. A site that is not selected, or whose pass stops on a configuration error, keeps its clock.
 
 The clock is updated before the report is published, so a later upload failure does not undo it. Storage problems never crash the run or escalate on their own:
@@ -393,5 +393,5 @@ Implementation lessons: [mechanisms and case histories](learnings/LESSONS.md).
 - If cleanup itself fails (for example the network drops), objects may remain under the printed `test/...` root. Delete that prefix by hand.
 - The awaiting-audit first-seen time is when the checker first saw the refusal, not when the plugin was updated or an audit was requested.
 - R2 has no conditional write or lock. Overlapping runs for one site can race the first write or the clear of its awaiting-audit clock.
-- A storage outage or corrupt clock object restarts the clock, which can postpone escalation. A failed clear can leave an old clock in place until a later successful pass.
+- A storage outage or corrupt clock object restarts the clock, which can postpone escalation. So does a completed pass that fails to scan its pages (navigation error, challenge page or browser launch failure): a site that is intermittently unreachable while still blocked can keep postponing escalation, although each such failing run exits 1. A failed clear can leave an old clock in place until a later successful pass.
 - Renaming a site leaves its old `state/awaiting-audit/<slug>.json` orphaned. Nothing garbage-collects state for removed slugs.

@@ -34,7 +34,7 @@ export class SitesConfigError extends Error {
 const SITE_KEYS = ["slug", "url", "form_helper", "mask", "hide", "max_diff_pixel_ratio", "pages", "test_form"];
 const PAGE_KEYS = ["path", "mask", "hide"];
 const TEST_FORM_KEYS = ["page", "plugin", "id"];
-const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const TRAVERSAL = /^(\.|%2e){1,2}$/i;
 
 type Obj = Record<string, unknown>;

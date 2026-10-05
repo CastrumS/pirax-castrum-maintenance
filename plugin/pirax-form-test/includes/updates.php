@@ -186,7 +186,7 @@ function auto_update( $update, $item ) {
  */
 function download_update( $reply, $package, $upgrader = null, $hook_extra = array() ) {
 	$context = is_array( $hook_extra ) && isset( $hook_extra['plugin'] ) && UPDATE_BASENAME === $hook_extra['plugin'];
-	$ours    = is_string( $package ) && 0 === strpos( $package, UPDATE_RELEASES_ROOT . '/' );
+	$ours    = is_string( $package ) && 0 === strpos( $package, UPDATE_RELEASES_ROOT . '/' ) && 'pirax-form-test.zip' === basename( (string) wp_parse_url( $package, PHP_URL_PATH ) );
 	if ( ! $context && ! $ours ) {
 		return $reply;
 	}

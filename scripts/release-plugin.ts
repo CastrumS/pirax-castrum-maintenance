@@ -131,7 +131,7 @@ async function release(dryRun: boolean) {
   const claim = run(["gh", "api", "--method", "POST", `repos/${REPO}/git/refs`, "-f", `ref=refs/tags/${tag}`, "-f", `sha=${commit}`]);
   if (claim.code !== 0) {
     const status = claim.stderr.match(/\(HTTP (\d{3})\)/)?.[1];
-    throw new Error(`could not create tag ${tag} on ${REPO} (${status ? `HTTP ${status}` : `exit ${claim.code}`}); it may already exist; nothing was published`);
+    throw new Error(`could not create tag ${tag} on ${REPO} (${status ? `HTTP ${status}` : `exit ${claim.code}`}); release creation was not attempted; inspect remote tag state before retrying`);
   }
   const notes = `Pirax Form Test ${version}. Audited: ${Object.entries(audited).map(([plugin, audit]) => `${plugin} ${audit}`).join(", ")}.`;
   // --verify-tag releases only the tag claimed above; no --clobber, so an existing release or asset makes gh fail.
@@ -143,7 +143,7 @@ async function release(dryRun: boolean) {
   });
   // No rollback: deleting a tag is a deliberate operator decision, not something to do on a failed request.
   if (create.exitCode !== 0)
-    throw new Error(`gh release create failed (exit ${create.exitCode}); tag ${tag} now exists on ${REPO} at ${commit} without a release: rerun gh release create ${tag} --verify-tag with the three dist/ files, or delete the tag deliberately`);
+    throw new Error(`gh release create failed (exit ${create.exitCode}); tag ${tag} was claimed on ${REPO} at ${commit}; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly`);
   console.log(`published ${tag} on ${REPO}`);
 }
 

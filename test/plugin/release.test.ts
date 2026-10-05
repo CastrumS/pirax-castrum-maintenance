@@ -314,7 +314,7 @@ test("a tag claimed concurrently or an unanswered claim stops publication before
     const { r, claim, writes } = await publish(`publish-${fail}`, fail);
     expect(r.code).toBe(1);
     expect(r.stderr).toContain(`could not create tag v0.0.1 on ${REPO} (${reason})`);
-    expect(r.stderr).toContain("nothing was published");
+    expect(r.stderr).toContain("release creation was not attempted; inspect remote tag state before retrying");
     expect(writes).toEqual([claim]);
     outcomes[fail] = { exit: r.code, writes, message: r.stderr.trim() };
   }
@@ -329,7 +329,7 @@ test("a release failure after the claim leaves the tag for deliberate recovery: 
   expect(writes[1]!.slice(0, 3)).toEqual(["release", "create", "v0.0.1"]);
   expect(writes[1]).toContain("--verify-tag");
   expect(r.stderr).toContain("gh release create failed (exit 1)");
-  expect(r.stderr).toContain(`tag v0.0.1 now exists on ${REPO} at ${commit} without a release`);
+  expect(r.stderr).toContain(`tag v0.0.1 was claimed on ${REPO} at ${commit}; inspect remote tag and release state before recovery`);
   summary.releaseFailure = { exit: r.code, writes, message: r.stderr.trim() };
 });
 

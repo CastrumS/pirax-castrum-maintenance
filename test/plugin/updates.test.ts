@@ -355,7 +355,7 @@ test("the download boundary refuses unverified helper packages and leaves the in
       'prepopulatedForHelper' => $code(apply_filters('upgrader_pre_download', '/tmp/elsewhere.zip', $canonical, $u, ['plugin' => '${B}'])),
       'errorKept' => apply_filters('upgrader_pre_download', $existing, $canonical, $u, ['plugin' => '${B}']) === $existing,
       'unrelatedFalse' => apply_filters('upgrader_pre_download', false, 'https://downloads.wordpress.org/plugin/fluentform.6.2.15.zip', $u, ['plugin' => 'fluentform/fluentform.php']),
-      'unrelatedReply' => apply_filters('upgrader_pre_download', '/tmp/other.zip', 'https://downloads.wordpress.org/plugin/fluentform.6.2.15.zip', $u, ['plugin' => 'fluentform/fluentform.php']),
+      'unrelatedReply' => apply_filters('upgrader_pre_download', '/tmp/other.zip', '${fixture.root}/download/v1.0/another-plugin.zip', $u, ['plugin' => 'fluentform/fluentform.php']),
       'unrelatedNoContext' => apply_filters('upgrader_pre_download', false, 'https://downloads.wordpress.org/plugin/fluentform.6.2.15.zip', $u, []),
       'temps' => array_values(array_map('basename', glob(get_temp_dir() . 'pirax-form-test-*.tmp') ?: [])),
     ];

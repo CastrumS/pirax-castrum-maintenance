@@ -1,5 +1,7 @@
 # Lessons
 
+- Release preflight did not reserve a tag: `gh release create` could reuse an intervening tag, while its multi-call draft/upload/publish flow could leave remote state after an error; atomic ref creation closed the ownership race and recovery diagnostics were changed to require inspection — 2026-10-05 — [case and evidence](history/2026-10-05-helper-self-update-publication.md).
+
 - Safe outgoing HTTP fields do not protect a log if a shared logger later appends a raw inbound URI; inspect the final record and test both URI boundaries, separately from known-secret scanning — 2026-09-28 — [case and evidence](history/2026-09-28-helper-compat-http-context-review-b.md).
 
 - Return-only generic defaults can be overridden by contextual inference from overloaded test matchers; specify the bridge result shape rather than weakening the matcher or default to `any` (2026-09-26, [evidence](history/2026-09-26-form-helper-types.md)).

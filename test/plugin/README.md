@@ -66,7 +66,7 @@ bun --env-file=<registered-repo>/.env test test/plugin/core.test.ts
 | `harness.test.ts` | Preflight messages (including the full stack's `FLUENT_FORMS_PRO_ZIP`, with synthetic inputs), the Playground site, wp-admin login and upload, unmarked submissions, the network ledger and manifest, the default stack's exact versions and ZIPs, token scrubbing |
 | `core.test.ts` | ZIP contents (including `includes/updates.php`), the 0.3.0 header, `VERSION`, `Update URI` and the production release root and public key, `dist/` holding only the ZIP and release assets, upload and activation without the form plugins, capability and nonce settings flow, marker parsing, mail transformation, uninstall |
 | `updates.test.ts` | Signed self-updates on the default stack: a staged 0.3.0 helper is offered 0.3.1 through the native update transient, `plugins_api` and `auto_update_plugin` (this helper only), and an authenticated admin installs it through `Plugin_Upgrader`; 34 invalid feeds (signature, key, version, manifest, package URL, HTTP failures) offer nothing and drop a stale offer; install-time refusals (hash mismatch, changed or unreachable feed, edited offer) leave the installed bytes unchanged |
-| `release.test.ts` | Release CLI, no WordPress: dry-run assets and an independent signature check, missing or malformed seeds, key mismatch, local tag, failed GitHub lookup, the exact `gh release create` call, malformed source facts and seed scanning (see [below](#update-and-release-tests)) |
+| `release.test.ts` | Release CLI, no WordPress: dry-run assets and an independent signature check, missing or malformed seeds, key mismatch, local tag, failed GitHub lookup, the exact tag-ref claim and `gh release create --verify-tag` calls and their failures, malformed or private source facts and seed scanning (see [below](#update-and-release-tests)) |
 | `adapters.test.ts` | GF/FF marked and unmarked submissions with controls, CAPTCHA, fail-closed integrations, FF queued, retried and legacy-batch jobs, token rotation, the hourly sweep |
 | `safety.test.ts` | Late FF feed filter, a throwing queued notification, a marked entry deleted natively while its queued job runs, rejection before CAPTCHA, GF queue pruning in the sweep, the exact version gate |
 | `review-regressions.test.ts` | Review round 1: the native PHPMailer envelope (stopped before transport) for control-padded Cc/Bcc header names, and the sweep after the marker's FF field is renamed or removed |
@@ -147,21 +147,24 @@ The live hook inventory captured inside real FF and GF submission requests match
 
 **Updater (`updates.test.ts`, credentials as above).** `update-fixture.ts` serves a loopback HTTP release channel on `127.0.0.1` laid out like the repository's GitHub releases, signs manifests with a fresh in-memory Ed25519 test key, and builds staged helper ZIPs with the shipping build's allowlist. Only those disposable copies get the fixture's release root and test public key; the first test asserts the shipping source still holds the production root and key. There is no runtime setting or filter that changes the channel or key. This proves that an updater-equipped helper updates itself, not that a 0.2.4 site can (it needs one manual upload).
 
-**Release CLI (`release.test.ts`).** Needs no `.env`, but needs network and an authenticated `gh`:
+**Release CLI (`release.test.ts`).** Needs no `.env`. The whole suite needs network and an authenticated `gh`, because its GitHub lookups are real; the cases named `offline:` (dry run, import, seeds, key mismatch, local tag, source facts and privacy, seed scan) need neither and can be run alone:
 
 ```sh
-bun --no-env-file test test/plugin/release.test.ts
+bun --no-env-file test test/plugin/release.test.ts                 # everything, real read-only GitHub lookups
+bun --no-env-file test test/plugin/release.test.ts -t '^offline:'  # only the cases that never reach GitHub
 ```
 
-Each case copies the scripts and helper source into a disposable git checkout and runs the real `bun scripts/release-plugin.ts` there, so this repository's `dist/` and tags are never touched. Seeds are generated per test and given only to that child's environment. A `gh` wrapper on the checkout's `PATH` records every call, passes only read-only `gh api` lookups to the real `gh`, and answers `gh release create` without running it: no release, tag or secret is ever created. Cases:
+Each case copies the scripts and helper source into a disposable git checkout and runs the real `bun scripts/release-plugin.ts` there, so this repository's `dist/` and tags are never touched. Seeds are generated per test and given only to that child's environment. A `gh` wrapper on the checkout's `PATH` records every call and passes only two exact read-only shapes to the real `gh`: `gh api --include repos/…/git/ref/tags/<tag>` and the paginated release listing. Every other call, including the tag-ref `POST` and `gh release create`, is answered by the wrapper (success, or a failure the test selects), so no tag, ref, release or secret is ever created; authentication is never faked, and the publish cases prove the calls the CLI makes, not a real publication. Cases:
 
 - dry run: three assets; the signature verifies with the test public key in raw 32-byte base64 form (as in the plugin) and not with the production key; ZIP SHA-256, package URL and version match; an `AUDITED_VERSIONS` edit in the copy reaches the manifest; every ZIP entry equals its source file; no `gh` call;
 - importing the script prints, writes and calls nothing;
 - unset, empty, non-base64, 31- and 64-byte, unpadded, newline-padded and base64url seeds fail in both modes with the variable's name only, before anything is built;
 - publishing with a key that does not match the production key, or with an existing local `v<version>` tag, fails before any `gh` call;
 - a real GitHub lookup with an invalid token (HTTP 401) stops publishing; `remoteTag()` answers `absent` for a missing tag and `present` for an existing one (`cli/cli` `v2.0.0`);
-- a full publish of an unreleased version `0.0.1` makes the read-only lookups, then exactly one `gh release create v0.0.1 --repo CastrumS/pirax-castrum-maintenance --latest --target <commit>` with the three assets;
-- a header that differs from `VERSION`, a prerelease version, and duplicated or non-literal `AUDITED_VERSIONS` lines are refused;
+- the wrapper itself, with an invalid token, forwards the two lookups (GitHub answers 401) and answers a ref `POST`, a `DELETE`, a field-implied `POST`, any other `GET` and `gh release create` without forwarding them;
+- a full publish of an unreleased version `0.0.1` makes the read-only lookups, then exactly the claim `gh api --method POST repos/CastrumS/pirax-castrum-maintenance/git/refs -f ref=refs/tags/v0.0.1 -f sha=<commit>` and one `gh release create v0.0.1 --repo CastrumS/pirax-castrum-maintenance --verify-tag --latest --target <commit>` with the three assets;
+- a claim refused as already existing (HTTP 422) or failing without an answer stops before `gh release create`; a release failure after the claim exits 1, names the tag left without a release, and makes no further call (no retry, overwrite or delete);
+- a header that differs from `VERSION`, a prerelease version, and duplicated or non-literal `AUDITED_VERSIONS` lines are refused; a generated seed used as the version is refused by field name in both modes, and the test keeps only whether the output contained it (a run whose output does is logged as withheld);
 - a seed placed in a source file is refused by the parent's scan, and `findSecret()` finds no private key form in the retained logs, manifests and every checkout's `dist/`.
 
 ## Evidence and privacy

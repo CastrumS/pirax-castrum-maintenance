@@ -11,7 +11,8 @@
 //   bun scripts/release-plugin.ts --dry-run   build and sign only (any seed, e.g. a generated test key); no GitHub
 //   bun scripts/release-plugin.ts             publish: the seed must match UPDATE_PUBLIC_KEY; refuses an existing
 //                                             local or remote v<version> tag/release or an unanswered lookup, then
-//                                             runs `gh release create v<version> --latest` with the three assets
+//                                             creates the remote tag ref at HEAD (fails if it exists) and runs
+//                                             `gh release create v<version> --verify-tag --latest` with the three assets
 // Import-safe: remoteTag() is exported for tests; nothing runs on import.
 import { createPrivateKey, createPublicKey, sign, verify, type KeyObject } from "node:crypto";
 import { rm, writeFile } from "node:fs/promises";
@@ -56,7 +57,8 @@ async function readSource(source = SOURCE) {
   const header = only(main, /^ \* Version:[ \t]*(.*)$/gm, "pirax-form-test.php", "Version header").trim();
   const version = only(main, /^const VERSION = '([^']*)';$/gm, "pirax-form-test.php", "VERSION constant");
   if (header !== version) throw new Error("pirax-form-test.php: Version header and VERSION constant differ");
-  if (!VERSION.test(version)) throw new Error(`pirax-form-test.php: version ${version} is not a stable dotted numeric version`);
+  // Names the field only: the rejected text could be anything, even private material pasted by mistake.
+  if (!VERSION.test(version)) throw new Error("pirax-form-test.php: VERSION is not a stable dotted numeric version");
 
   const compatibility = await Bun.file(join(source, "includes/compatibility.php")).text();
   const block = only(compatibility, /^const AUDITED_VERSIONS = array\(\n([^]*?)\n\);$/gm, "includes/compatibility.php", "AUDITED_VERSIONS array");
@@ -124,15 +126,24 @@ async function release(dryRun: boolean) {
     return;
   }
 
+  // Creating the ref is the atomic claim: GitHub refuses (422) a tag that already exists, including one created
+  // since the preflight, whereas gh release create would silently reuse it.
+  const claim = run(["gh", "api", "--method", "POST", `repos/${REPO}/git/refs`, "-f", `ref=refs/tags/${tag}`, "-f", `sha=${commit}`]);
+  if (claim.code !== 0) {
+    const status = claim.stderr.match(/\(HTTP (\d{3})\)/)?.[1];
+    throw new Error(`could not create tag ${tag} on ${REPO} (${status ? `HTTP ${status}` : `exit ${claim.code}`}); it may already exist; nothing was published`);
+  }
   const notes = `Pirax Form Test ${version}. Audited: ${Object.entries(audited).map(([plugin, audit]) => `${plugin} ${audit}`).join(", ")}.`;
-  // No --clobber: an existing or concurrently created release makes gh fail instead of replacing assets.
-  const create = Bun.spawnSync(["gh", "release", "create", tag, "--repo", REPO, "--latest", "--target", commit, "--title", tag, "--notes", notes, ZIP, MANIFEST, SIGNATURE], {
+  // --verify-tag releases only the tag claimed above; no --clobber, so an existing release or asset makes gh fail.
+  const create = Bun.spawnSync(["gh", "release", "create", tag, "--repo", REPO, "--verify-tag", "--latest", "--target", commit, "--title", tag, "--notes", notes, ZIP, MANIFEST, SIGNATURE], {
     cwd: ROOT,
     env: withoutSigningKey(),
     stdout: "inherit",
     stderr: "inherit",
   });
-  if (create.exitCode !== 0) throw new Error(`gh release create failed (exit ${create.exitCode})`);
+  // No rollback: deleting a tag is a deliberate operator decision, not something to do on a failed request.
+  if (create.exitCode !== 0)
+    throw new Error(`gh release create failed (exit ${create.exitCode}); tag ${tag} now exists on ${REPO} at ${commit} without a release: rerun gh release create ${tag} --verify-tag with the three dist/ files, or delete the tag deliberately`);
   console.log(`published ${tag} on ${REPO}`);
 }
 

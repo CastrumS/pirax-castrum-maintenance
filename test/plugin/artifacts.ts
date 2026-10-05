@@ -3,6 +3,7 @@
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
+import { withoutSigningKey } from "../../scripts/build-plugin";
 
 export const REDACTED = "[REDACTED]";
 
@@ -45,7 +46,7 @@ async function files(dir: string): Promise<string[]> {
 }
 
 async function run(cmd: string[], cwd?: string) {
-  const proc = Bun.spawn(cmd, { cwd, stdout: "ignore", stderr: "pipe" });
+  const proc = Bun.spawn(cmd, { cwd, env: withoutSigningKey(), stdout: "ignore", stderr: "pipe" });
   if ((await proc.exited) !== 0) throw new Error(`${cmd[0]} failed: ${await new Response(proc.stderr).text()}`);
 }
 

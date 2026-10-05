@@ -3,6 +3,7 @@
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { preflight, startHarness, type Harness } from "./harness";
 import { findSecret } from "./artifacts";
+import { withoutSigningKey } from "../../scripts/build-plugin";
 import { mkdir, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -110,7 +111,7 @@ test("browser logs in to real wp-admin and submits unmarked forms for both plugi
     const dir = await mkdtemp(join(tmpdir(), "pirax-probe-"));
     await mkdir(join(dir, "pirax-harness-probe"));
     await Bun.write(join(dir, "pirax-harness-probe/pirax-harness-probe.php"), "<?php\n/*\nPlugin Name: Pirax harness probe\n*/\n");
-    await Bun.$`zip -q -r probe.zip pirax-harness-probe`.cwd(dir);
+    await Bun.$`zip -q -r probe.zip pirax-harness-probe`.cwd(dir).env(withoutSigningKey());
     await h.uploadPlugin(page, join(dir, "probe.zip"));
     probeSha = new Bun.CryptoHasher("sha256").update(await Bun.file(join(dir, "probe.zip")).bytes()).digest("hex");
     expect(await h.php<boolean>("return in_array('pirax-harness-probe/pirax-harness-probe.php', get_option('active_plugins'), true);")).toBe(true);
@@ -166,7 +167,7 @@ test("browser logs in to real wp-admin and submits unmarked forms for both plugi
   expect(await Bun.file(`${h.artifactDir}/mail.jsonl`).text()).toContain("owner@client.test");
 
   // Action trace without DOM snapshots/screenshots, plus a separate sanitized request/response ledger.
-  const traceEntries = await Bun.$`unzip -Z1 ${evidence.trace!}`.text();
+  const traceEntries = await Bun.$`unzip -Z1 ${evidence.trace!}`.env(withoutSigningKey()).text();
   expect(traceEntries).not.toMatch(/\.(jpe?g|png|webm)$/m);
   const network = (await Bun.file(`${h.artifactDir}/network.jsonl`).text())
     .trim()

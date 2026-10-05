@@ -167,9 +167,10 @@ test("staged fixture helpers replace only the test channel; the shipping source 
   await expectInstalled(installed);
   expect(await sourceDigest()).toBe(sourceBefore);
 
-  // Children that never sign do not receive a (synthetic) seed.
-  const names = await Bun.$`env`.env(withoutSigningKey({ ...process.env, PIRAX_HELPER_SIGNING_KEY: "synthetic-seed-for-env-test" })).text();
-  expect(names).not.toContain("PIRAX_HELPER_SIGNING_KEY");
+  // Children that never sign do not receive a (synthetic) seed. The child reports presence only, so a
+  // failure cannot print any other variable of this environment.
+  const seen = await Bun.$`sh -c ${'echo "${PIRAX_HELPER_SIGNING_KEY+present}"'}`.env(withoutSigningKey({ ...process.env, PIRAX_HELPER_SIGNING_KEY: "synthetic-seed-for-env-test" })).text();
+  expect(seen.trim()).toBe("");
 });
 
 test("a verified newer release is offered natively; every invalid feed offers nothing and drops a stale offer", async () => {

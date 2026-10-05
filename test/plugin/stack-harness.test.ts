@@ -5,6 +5,7 @@
 // bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/stack-harness.test.ts
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { findSecret } from "./artifacts";
+import { withoutSigningKey } from "../../scripts/build-plugin";
 import { startHarness, type Harness } from "./harness";
 
 // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
@@ -146,7 +147,7 @@ test("evidence names every version and ZIP hash and retains no token, licensed p
   const http = (await Bun.file(`${h.artifactDir}/http.jsonl`).text()).trim().split("\n").map((l) => JSON.parse(l));
   expect(http.length).toBeGreaterThan(0);
   expect(http.filter((r) => r.request.includes("?") || r.path.includes("?")).length).toBe(0);
-  expect(await Bun.$`unzip -Z1 ${evidence.trace!}`.text()).not.toMatch(/\.(jpe?g|png|webm)$/m);
+  expect(await Bun.$`unzip -Z1 ${evidence.trace!}`.env(withoutSigningKey()).text()).not.toMatch(/\.(jpe?g|png|webm)$/m);
 
   // The browser reached nothing but the loopback site.
   const network = (await Bun.file(`${h.artifactDir}/network.jsonl`).text()).trim().split("\n").map((l) => JSON.parse(l));

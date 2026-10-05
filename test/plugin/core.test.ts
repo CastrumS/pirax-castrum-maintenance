@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
+import { withoutSigningKey } from "../../scripts/build-plugin";
 import { findSecret } from "./artifacts";
 import { startHarness, type Harness } from "./harness";
 
@@ -28,9 +29,12 @@ const PRODUCTION_FILES = [
   "pirax-form-test/includes/mail.php",
   "pirax-form-test/includes/marker.php",
   "pirax-form-test/includes/settings.php",
+  "pirax-form-test/includes/updates.php",
   "pirax-form-test/pirax-form-test.php",
   "pirax-form-test/uninstall.php",
 ];
+/** dist/ may also hold the signed release assets next to the ZIP; nothing else. */
+const RELEASE_ASSETS = ["pirax-form-test-manifest.json", "pirax-form-test-manifest.json.sig", "pirax-form-test.zip"];
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 /** A PHP expression decoding a JSON value (single-quoted literal, so `$` and `\` stay literal). */
@@ -71,17 +75,27 @@ async function mailDuring<T>(code: string) {
 }
 
 test("build:plugin produces only the allowlisted uploadable ZIP with no tests, secrets or licensed code", async () => {
+  // The build sees the signing seed only to refuse packaging it; it strips it from its own children.
   const build = await Bun.$`bun run build:plugin`.cwd(ROOT).quiet().nothrow();
   expect(build.exitCode).toBe(0);
-  expect(await readdir(join(ROOT, "dist"))).toEqual(["pirax-form-test.zip"]);
-  const entries = (await Bun.$`unzip -Z1 ${ZIP}`.text()).trim().split("\n");
+  const dist = await readdir(join(ROOT, "dist"));
+  expect(dist).toContain("pirax-form-test.zip");
+  expect(dist.filter((f) => !RELEASE_ASSETS.includes(f))).toEqual([]);
+  const entries = (await Bun.$`unzip -Z1 ${ZIP}`.env(withoutSigningKey()).text()).trim().split("\n");
   for (const entry of entries) expect(entry.startsWith("pirax-form-test/")).toBe(true);
   expect(entries.filter((e) => !e.endsWith("/")).sort()).toEqual(PRODUCTION_FILES);
   // Code only: comments may name wp_mail() when documenting what the filters do.
-  const source = (await Bun.$`unzip -p ${ZIP} ${"*.php"}`.text()).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const source = (await Bun.$`unzip -p ${ZIP} ${"*.php"}`.env(withoutSigningKey()).text()).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   expect(source).not.toMatch(/register_rest_route|rest_api_init|\bwp_mail\s*\(|PHPMailer|PIRAX_FORM_TEST_HARNESS/);
-  expect(await Bun.$`unzip -p ${ZIP} pirax-form-test/pirax-form-test.php`.text()).toMatch(/^ \* Version:\s+0\.2\.4$/m);
-  expect(await findSecret(join(ROOT, "dist"), [h.token, process.env.GRAVITY_FORMS_ZIP ?? ""])).toEqual([]);
+  const main = await Bun.$`unzip -p ${ZIP} pirax-form-test/pirax-form-test.php`.env(withoutSigningKey()).text();
+  expect(main).toMatch(/^ \* Version:\s+0\.3\.0$/m);
+  expect(main).toMatch(/^const VERSION = '0\.3\.0';$/m);
+  // A repository-specific Update URI keeps WordPress from matching a same-named wordpress.org plugin.
+  expect(main).toMatch(/^ \* Update URI:\s+https:\/\/github\.com\/CastrumS\/pirax-castrum-maintenance$/m);
+  const updates = await Bun.$`unzip -p ${ZIP} pirax-form-test/includes/updates.php`.env(withoutSigningKey()).text();
+  expect(updates).toContain("const UPDATE_RELEASES_ROOT = 'https://github.com/CastrumS/pirax-castrum-maintenance/releases';");
+  expect(updates).toContain("const UPDATE_PUBLIC_KEY = 'D8BfOn8TZC3jD+Hv5Q+p7SGPNGIYISVcMCqQWU0Dh9w=';");
+  expect(await findSecret(join(ROOT, "dist"), [h.token, process.env.GRAVITY_FORMS_ZIP ?? "", process.env.PIRAX_HELPER_SIGNING_KEY ?? ""])).toEqual([]);
 });
 
 test("generated ZIP uploads and activates through wp-admin without Gravity Forms or Fluent Forms", async () => {

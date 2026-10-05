@@ -24,6 +24,7 @@ import { existsSync, statSync } from "node:fs";
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { chromium, type Browser, type BrowserContext, type Page, type Request } from "playwright";
+import { withoutSigningKey } from "../../scripts/build-plugin";
 import { redact, sanitizeZip } from "./artifacts";
 
 export const FF_VERSION = "6.2.14";
@@ -153,7 +154,7 @@ export function preflight(env: Record<string, string | undefined> = process.env,
 
 /** A plugin's Version header from inside its ZIP. The ZIP is unzip's stdin, so its path is not on the command line. */
 async function pluginVersion(zip: string, file: string, label: string): Promise<string> {
-  const proc = Bun.spawn(["unzip", "-p", "/dev/stdin", file], { stdin: Bun.file(zip), stdout: "pipe", stderr: "ignore" });
+  const proc = Bun.spawn(["unzip", "-p", "/dev/stdin", file], { stdin: Bun.file(zip), stdout: "pipe", stderr: "ignore", env: withoutSigningKey() });
   const [header, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
   const version = code === 0 ? header.match(/^\s*\*?\s*Version:\s*(\S+)/m)?.[1] : undefined;
   if (!version) throw new Error(`${label} does not contain ${file} with a Version header`);
@@ -216,8 +217,9 @@ export async function startHarness({ run = "run", compatibility = false }: { run
   const versions: Harness["versions"] = { gf: gfVersion, ff: FF_VERSION, wp: WP_VERSION, php: PHP_VERSION };
   if (extras) Object.assign(versions, { ffPro: FF_PRO_VERSION, cleantalk: CLEANTALK_VERSION, fluentSmtp: FLUENT_SMTP_VERSION });
 
-  // The child reads the licensed ZIP paths from its environment (Pro only for the compatibility stack), never the token.
-  const { FORM_TEST_TOKEN: _omit, FLUENT_FORMS_PRO_ZIP: _pro, ...childEnv } = process.env;
+  // The child reads the licensed ZIP paths from its environment (Pro only for the compatibility stack),
+  // never the token or the helper signing seed.
+  const { FORM_TEST_TOKEN: _omit, FLUENT_FORMS_PRO_ZIP: _pro, PIRAX_HELPER_SIGNING_KEY: _seed, ...childEnv } = process.env;
   const child = Bun.spawn(
     [
       "node",
@@ -264,8 +266,10 @@ export async function startHarness({ run = "run", compatibility = false }: { run
   const runPhp = async <T,>(code: string, timeoutMs = 120_000): Promise<T> => {
     const id = nextId++;
     const body = code.replace(/^\s*<\?php/, "");
+    // Playground reuses PHP workers, so a stale realpath/stat cache can still report a file another
+    // request deleted (WordPress's .maintenance after a native upgrade): clear it before loading.
     const wrapped =
-      `<?php require '/wordpress/wp-load.php';\n` +
+      `<?php clearstatcache(true); require '/wordpress/wp-load.php';\n` +
       `try { $pirax_result = (function () {\n${body}\n})(); echo "\\n${RESULT}" . wp_json_encode(['ok' => true, 'value' => $pirax_result]); }\n` +
       `catch (Throwable $e) { echo "\\n${RESULT}" . wp_json_encode(['ok' => false, 'error' => get_class($e) . ': ' . $e->getMessage()]); }`;
     const answer = new Promise<any>((r) => pending.set(id, r));
@@ -421,7 +425,7 @@ export async function startHarness({ run = "run", compatibility = false }: { run
       if (stillDue.length) throw new Error(`runCron: wp-cron.php did not run ${stillDue.join(", ")} (HTTP ${response.status})`);
     },
     async browser(name) {
-      const browser = await (browserPromise ??= chromium.launch({ headless: true }));
+      const browser = await (browserPromise ??= chromium.launch({ headless: true, env: withoutSigningKey() }));
       const context = await browser.newContext({ baseURL: url });
       scenarios.push(name);
       const entry = (r: Request) => ({ context: name, method: r.method(), url: r.url(), type: r.resourceType() });

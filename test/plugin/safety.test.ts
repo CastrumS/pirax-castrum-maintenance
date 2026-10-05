@@ -407,6 +407,146 @@ test("optional plugin pins are exact strings, and on this stack (none of them ac
   });
 }, 60_000);
 
+test("version-only diagnosis: reflected source directories decide callback ownership, never names; anything besides known mismatched versions and their own callbacks stays generic", async () => {
+  const result = await h.php<any>(`
+    $F = 'Pirax\\FormTest\\\\';
+    $owner = fn($c) => ($F . 'callback_owner')($c);
+    $message = fn($causes = []) => ($F . 'block_message')(($F . 'compatibility_facts')('gf'), $causes);
+    $synthetic = fn($versions, $unaudited = [], $unrecognized = []) => ($F . 'block_message')(['versions' => $versions, 'unaudited' => $unaudited, 'unrecognized' => $unrecognized], []);
+    $v = fn($version, $audited) => ['version' => $version, 'audited' => $audited];
+    $probes = [
+      WP_PLUGIN_DIR . '/gravityforms/pirax-owner-probe.php' => 'function pirax_probe_gf() {} class Pirax_Probe_GF { public function m() {} public static function s() {} public function __invoke() {} } function pirax_probe_gf_closure() { return function () {}; }',
+      WP_PLUGIN_DIR . '/gravityforms-lookalike/pirax-owner-probe.php' => 'namespace Gravity_Forms\\Pirax_Probe; function lookalike() {} class GF_Probe { public function m() {} }',
+      WPMU_PLUGIN_DIR . '/pirax-owner-probe/pirax-owner-probe.php' => 'class GFForms_Pirax_Probe { public static function s() {} } function gravityforms_pirax_probe() {}',
+    ];
+    $real = GFForms::$version;
+    $out = [];
+    try {
+      foreach ($probes as $file => $code) {
+        wp_mkdir_p(dirname($file));
+        file_put_contents($file, "<?php\\n" . $code);
+        require $file;
+      }
+      $eval = eval('return function () {};');
+      $out['owners'] = [
+        'function' => $owner('pirax_probe_gf'),
+        'method' => $owner([new Pirax_Probe_GF(), 'm']),
+        'static string' => $owner('Pirax_Probe_GF::s'),
+        'invokable' => $owner(new Pirax_Probe_GF()),
+        'closure' => $owner(pirax_probe_gf_closure()),
+        'gf core' => $owner('GFFeedAddOn::maybe_process_feed'),
+        'ff core' => $owner([FluentForm\\App\\Services\\FormBuilder\\Notifications\\EmailNotificationActions::class, 'notify']),
+        'lookalike directory' => $owner('Gravity_Forms\\Pirax_Probe\\lookalike'),
+        'lookalike method' => $owner(['Gravity_Forms\\Pirax_Probe\\GF_Probe', 'm']),
+        'mu-plugin GF-like class' => $owner('GFForms_Pirax_Probe::s'),
+        'mu-plugin GF-like function' => $owner('gravityforms_pirax_probe'),
+        'eval' => $owner($eval),
+        'internal' => $owner('strlen'),
+        'undefined' => $owner('pirax_probe_undefined'),
+      ];
+
+      $out['audited GF'] = $message();
+      GFForms::$version = '3.1.3';
+      $out['GF 3.1.3'] = $message();
+      add_filter('gform_pre_submission', [new Pirax_Probe_GF(), 'm']);
+      add_filter('gform_entry_created', pirax_probe_gf_closure());
+      $out['GF 3.1.3 with its own callbacks'] = $message();
+      $out['public callback records'] = array_map('array_keys', ($F . 'compatibility_report')('gf')['unaudited']);
+      $out['GF 3.1.3 with an independent cause'] = $message(['the form has post-creation fields']);
+      foreach (['mu-plugin' => 'gravityforms_pirax_probe', 'lookalike directory' => 'Gravity_Forms\\Pirax_Probe\\lookalike', 'eval' => $eval] as $name => $callback) {
+        add_filter('gform_pre_submission', $callback, 11);
+        $out["GF 3.1.3 plus $name callback"] = $message();
+        remove_filter('gform_pre_submission', $callback, 11);
+      }
+      foreach (['', '3.1.3<b>'] as $version) {
+        GFForms::$version = $version;
+        $out["GF version '$version'"] = $message();
+      }
+      GFForms::$version = $real;
+      $out['audited GF with GF-directory callbacks'] = $message();
+      remove_all_filters('gform_pre_submission');
+      remove_all_filters('gform_entry_created');
+
+      $out['report order, each owner once'] = $synthetic(['ff' => $v('6.2.15', false), 'ff_pro' => $v('6.2.15', true), 'cleantalk' => $v('6.88', true), 'fluent_smtp' => $v('2.4.2', false)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => 'fluent_smtp'], ['hook' => 'b', 'priority' => 10, 'id' => 'y', 'owner' => 'fluent_smtp'], ['hook' => 'c', 'priority' => 10, 'id' => 'z', 'owner' => 'ff']]);
+      $out['callback of an audited plugin'] = $synthetic(['ff' => $v('6.2.15', false), 'ff_pro' => $v('6.2.15', true)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => 'ff_pro']]);
+      $out['unowned callback'] = $synthetic(['ff' => $v('6.2.15', false)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => null]]);
+      $out['missing core'] = $synthetic(['gf' => $v(null, false), 'cleantalk' => $v('6.88.1', false)]);
+      $out['unreadable optional version'] = $synthetic(['gf' => $v('3.1.3', false), 'cleantalk' => $v('', false)]);
+      $out['unrecognized audited binding'] = $synthetic(['ff' => $v('6.2.15', false), 'cleantalk' => $v('6.88', true)], [], ['fluentform/before_insert_submission']);
+      $out['nothing mismatched'] = $synthetic(['ff' => $v('6.2.14', true)]);
+
+      // The submission boundary: still rejected, with the message and last-block record chosen together.
+      global $wpdb;
+      $form = GFAPI::get_form(${h.fixtures.gf});
+      GFForms::$version = '3.1.3';
+      delete_option('pirax_form_test_last_block');
+      $out['prepare'] = [($F . 'prepare_marked_submission')('gf', $form), ($F . 'blocked_message')()];
+      $record = get_option('pirax_form_test_last_block');
+      $out['record'] = ['message' => $record['message'], 'reasons' => $record['reasons'], 'form' => $record['form'], 'paths' => str_contains(wp_json_encode($record, JSON_UNESCAPED_SLASHES), wp_normalize_path(WP_CONTENT_DIR)) || str_contains(wp_json_encode($record, JSON_UNESCAPED_SLASHES), ABSPATH)];
+      $out['autoload'] = $wpdb->get_var("SELECT autoload FROM {$wpdb->options} WHERE option_name = 'pirax_form_test_last_block'");
+      $form['fields'][] = GF_Fields::create(['type' => 'post_title', 'id' => 99, 'formId' => $form['id'], 'label' => 'Post title']);
+      $out['prepare with a post field'] = [($F . 'prepare_marked_submission')('gf', $form), ($F . 'blocked_message')(), get_option('pirax_form_test_last_block')['reasons']];
+      GFForms::$version = $real;
+      $out['prepare audited'] = [($F . 'prepare_marked_submission')('gf', GFAPI::get_form(${h.fixtures.gf})), ($F . 'blocked_message')()];
+      ($F . 'restore_suppressed')();
+    } finally {
+      GFForms::$version = $real;
+      remove_all_filters('gform_pre_submission');
+      remove_all_filters('gform_entry_created');
+      delete_option('pirax_form_test_last_block');
+      foreach (array_keys($probes) as $file) {
+        if (file_exists($file)) unlink($file);
+      }
+      @rmdir(WP_PLUGIN_DIR . '/gravityforms-lookalike');
+      @rmdir(WPMU_PLUGIN_DIR . '/pirax-owner-probe');
+    }
+    return $out;
+  `);
+  const AWAITING = "Pirax test blocked: awaiting audit of ";
+  await note("version-only diagnosis", result);
+  expect(result.owners).toEqual({
+    function: "gf",
+    method: "gf",
+    "static string": "gf",
+    invokable: "gf",
+    closure: "gf",
+    "gf core": "gf",
+    "ff core": "ff",
+    "lookalike directory": null,
+    "lookalike method": null,
+    "mu-plugin GF-like class": null,
+    "mu-plugin GF-like function": null,
+    eval: null,
+    internal: null,
+    undefined: null,
+  });
+  expect(result).toMatchObject({
+    "audited GF": BLOCKED,
+    "GF 3.1.3": `${AWAITING}Gravity Forms 3.1.3`,
+    "GF 3.1.3 with its own callbacks": `${AWAITING}Gravity Forms 3.1.3`,
+    "public callback records": [["hook", "priority", "id"], ["hook", "priority", "id"]],
+    "GF 3.1.3 with an independent cause": BLOCKED,
+    "GF 3.1.3 plus mu-plugin callback": BLOCKED,
+    "GF 3.1.3 plus lookalike directory callback": BLOCKED,
+    "GF 3.1.3 plus eval callback": BLOCKED,
+    "GF version ''": BLOCKED,
+    "GF version '3.1.3<b>'": BLOCKED,
+    "audited GF with GF-directory callbacks": BLOCKED,
+    "report order, each owner once": `${AWAITING}Fluent Forms 6.2.15, FluentSMTP 2.4.2`,
+    "callback of an audited plugin": BLOCKED,
+    "unowned callback": BLOCKED,
+    "missing core": BLOCKED,
+    "unreadable optional version": BLOCKED,
+    "unrecognized audited binding": BLOCKED,
+    "nothing mismatched": BLOCKED,
+    prepare: [false, `${AWAITING}Gravity Forms 3.1.3`],
+    record: { message: `${AWAITING}Gravity Forms 3.1.3`, reasons: ["Gravity Forms 3.1.3 is not the audited 3.1.2"], form: h.fixtures.gf, paths: false },
+    "prepare with a post field": [false, BLOCKED, ["Gravity Forms 3.1.3 is not the audited 3.1.2", "the form has post-creation fields"]],
+    "prepare audited": [true, BLOCKED],
+  });
+  expect(["no", "off"]).toContain(result.autoload);
+}, 60_000);
+
 test("retained evidence contains no token", async () => {
   await h.closeBrowser(visitor.context);
   visitor = undefined as any;

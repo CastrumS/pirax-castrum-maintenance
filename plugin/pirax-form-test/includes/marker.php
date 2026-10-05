@@ -23,6 +23,8 @@ const ID_PATTERN = '[a-z0-9]{6,32}';
 const BLOCKED_MESSAGE = 'Pirax test blocked: integrations could not be suppressed';
 const MARKER_MESSAGE  = 'Pirax test blocked: invalid test marker';
 const CONFIG_MESSAGE  = 'Pirax test blocked: test configuration is invalid';
+/** Version-only block: followed by `<plugin label> <version>[, ...]` (compatibility.php block_message()). */
+const AWAITING_MESSAGE_PREFIX = 'Pirax test blocked: awaiting audit of ';
 
 function id_is_valid( $id ) {
 	return is_string( $id ) && 1 === preg_match( '/^' . ID_PATTERN . '$/D', $id );

@@ -6,7 +6,8 @@
  * submission side-effect hooks is one this plugin was audited against: either safe, or one of the
  * exactly identified CleanTalk/Pro bindings that are removed for the marked submission before they
  * run. Anything else (another integration hooked straight into the submission, payment or post
- * creation) makes the marked submission fail with BLOCKED_MESSAGE.
+ * creation) makes the marked submission fail with BLOCKED_MESSAGE, or with the version-only message
+ * (block_message()) when known plugin versions awaiting audit and their own callbacks are the whole cause.
  *
  * Callbacks are identified by declaring class::method, function name, or for closures by the
  * file they are defined in; never by the plugin directory alone. Native feed frameworks (GF's
@@ -41,6 +42,15 @@ const PLUGIN_LABELS = array(
 const OPTIONAL_PLUGINS = array(
 	'gf' => array( 'cleantalk', 'fluent_smtp' ),
 	'ff' => array( 'ff_pro', 'cleantalk', 'fluent_smtp' ),
+);
+
+/** Each plugin's directory under WP_PLUGIN_DIR: code physically in it is that plugin's. */
+const PLUGIN_DIRS = array(
+	'gf'          => 'gravityforms',
+	'ff'          => 'fluentform',
+	'ff_pro'      => 'fluentformpro',
+	'cleantalk'   => 'cleantalk-spam-protect',
+	'fluent_smtp' => 'fluent-smtp',
 );
 
 /** CleanTalk's per-integration closure (Cleantalk\Antispam\Integrations::__construct), bound to 'FluentForm'. */
@@ -158,6 +168,36 @@ function callback_id( $callback ) {
 	}
 }
 
+/**
+ * Key of the plugin whose directory holds the file that declares $callback (by reflection), else
+ * null: internal, eval'd or not reflectable code, mu-plugins and any other file. Names never decide.
+ */
+function callback_owner( $callback ) {
+	try {
+		if ( is_string( $callback ) && false !== strpos( $callback, '::' ) ) {
+			$callback = explode( '::', $callback, 2 );
+		} elseif ( is_object( $callback ) && ! $callback instanceof \Closure ) {
+			$callback = array( $callback, '__invoke' );
+		}
+		$reflection = is_array( $callback ) ? new \ReflectionMethod( $callback[0], $callback[1] ) : new \ReflectionFunction( $callback );
+	} catch ( \ReflectionException $e ) {
+		return null;
+	}
+	// realpath() resolves links and dot segments, and fails for eval'd code's pseudo file names.
+	$file = $reflection->getFileName() ? realpath( $reflection->getFileName() ) : false;
+	$root = realpath( WP_PLUGIN_DIR );
+	if ( ! $file || ! $root ) {
+		return null;
+	}
+	$file = wp_normalize_path( $file );
+	foreach ( PLUGIN_DIRS as $key => $dir ) {
+		if ( 0 === strpos( $file, trailingslashit( wp_normalize_path( $root ) ) . $dir . '/' ) ) {
+			return $key;
+		}
+	}
+	return null;
+}
+
 /** Active plugin's version: null when not active, '' when active but its version cannot be read. */
 function detected_version( $key ) {
 	switch ( $key ) {
@@ -196,8 +236,8 @@ function is_suppressible( $plugin, $hook, $priority, $callback, $id ) {
 
 /**
  * Registered callbacks on $hooks (hook => allowed ids) and on $plugin's suppression hooks:
- * 'unaudited' (hook, priority, id) on $hooks, and 'suppress' (hook, priority, id, function,
- * accepted_args) for the audited suppressible bindings. Reads only.
+ * 'unaudited' (hook, priority, id, owner: callback_owner()) on $hooks, and 'suppress' (hook,
+ * priority, id, function, accepted_args) for the audited suppressible bindings. Reads only.
  */
 function callback_findings( array $hooks, $plugin = null ) {
 	global $wp_filter;
@@ -213,7 +253,7 @@ function callback_findings( array $hooks, $plugin = null ) {
 				if ( $plugin && is_suppressible( $plugin, $hook, $priority, $callback['function'], $id ) ) {
 					$found['suppress'][] = array( 'hook' => $hook, 'priority' => (int) $priority, 'id' => $id ) + $callback;
 				} elseif ( isset( $hooks[ $hook ] ) && 0 !== strpos( $id, __NAMESPACE__ . '\\' ) && ! in_array( $id, $hooks[ $hook ], true ) ) {
-					$found['unaudited'][] = array( 'hook' => $hook, 'priority' => (int) $priority, 'id' => $id );
+					$found['unaudited'][] = array( 'hook' => $hook, 'priority' => (int) $priority, 'id' => $id, 'owner' => callback_owner( $callback['function'] ) );
 				}
 			}
 		}
@@ -297,13 +337,20 @@ function suppress_cleantalk_ajax_check( $plugin, $action ) {
 	if ( ! version_is_audited( $plugin, detected_version( $plugin ) ) || ! version_is_audited( 'cleantalk', detected_version( 'cleantalk' ) ) ) {
 		return false;
 	}
-	$priority = has_action( 'plugins_loaded', CLEANTALK_AJAX_CHECK );
-	if ( 10 === $priority ) {
-		remove_action( 'plugins_loaded', CLEANTALK_AJAX_CHECK, 10 );
-	} elseif ( false !== $priority || cleantalk_ajax_check_expected( $action ) ) {
+	if ( ! cleantalk_ajax_check_removable( $action ) ) {
 		return false;
 	}
+	remove_action( 'plugins_loaded', CLEANTALK_AJAX_CHECK, 10 );
 	return false === has_action( 'plugins_loaded', CLEANTALK_AJAX_CHECK );
+}
+
+/**
+ * True when CleanTalk's generic admin-ajax check for $action is either its audited priority-10 binding
+ * or not expected here (see suppress_cleantalk_ajax_check()); false when moved or unrecognizable. Reads only.
+ */
+function cleantalk_ajax_check_removable( $action ) {
+	$priority = has_action( 'plugins_loaded', CLEANTALK_AJAX_CHECK );
+	return 10 === $priority || ( false === $priority && ! cleantalk_ajax_check_expected( $action ) );
 }
 
 /**
@@ -313,6 +360,32 @@ function suppress_cleantalk_ajax_check( $plugin, $action ) {
  * $form narrows GF's form-specific hooks to that form; null inspects every registered variant.
  */
 function compatibility_report( $plugin, $form = null ) {
+	$facts = compatibility_facts( $plugin, $form );
+	return array(
+		'versions'  => $facts['versions'],
+		'unaudited' => public_callbacks( $facts['unaudited'] ),
+		'suppress'  => public_callbacks( $facts['suppress'] ),
+		'reasons'   => $facts['reasons'],
+		'ready'     => ! $facts['reasons'],
+	);
+}
+
+/** Callback findings as shown and stored: hook, priority and id only. */
+function public_callbacks( array $callbacks ) {
+	return array_map(
+		static function ( $callback ) {
+			return array_intersect_key( $callback, array_flip( array( 'hook', 'priority', 'id' ) ) );
+		},
+		$callbacks
+	);
+}
+
+/**
+ * compatibility_report()'s facts with internal detail: each unaudited callback's 'owner' and the
+ * 'unrecognized' CleanTalk suppression hooks. $bound false: CleanTalk has not bound its form checks
+ * yet (the early GF AJAX guard), so their absence is no finding.
+ */
+function compatibility_facts( $plugin, $form = null, $bound = true ) {
 	$versions = array();
 	$reasons  = array();
 	foreach ( array_merge( array( $plugin ), OPTIONAL_PLUGINS[ $plugin ] ) as $key ) {
@@ -332,21 +405,46 @@ function compatibility_report( $plugin, $form = null ) {
 	if ( $findings['unaudited'] ) {
 		$reasons[] = sprintf( '%d unaudited callback(s) on submission hooks', count( $findings['unaudited'] ) );
 	}
-	foreach ( cleantalk_unrecognized( $plugin, $findings['suppress'] ) as $hook ) {
+	$unrecognized = $bound ? cleantalk_unrecognized( $plugin, $findings['suppress'] ) : array();
+	foreach ( $unrecognized as $hook ) {
 		$reasons[] = "CleanTalk's check on $hook could not be identified";
 	}
 	return array(
-		'versions'  => $versions,
-		'unaudited' => $findings['unaudited'],
-		'suppress'  => array_map(
-			static function ( $binding ) {
-				return array_intersect_key( $binding, array_flip( array( 'hook', 'priority', 'id' ) ) );
-			},
-			$findings['suppress']
-		),
-		'reasons'   => $reasons,
-		'ready'     => ! $reasons,
+		'versions'     => $versions,
+		'unaudited'    => $findings['unaudited'],
+		'suppress'     => $findings['suppress'],
+		'unrecognized' => $unrecognized,
+		'reasons'      => $reasons,
 	);
+}
+
+/**
+ * Rejection message for a marked submission blocked with compatibility_facts() $facts and $causes
+ * (reasons found besides them: the form, removal failures). It names the plugins awaiting audit,
+ * in report order, only when each version is known and at least one is not the audited one, nothing
+ * else blocks, and every unaudited callback is declared in a mismatched plugin's directory; any
+ * other block gets BLOCKED_MESSAGE. The submission is rejected either way.
+ */
+function block_message( array $facts, array $causes ) {
+	$awaiting = array();
+	foreach ( $facts['versions'] as $key => $fact ) {
+		// A version that cannot be read, or would not be plain text in a message, is no version to audit.
+		if ( ! is_string( $fact['version'] ) || ! preg_match( '/^[0-9A-Za-z.+-]+$/D', $fact['version'] ) ) {
+			return BLOCKED_MESSAGE;
+		}
+		if ( ! $fact['audited'] ) {
+			$awaiting[ $key ] = PLUGIN_LABELS[ $key ] . ' ' . $fact['version'];
+		}
+	}
+	if ( ! $awaiting || $causes || $facts['unrecognized'] ) {
+		return BLOCKED_MESSAGE;
+	}
+	foreach ( $facts['unaudited'] as $callback ) {
+		if ( ! isset( $callback['owner'], $awaiting[ $callback['owner'] ] ) ) {
+			return BLOCKED_MESSAGE;
+		}
+	}
+	return AWAITING_MESSAGE_PREFIX . implode( ', ', $awaiting );
 }
 
 /** True when a marked submission of this GF form can be fully suppressed. */
@@ -396,51 +494,69 @@ function restore_suppressed() {
 /**
  * Classification boundary of a marked submission: supported, and every audited side-effect binding
  * was removed before the submission's hooks run. The adapters' dispatch guards keep them removed.
+ * When not, blocked_message() is this submission's rejection message.
  */
 function prepare_marked_submission( $plugin, $form ) {
-	$ok = ( 'gf' === $plugin ? gf_supported( $form ) : ff_supported( $form ) ) && suppress( $plugin );
+	$message = &blocked_message();
+	$message = BLOCKED_MESSAGE;
+	$ok      = ( 'gf' === $plugin ? gf_supported( $form ) : ff_supported( $form ) ) && suppress( $plugin );
 	if ( ! $ok ) {
-		record_block( $plugin, $form );
+		$message = record_block( $plugin, $form );
 	}
 	return $ok;
+}
+
+/** Rejection message of the marked submission prepare_marked_submission() last blocked in this request. */
+function &blocked_message() {
+	static $message = BLOCKED_MESSAGE;
+	return $message;
 }
 
 /** Option with the latest blocked marked submission's diagnosis, for the panel (autoload off). */
 const LAST_BLOCK_OPTION = 'pirax_form_test_last_block';
 
-/**
- * Store why this marked submission was blocked: plugin labels, versions, the form id and callback
- * identities only, never submitted values, the marker or the token.
- */
+/** Diagnose and store this blocked marked submission (write_block()); returns its rejection message. */
 function record_block( $plugin, $form ) {
-	$report  = compatibility_report( $plugin, 'gf' === $plugin ? $form : null );
-	$reasons = $report['reasons'];
+	$facts  = compatibility_facts( $plugin, 'gf' === $plugin ? $form : null );
+	$causes = array();
 	if ( 'gf' === $plugin ) {
 		if ( ! class_exists( 'GFForms' ) ) {
-			$reasons[] = 'Gravity Forms is not loaded';
+			$causes[] = 'Gravity Forms is not loaded';
 		} elseif ( \GFCommon::has_post_field( $form['fields'] ) ) {
-			$reasons[] = 'the form has post-creation fields';
+			$causes[] = 'the form has post-creation fields';
 		}
 	} else {
 		if ( ! empty( $form->has_payment ) ) {
-			$reasons[] = 'the form is a payment form';
+			$causes[] = 'the form is a payment form';
 		}
 		if ( ! ff_plain_form( $form ) ) {
-			$reasons[] = sprintf( 'the form type "%s" is not an ordinary form', sanitize_key( (string) $form->type ) );
+			$causes[] = sprintf( 'the form type "%s" is not an ordinary form', sanitize_key( (string) $form->type ) );
 		}
 	}
-	if ( ! $reasons ) {
-		$reasons[] = 'an audited binding could not be removed';
+	if ( ! $facts['reasons'] && ! $causes ) {
+		$causes[] = 'an audited binding could not be removed';
 	}
+	return write_block( $plugin, 'gf' === $plugin ? $form['id'] : $form->id, $facts, $causes );
+}
+
+/**
+ * Store why a marked submission of form $form_id was blocked, from compatibility_facts() $facts and
+ * $causes (see block_message()): plugin labels, versions, the form id, callback identities and the
+ * rejection message only, never submitted values, the marker, the token or file paths. Returns the message.
+ */
+function write_block( $plugin, $form_id, array $facts, array $causes ) {
+	$message = block_message( $facts, $causes );
 	update_option(
 		LAST_BLOCK_OPTION,
 		array(
 			'time'      => time(),
 			'plugin'    => $plugin,
-			'form'      => (int) ( 'gf' === $plugin ? $form['id'] : $form->id ),
-			'reasons'   => $reasons,
-			'unaudited' => $report['unaudited'],
+			'form'      => (int) $form_id,
+			'reasons'   => array_merge( $facts['reasons'], $causes ),
+			'unaudited' => public_callbacks( $facts['unaudited'] ),
+			'message'   => $message,
 		),
 		false
 	);
+	return $message;
 }

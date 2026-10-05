@@ -301,6 +301,7 @@ test("FF marked submission of an empty-type form (FF's activation demo form) is 
     expect((await h.mail()).length).toBe(beforePost.mail);
     const last = await h.php<any>(`return get_option('pirax_form_test_last_block');`);
     expect(last.reasons).toContain('the form type "post" is not an ordinary form');
+    expect(last.message).toBe(BLOCKED);
   } finally {
     await setType("form");
     await h.php(`delete_option('pirax_form_test_last_block'); return true;`);

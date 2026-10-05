@@ -86,6 +86,10 @@ function gf_stored_form( $form_id ) {
  * (before any GF form API is called), the check cannot be removed (another CleanTalk version, an
  * unrecognized or unremovable check), or the token is in a field-shaped input the stored form does not
  * have (e.g. a field a form filter adds, which only GF's later form load knows).
+ * A refusal that is neither a marker nor a configuration error is recorded (write_block()) from the
+ * facts observable here, without GF form APIs: version-only when known GF or CleanTalk versions are
+ * the whole cause; a missing GF, such a field, or a CleanTalk check of the audited version that
+ * could not be removed get the generic message.
  */
 function gf_ajax_guard() {
 	if ( ! gf_is_ajax_submission() || null === detected_version( 'cleantalk' ) || '' === token() ) {
@@ -95,13 +99,28 @@ function gf_ajax_guard() {
 	if ( 'ordinary' === $parsed['state'] ) {
 		return;
 	}
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- the form id GF itself submits.
+	$form_id = isset( $_POST['form_id'] ) && is_scalar( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0;
+	$causes  = array();
 	if ( version_is_audited( 'gf', detected_version( 'gf' ) ) ) {
-		$form = gf_stored_form( absint( rgpost( 'form_id' ) ) );
-		if ( 'ordinary' === parse( gf_posted_values( $form, true ) )['state'] && suppress_cleantalk_ajax_check( 'gf', 'gform_submit_form' ) ) {
+		if ( 'ordinary' !== parse( gf_posted_values( gf_stored_form( $form_id ), true ) )['state'] ) {
+			$causes[] = 'the marker is in an input the stored form does not have';
+		} elseif ( suppress_cleantalk_ajax_check( 'gf', 'gform_submit_form' ) ) {
 			return;
 		}
 	}
-	$message = 'invalid-marker' === $parsed['state'] ? MARKER_MESSAGE : ( config_error() ? CONFIG_MESSAGE : BLOCKED_MESSAGE );
+	// Under another GF version nothing was removed: the audited CleanTalk's binding is only inspected.
+	if ( ! $causes && version_is_audited( 'cleantalk', detected_version( 'cleantalk' ) ) && ! cleantalk_ajax_check_removable( 'gform_submit_form' ) ) {
+		$causes[] = "CleanTalk's generic AJAX check could not be removed";
+	}
+	if ( 'invalid-marker' === $parsed['state'] ) {
+		$message = MARKER_MESSAGE;
+	} elseif ( config_error() ) {
+		$message = CONFIG_MESSAGE;
+	} else {
+		// CleanTalk binds its GF checks later on plugins_loaded; this request ends here.
+		$message = write_block( 'gf', $form_id, compatibility_facts( 'gf', array( 'id' => $form_id ), false ), $causes );
+	}
 	if ( is_callable( array( 'GFCommon', 'send_json_error' ) ) ) {
 		\GFCommon::send_json_error( $message ); // GF's own AJAX error response; ends the request.
 	}
@@ -128,7 +147,7 @@ function gf_detect( $form ) {
 	if ( is_wp_error( $marked ) ) {
 		$verdicts[ $form_id ] = $marked->get_error_message();
 	} elseif ( ! prepare_marked_submission( 'gf', $form ) ) {
-		$verdicts[ $form_id ] = BLOCKED_MESSAGE;
+		$verdicts[ $form_id ] = blocked_message();
 	} else {
 		$verdicts[ $form_id ] = 'supported';
 		// Form- and add-on-specific variants run after the generic filters; empty them last too.

@@ -18,6 +18,7 @@ const ZIP = join(ROOT, "dist/pirax-form-test.zip");
 const REDIRECT = "form-tests+pirax@operator.test";
 const ID = "abc123";
 const BLOCKED = "Pirax test blocked: integrations could not be suppressed";
+const AWAITING = "Pirax test blocked: awaiting audit of ";
 const INVALID_MARKER = "Pirax test blocked: invalid test marker";
 const INVALID_CONFIG = "Pirax test blocked: test configuration is invalid";
 const SETTINGS = "/wp-admin/options-general.php?page=pirax-form-test";
@@ -133,6 +134,13 @@ async function ffSubmit(message: string, hidden: Record<string, string> = {}) {
   const body = await res.json().catch(() => null);
   return { status: res.status(), body, text: JSON.stringify(body), insertId: Number(body?.data?.insert_id) || undefined };
 }
+
+/** The helper's own message in FF's 423 validation response, else undefined. */
+const ffRejection = (body: any): string | undefined => body?.errors?.pirax_form_test?.pirax_form_test;
+
+/** Latest blocked marked submission's stored diagnosis (pirax_form_test_last_block), or false. */
+const lastBlock = () => h.php<any>(`return get_option('pirax_form_test_last_block');`);
+const clearLastBlock = () => h.php(`delete_option('pirax_form_test_last_block'); return true;`);
 
 async function gfSubmit(message: string) {
   const { page } = visitor;
@@ -374,7 +382,9 @@ test("GF modern AJAX early boundary: malformed markers, invalid configuration an
     } finally {
       await setOptions({ pirax_form_test_redirect: REDIRECT });
     }
+    await clearLastBlock();
     const unknownField = await gfAjaxSubmit("gf with the marker in an input of no stored field", { hidden: { input_99: `Pirax ${marker}` } });
+    const unknownBlock = await lastBlock();
     let done = await since(m);
     await note("GF modern AJAX refusals", { malformed: malformed.ok, invalidConfig: invalidConfig.ok, unknownField: unknownField.ok, http: done.http, added: done.added });
     expect(malformed.ok).toBe(false);
@@ -383,6 +393,12 @@ test("GF modern AJAX early boundary: malformed markers, invalid configuration an
     expect(invalidConfig.text).toContain(INVALID_CONFIG);
     expect(unknownField.ok).toBe(false);
     expect(unknownField.text).toContain(BLOCKED);
+    expect(unknownField.text).not.toContain(AWAITING);
+    // The early refusal records its diagnosis too: posted form id, reasons, no values.
+    expect(unknownBlock).toMatchObject({ plugin: "gf", form: h.fixtures.gf, message: BLOCKED, unaudited: [] });
+    expect(unknownBlock.reasons).toContain("the marker is in an input the stored form does not have");
+    expect([JSON.stringify(unknownBlock).includes(h.token), JSON.stringify(unknownBlock).includes(marker)]).toEqual([false, false]);
+    await clearLastBlock();
     expect(cleantalkAttempts(done.http)).toEqual([]);
     expect(tokenBearing(done.http)).toEqual([]);
     expect(done.added).toEqual([]);
@@ -416,14 +432,32 @@ for (const mode of ["wrap", "early"] as const) {
       await note(`GF modern AJAX generic check ${mode}`, { marked: marked.ok, ordinary: ordinary.ok, http: done.http, added: done.added });
       expect(marked.ok).toBe(false);
       expect(marked.text).toContain(BLOCKED);
+      expect(marked.text).not.toContain(AWAITING);
       expect(ordinary).toMatchObject({ ok: true, text: "Pirax GF thanks" });
       expect(tokenBearing(done.http)).toEqual([]);
       expect(done.added.map((r) => r.plugin)).toEqual(["gf"]);
       // The rebound check still runs for the ordinary submission, and only for it.
       expect(genericCheck(done.http).length).toBe(1);
       expect(done.env.filter((e) => e.subject.startsWith("[pirax-test"))).toEqual([]);
+
+      // Another GF version too: the audited CleanTalk's rebound check is an independent cause, so not version-only.
+      await setOptions({ pirax_harness_gf_ajax_version: "3.1.3" });
+      await clearLastBlock();
+      const m2 = await mark();
+      const compound = await gfAjaxSubmit(`Pirax rebound GF version ${marker}`);
+      const compoundBlock = await lastBlock();
+      await h.drainQueues();
+      const done2 = await since(m2);
+      await note(`GF modern AJAX generic check ${mode}, GF 3.1.3`, { marked: compound.ok, http: done2.http, added: done2.added, last: compoundBlock && { message: compoundBlock.message, reasons: compoundBlock.reasons } });
+      expect(compound.ok).toBe(false);
+      expect(compound.text).toContain(BLOCKED);
+      expect(compound.text).not.toContain(AWAITING);
+      expect(compoundBlock).toMatchObject({ plugin: "gf", form: h.fixtures.gf, message: BLOCKED });
+      expect(compoundBlock.reasons).toEqual(["Gravity Forms 3.1.3 is not the audited 3.1.2", "CleanTalk's generic AJAX check could not be removed"]);
+      expect([done2.added, done2.env, genericCheck(done2.http), tokenBearing(done2.http)]).toEqual([[], [], [], []]);
     } finally {
-      await setOptions({ pirax_harness_gf_ajax: null, pirax_harness_ct_ajax_rebind: null });
+      await setOptions({ pirax_harness_gf_ajax: null, pirax_harness_ct_ajax_rebind: null, pirax_harness_gf_ajax_version: null });
+      await clearLastBlock();
     }
   }, 300_000);
 }
@@ -445,6 +479,7 @@ test("GF modern AJAX: the marker only in a field a GF form filter adds is refuse
     await note("GF modern AJAX dynamic field", { marked: marked.ok, ordinary: ordinary.ok, http: done.http, added: done.added });
     expect(marked.ok).toBe(false);
     expect(marked.text).toContain(BLOCKED);
+    expect(marked.text).not.toContain(AWAITING);
     expect(ordinary).toMatchObject({ ok: true, text: "Pirax GF thanks" });
     expect(tokenBearing(done.http)).toEqual([]);
     expect(genericCheck(done.http).length).toBe(1);
@@ -489,14 +524,20 @@ test("GF modern AJAX before GF initializes: ordinary requests read no stored for
 
     await setOptions({ pirax_harness_gf_ajax_version: "3.1.3" });
     try {
+      await clearLastBlock();
       m = await mark();
       const wrongMarked = await gfAjaxCounted(`Pirax GF version ${marker}`);
+      const wrongBlock = await lastBlock();
       const wrongOrdinary = await gfAjaxCounted("gf ordinary with another GF version");
       await h.drainQueues();
       done = await since(m);
       await note("GF modern AJAX early reads: GF 3.1.3", { marked: [wrongMarked.ok, wrongMarked.reads], ordinary: [wrongOrdinary.ok, wrongOrdinary.reads], http: done.http, added: done.added });
       expect(wrongMarked).toMatchObject({ ok: false, reads: 0 });
-      expect(wrongMarked.text).toContain(BLOCKED);
+      // Version-only: the known GF version is the whole observable cause, found without reading the form.
+      expect(wrongMarked.text).toContain(`${AWAITING}Gravity Forms 3.1.3`);
+      expect(wrongMarked.text).not.toContain(BLOCKED);
+      expect(wrongBlock).toMatchObject({ plugin: "gf", form: h.fixtures.gf, message: `${AWAITING}Gravity Forms 3.1.3` });
+      expect(wrongBlock.reasons).toContain("Gravity Forms 3.1.3 is not the audited 3.1.2");
       expect(wrongOrdinary).toMatchObject({ ok: true, text: "Pirax GF thanks", reads: 0 });
       expect(genericCheck(done.http).length).toBe(1); // the ordinary one only
       expect(tokenBearing(done.http)).toEqual([]);
@@ -504,6 +545,7 @@ test("GF modern AJAX before GF initializes: ordinary requests read no stored for
       expect(done.env.filter((e) => e.subject.startsWith("[pirax-test"))).toEqual([]);
     } finally {
       await setOptions({ pirax_harness_gf_ajax_version: null });
+      await clearLastBlock();
     }
   } finally {
     await setOptions({ pirax_harness_gf_ajax: null, pirax_harness_gf_meta_probe: null });
@@ -808,13 +850,13 @@ test("admin panel on the full stack: exact versions audited per form plugin and 
 });
 
 const VERSIONS = [
-  { name: "CleanTalk", file: "cleantalk-spam-protect/cleantalk.php", search: "Version: 6.88\n", replace: "Version: 6.88.1\n", label: "Anti-Spam by CleanTalk 6.88.1 is not the audited 6.88", gf: true },
-  { name: "Fluent Forms Pro", file: "fluentformpro/fluentformpro.php", search: "define('FLUENTFORMPRO_VERSION', '6.2.15');", replace: "define('FLUENTFORMPRO_VERSION', '6.2.16');", label: "Fluent Forms Pro 6.2.16 is not the audited 6.2.15", gf: false },
-  { name: "FluentSMTP", file: "fluent-smtp/boot.php", search: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.1');", replace: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.2');", label: "FluentSMTP 2.4.2 is not the audited 2.4.1", gf: true },
+  { name: "CleanTalk", file: "cleantalk-spam-protect/cleantalk.php", search: "Version: 6.88\n", replace: "Version: 6.88.1\n", label: "Anti-Spam by CleanTalk 6.88.1 is not the audited 6.88", awaiting: `${AWAITING}Anti-Spam by CleanTalk 6.88.1`, gf: true },
+  { name: "Fluent Forms Pro", file: "fluentformpro/fluentformpro.php", search: "define('FLUENTFORMPRO_VERSION', '6.2.15');", replace: "define('FLUENTFORMPRO_VERSION', '6.2.16');", label: "Fluent Forms Pro 6.2.16 is not the audited 6.2.15", awaiting: `${AWAITING}Fluent Forms Pro 6.2.16`, gf: false },
+  { name: "FluentSMTP", file: "fluent-smtp/boot.php", search: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.1');", replace: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.2');", label: "FluentSMTP 2.4.2 is not the audited 2.4.1", awaiting: `${AWAITING}FluentSMTP 2.4.2`, gf: true },
 ];
 
 for (const v of VERSIONS) {
-  test(`${v.name} at another version blocks marked ${v.gf ? "FF and GF" : "FF (not GF)"} at the native gates; the panel shows the version and still lists callbacks`, async () => {
+  test(`${v.name} at another version blocks marked ${v.gf ? "FF and GF" : "FF (not GF)"} at the native gates with the version-only message; the panel shows the version and still lists callbacks`, async () => {
     await withAlteredFile(v.file, v.search, v.replace, async () => {
       const [gf, ff] = [await panel("gf"), await panel("ff")];
       expect(ff.verdict).toContain(v.label);
@@ -824,17 +866,24 @@ for (const v of VERSIONS) {
         expect(ff.hooks["fluentform/before_insert_submission"]).toEqual(["closure:cleantalk-spam-protect/lib/Cleantalk/Antispam/Integrations.php"]);
       }
 
+      await clearLastBlock();
       const m = await mark();
       const ff1 = await ffSubmit(`Pirax version ${marker}`);
       const gf1 = await gfSubmit(`Pirax version ${marker}`);
       await h.drainQueues();
       const done = await since(m);
-      await note(`version gate: ${v.name}`, { ff: ff1.status, gf: gf1.ok, added: done.added });
+      const last = await lastBlock();
+      await note(`version gate: ${v.name}`, { ff: ff1.status, ffMessage: ffRejection(ff1.body), gf: gf1.ok, added: done.added, feeds: done.feeds, last: last && { message: last.message, reasons: last.reasons } });
       expect(ff1.status).toBe(423);
-      expect(ff1.text).toContain(BLOCKED);
+      expect(ffRejection(ff1.body)).toBe(v.awaiting);
+      expect(last).toMatchObject({ plugin: v.gf ? "gf" : "ff", message: v.awaiting });
+      expect(last.reasons).toContain(v.label);
+      expect(done.feeds).toEqual([]);
+      expect(done.http.filter((r) => r.purpose === "webhook-capture")).toEqual([]);
       if (v.gf) {
         expect(gf1.ok).toBe(false);
-        expect(gf1.text).toContain(BLOCKED);
+        expect(gf1.text).toContain(v.awaiting);
+        expect(gf1.text).not.toContain(BLOCKED);
         expect(done.env).toEqual([]);
       } else {
         expect(gf1).toMatchObject({ ok: true, text: "Pirax GF thanks" });
@@ -856,7 +905,8 @@ for (const v of VERSIONS) {
         await note(`version gate (GF modern AJAX): ${v.name}`, { gf: ajax.ok, http: done2.http, added: done2.added });
         if (v.gf) {
           expect(ajax.ok).toBe(false);
-          expect(ajax.text).toContain(BLOCKED);
+          expect(ajax.text).toContain(v.awaiting);
+          expect(ajax.text).not.toContain(BLOCKED);
           expect(done2.env).toEqual([]);
         } else {
           expect(ajax).toMatchObject({ ok: true, text: "Pirax GF thanks" });
@@ -867,6 +917,7 @@ for (const v of VERSIONS) {
         expect(tokenBearing(done2.http)).toEqual([]);
       } finally {
         await setOptions({ pirax_harness_gf_ajax: null });
+        await clearLastBlock();
       }
     });
     // Restored: ready again for both.
@@ -874,9 +925,12 @@ for (const v of VERSIONS) {
   }, 300_000);
 }
 
-test("an unaudited optional Pro module (Inventory) keeps blocking marked FF; the panel names its callbacks", async () => {
-  const module = (on: boolean) =>
-    h.php(`$m = (array) get_option('fluentform_global_modules_status', []); $m['inventory_module'] = '${on ? "yes" : "no"}'; update_option('fluentform_global_modules_status', $m); return true;`);
+/** Switch Fluent Forms Pro's Inventory module, whose submission callbacks are not audited. */
+const inventoryModule = (on: boolean) =>
+  h.php(`$m = (array) get_option('fluentform_global_modules_status', []); $m['inventory_module'] = '${on ? "yes" : "no"}'; update_option('fluentform_global_modules_status', $m); return true;`);
+
+test("an unaudited optional Pro module (Inventory) keeps blocking marked FF with the generic message; the panel names its callbacks", async () => {
+  const module = inventoryModule;
   await module(true);
   try {
     const { hooks, verdict } = await panel("ff");
@@ -887,13 +941,13 @@ test("an unaudited optional Pro module (Inventory) keeps blocking marked FF; the
     const marked = await ffSubmit(`Pirax inventory ${marker}`);
     const done = await since(m);
     expect(marked.status).toBe(423);
-    expect(marked.text).toContain(BLOCKED);
+    expect(ffRejection(marked.body)).toBe(BLOCKED);
     expect(done.added).toEqual([]);
     expect(done.env).toEqual([]);
 
     // The blocked request's own diagnosis is kept for the panel: reasons and callback identities, no values.
     const last = await h.php<any>(`return get_option('pirax_form_test_last_block');`);
-    expect(last).toMatchObject({ plugin: "ff", form: expect.any(Number) });
+    expect(last).toMatchObject({ plugin: "ff", form: expect.any(Number), message: BLOCKED });
     expect(last.reasons.join("; ")).toMatch(/\d+ unaudited callback\(s\) on submission hooks/);
     expect(last.unaudited).toContainEqual({ hook: "fluentform/submission_inserted", priority: expect.any(Number), id: "FluentFormPro\\classes\\Inventory\\InventoryController::insertGlobalInventory" });
     const raw = JSON.stringify(last);
@@ -908,6 +962,41 @@ test("an unaudited optional Pro module (Inventory) keeps blocking marked FF; the
   }
   expect((await panel("ff")).verdict).toBe("ready");
 }, 300_000);
+
+test("Pro 6.2.16: its own Inventory callbacks keep the version-only message, a second mismatch is listed in report order, and a callback outside every mismatched plugin (a rebound CleanTalk wrapper) makes it generic; all stay blocked", async () => {
+  const [pro, smtp] = [VERSIONS.find((v) => v.name === "Fluent Forms Pro")!, VERSIONS.find((v) => v.name === "FluentSMTP")!];
+  /** One marked FF submission: rejected before insert, mail, feeds and CleanTalk; returns its message. */
+  const blocked = async (label: string) => {
+    const m = await mark();
+    const result = await ffSubmit(`Pirax ${label} ${marker}`);
+    await h.drainQueues();
+    const done = await since(m);
+    await note(`version-only classification: ${label}`, { status: result.status, message: ffRejection(result.body), added: done.added, feeds: done.feeds });
+    expect(result.status).toBe(423);
+    expect([done.added, done.env, done.feeds, cleantalkAttempts(done.http), tokenBearing(done.http)]).toEqual([[], [], [], [], []]);
+    return ffRejection(result.body);
+  };
+  await withAlteredFile(pro.file, pro.search, pro.replace, async () => {
+    await inventoryModule(true);
+    try {
+      expect((await panel("ff")).hooks["fluentform/submission_inserted"]).toContain("FluentFormPro\\classes\\Inventory\\InventoryController::insertGlobalInventory");
+      expect(await blocked("pro inventory")).toBe(pro.awaiting);
+    } finally {
+      await inventoryModule(false);
+    }
+    await withAlteredFile(smtp.file, smtp.search, smtp.replace, async () => {
+      expect(await blocked("pro and smtp")).toBe(`${AWAITING}Fluent Forms Pro 6.2.16, FluentSMTP 2.4.2`);
+    });
+    await setOptions({ pirax_harness_ct_rebind: true });
+    try {
+      expect(await blocked("pro with rebound CleanTalk")).toBe(BLOCKED);
+    } finally {
+      await setOptions({ pirax_harness_ct_rebind: null });
+    }
+  });
+  await clearLastBlock();
+  expect((await panel("ff")).verdict).toBe("ready");
+}, 600_000);
 
 // ---------------------------------------------------------------------------------------------
 // AC7 — evidence

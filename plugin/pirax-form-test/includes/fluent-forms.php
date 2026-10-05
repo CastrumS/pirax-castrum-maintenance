@@ -22,7 +22,8 @@
  *   (double opt-in, admin approval, draft deletion, delete-entry-on-submission): removed when the
  *   submission is classified, kept removed whenever one of their hooks runs for marked work (the
  *   submission, or a queued job's completion for a marked entry), put back for ordinary work.
- * Unsafe marked submissions are rejected with the literal message before CAPTCHA and insert.
+ * Unsafe marked submissions are rejected with the literal message (version-only when that is the
+ * whole cause, see block_message()) before CAPTCHA and insert.
  */
 
 namespace Pirax\FormTest;
@@ -78,7 +79,7 @@ function ff_verdict( $form ) {
 		} elseif ( is_wp_error( $state['marked'] ) ) {
 			$state['verdicts'][ $form_id ] = $state['marked']->get_error_message();
 		} else {
-			$state['verdicts'][ $form_id ] = prepare_marked_submission( 'ff', $form ) ? 'supported' : BLOCKED_MESSAGE;
+			$state['verdicts'][ $form_id ] = prepare_marked_submission( 'ff', $form ) ? 'supported' : blocked_message();
 		}
 	}
 	return $state['verdicts'][ $form_id ];

@@ -11,13 +11,18 @@ The checker captures full-page desktop/mobile screenshots, compares them with ac
 - Plugin behaviour, settings, supported versions and rollout: [`plugin/pirax-form-test/README.md`](plugin/pirax-form-test/README.md)
 - Local test harness, credentials and evidence: [`test/plugin/README.md`](test/plugin/README.md)
 
+From 0.3.0 the helper updates itself through WordPress's normal plugin updates, from signed GitHub releases of this repository. Sites on 0.2.4 or older need one manual upload first. Only the helper updates itself: the checker never updates WordPress or client plugins. See [Updates](plugin/pirax-form-test/README.md#updates) for verification, limits and key recovery. A marked submission blocked only by plugin versions that are not audited yet is rejected with `Pirax test blocked: awaiting audit of <plugin> <version>`; every other block keeps `Pirax test blocked: integrations could not be suppressed`. The checker does not treat the two differently yet, and the scheduled re-audit job that would publish releases automatically does not exist yet.
+
 Building and testing it additionally requires Node, `zip`/`unzip`, and a C++ toolchain for one native dev dependency (see the test README).
 
 ```sh
 bun run build:plugin           # → dist/pirax-form-test.zip, the uploadable plugin (allowlisted files only)
 bunx playwright install chromium
 bun run test:plugin            # real WordPress + Gravity Forms + Fluent Forms suites, plus the full stack; needs credentials
+bun --no-env-file test test/plugin/release.test.ts   # release CLI with generated test keys; needs network and an authenticated gh
 ```
+
+Releases are signed and published with `scripts/release-plugin.ts`, which reads the signing seed only from `PIRAX_HELPER_SIGNING_KEY` in its environment. `--dry-run` only builds and signs into `dist/` and never contacts GitHub; it is for inspection and tests. Without it the script publishes `v<version>` on GitHub after its refusal checks. See [Releasing](plugin/pirax-form-test/README.md#releasing).
 
 The plugin suites need `GRAVITY_FORMS_ZIP`, `FLUENT_FORMS_PRO_ZIP` and `FORM_TEST_TOKEN`. Two of them (`stack-harness`, `compatibility`) run the full audited stack: Gravity Forms 3.1.2, Fluent Forms free 6.2.14 and Pro 6.2.15, CleanTalk 6.88 and FluentSMTP 2.4.1 (simulated sending only). From a worktree, pass the registered repository's environment file with `bun --env-file=<registered-repo>/.env run test:plugin`. `dist/`, `artifacts/` and `.cache/` are generated and ignored by git.
 
@@ -51,7 +56,7 @@ Create `.env` in the repository root with the four names from `.env.example`:
 | `bun run forms <slug\|all> [--sites file]` | Desktop forms-only check; no visual capture/comparison or baseline access. | Yes |
 | `bun run approve <slug> [pagePath] [--sites file]` | Promote exact actual PNG/health bytes from the latest completed remote check containing that site. | Yes |
 | `bun --no-env-file test tests` | Credential-free unit/helper, CLI and local browser tests; browser cases require installed Chromium. `bunfig.toml` excludes `issues/**` worktrees from discovery. | No |
-| `bun --env-file=.env test` | Full suite, including native [plugin](test/plugin/README.md) and [forms](test/forms/README.md) integration and scoped real R2; budget about 35 minutes. Needs licensed GF and Fluent Forms Pro ZIPs, forms/IMAP and R2 configuration. On a clean checkout run `bun run build:plugin` first: the forms suite uploads the existing `dist/pirax-form-test.zip` and can run before a plugin suite builds it. Missing prerequisites fail, never skip. | Yes |
+| `bun --env-file=.env test` | Full suite, including native [plugin](test/plugin/README.md) and [forms](test/forms/README.md) integration and scoped real R2; budget about 55 minutes. The release CLI tests in it also need network and an authenticated `gh`. Needs licensed GF and Fluent Forms Pro ZIPs, forms/IMAP and R2 configuration. On a clean checkout run `bun run build:plugin` first: the forms suite uploads the existing `dist/pirax-form-test.zip` and can run before a plugin suite builds it. Missing prerequisites fail, never skip. | Yes |
 | `bun --env-file=.env run test:forms` | Browser/config/mail helpers, native Playground checker, scoped report tests and awaiting-audit state/command tests. | Yes |
 | `bun --env-file=.env run mail:selftest` | Independent real SMTP/IMAP proof; sends one message and leaves it in the dedicated mailbox. | No |
 | `bun run typecheck` | `tsc --noEmit` over `src`, `scripts`, `tests` and `test` fixtures. | No |

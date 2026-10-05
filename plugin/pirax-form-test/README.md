@@ -12,8 +12,8 @@ It does not send mail itself. Mail still goes through the site's own `wp_mail()`
 
 ## Install
 
-1. Build `dist/pirax-form-test.zip` with `bun run build:plugin` from the repository root.
-2. In wp-admin, go to Plugins → Add New → Upload Plugin, choose the ZIP, then Install and Activate.
+1. Build `dist/pirax-form-test.zip` with `bun run build:plugin` from the repository root, or take `pirax-form-test.zip` from a published release of this repository.
+2. In wp-admin, go to Plugins → Add New → Upload Plugin, choose the ZIP, then Install and Activate. On a site that already has the helper, choose **Replace current with uploaded**; settings are kept.
 3. Go to Settings → Pirax Form Test and set both values:
    - **Marker token**: the shared secret, 16–255 characters from `[A-Za-z0-9._~+/=-]`. Other characters are rejected, not changed, because form plugins could otherwise rewrite the token when sanitizing input. The field is a password input and the saved token is never displayed.
      - Leaving it blank keeps the stored token.
@@ -23,6 +23,39 @@ It does not send mail itself. Mail still goes through the site's own `wp_mail()`
 Only users with `manage_options` can view or save the settings. Saving also requires the WordPress nonce. Missing or invalid nonces and non-admin requests change nothing.
 
 Both options (`pirax_form_test_token`, `pirax_form_test_redirect`) are stored with autoload off. Do not put the token in source code or plugin files. It belongs only in this setting and in the checker's private configuration.
+
+## Updates
+
+From 0.3.0 the helper updates itself through WordPress's normal plugin updates, from the GitHub releases of `CastrumS/pirax-castrum-maintenance`. Only this plugin is affected: the helper and the checker never update WordPress, the form plugins or anything else on a client site.
+
+**First upgrade from 0.2.4 or older.** Those versions have no updater and never see a release. Upload a 0.3.0 or newer ZIP once on every existing site, as in [Install](#install) step 2. From then on, new releases arrive on their own.
+
+**Channel.** WordPress's regular update check fetches `releases/latest/download/pirax-form-test-manifest.json` and its `.sig` from the latest full release (drafts and prereleases are never "latest"). The manifest is `{"version", "package", "sha256", "audited"}`; the `.sig` is the base64 of a 64-byte Ed25519 signature over the exact manifest bytes. The plugin header's `Update URI` keeps WordPress from matching a same-named wordpress.org plugin.
+
+**Verification.** An update is offered only when the signature verifies against the public key built into the helper (`UPDATE_PUBLIC_KEY` in `includes/updates.php`), the manifest is well formed, its version is a stable dotted number newer than the installed header, and `package` is exactly that release's `…/releases/download/v<version>/pirax-form-test.zip`. At install time the helper fetches and verifies the manifest again, requires it to match the offer, downloads the package itself and hands it to WordPress only if its SHA-256 matches the manifest. A network failure, bad or missing signature, malformed or changed manifest, other package URL or hash mismatch offers or installs nothing, never falls back to WordPress's unchecked download, and leaves the installed helper unchanged. A failed check also withdraws an earlier offer. The manifest's `audited` map records which versions that release was audited for; the installed helper's own exact-version table (below) still decides what it accepts.
+
+**Automatic updates.** The helper opts only itself into WordPress auto-updates; an administrator can also update it from Plugins or Dashboard → Updates. It cannot override automatic updates that are disabled site-wide, a plugin directory WordPress cannot write, a site that cannot reach GitHub, or WP-Cron not running because the site gets no traffic. Those sites stay on their version until someone updates them.
+
+**Limits.** The signature proves who built a release and that it was not altered, not that it is current: there is no expiry, so a site that cannot fetch the feed, or a feed that is withheld, silently keeps the installed version. Only WordPress's update path is restricted to signed releases; an administrator, or other code with the same privileges, can still replace the plugin's files or remove its hooks. Anyone holding the private signing key can publish updates that every site installs; signatures cannot protect against a leaked key.
+
+**Releases.** A release is made with `scripts/release-plugin.ts` (see [Releasing](#releasing)). The scheduled re-audit job meant to publish releases automatically after an audit passes is not implemented yet, so until it exists no release appears unless one is published by hand.
+
+**Key recovery.** The private key exists only as the GitHub repository secret `PIRAX_HELPER_SIGNING_KEY`, plus the operator's private local copy, and GitHub secrets cannot be read back. If the key is lost or may be compromised, generate a new pair, replace `UPDATE_PUBLIC_KEY` and the secret, and upload the resulting helper manually on every site: sites that still have the old key reject releases signed by the new one. There is no in-band key rotation.
+
+### Releasing
+
+```sh
+bun scripts/release-plugin.ts --dry-run   # build and sign only; never contacts GitHub
+bun scripts/release-plugin.ts             # build, sign and publish v<version>
+```
+
+Both read the signing key only from the environment variable `PIRAX_HELPER_SIGNING_KEY`: the base64 of a raw 32-byte Ed25519 seed, not PEM and not a 64-byte expanded key. Load it with `bun --env-file=<file>` or the job's secret; never pass it as an argument or write it to a file. Errors name the variable, never its value, and child processes (`zip`, `git`, `gh`) do not receive it.
+
+The version comes from the plugin header, which must equal the `VERSION` constant and be a stable dotted number; the `audited` map comes from `AUDITED_VERSIONS` in `includes/compatibility.php`. A missing, duplicated or non-literal declaration fails the release instead of falling back to another list. The ZIP is built exactly as by `bun run build:plugin`. `dist/` then holds `pirax-form-test.zip`, `pirax-form-test-manifest.json` and `pirax-form-test-manifest.json.sig`.
+
+**`--dry-run`** accepts any key, so tests sign with a freshly generated one. Its output is for inspection and tests only: a release signed with a test key does not change the helper's built-in public key, and shipping helpers would reject it.
+
+**Publishing** first checks, in order, that the key matches `UPDATE_PUBLIC_KEY`; that `plugin/pirax-form-test/` has no uncommitted changes; that no local tag `v<version>` exists; and, read-only on GitHub, that neither a tag nor a release (drafts included) named `v<version>` exists. Only a "not found" answer counts as absent: an authentication, network or rate-limit failure stops the release. It then builds and signs, and runs `gh release create v<version> --repo CastrumS/pirax-castrum-maintenance --latest --target <HEAD commit>` with exactly the three files. It never replaces an existing tag, release or asset: if one appears in the meantime, `gh` fails. Publishing needs an authenticated `gh` with write access, and HEAD must already be on GitHub.
 
 ## Marker and mail contract
 
@@ -38,6 +71,7 @@ Only submitted field values are searched, including nested and multi-value field
 | Token without a valid `-<id>` (uppercase, too short, bare token), or two different ids | Rejected: `Pirax test blocked: invalid test marker` |
 | Token set but redirect missing or invalid | Rejected: `Pirax test blocked: test configuration is invalid` |
 | Integrations that cannot be suppressed (see below) | Rejected: `Pirax test blocked: integrations could not be suppressed` |
+| Only plugin versions that are not audited yet block it (see below) | Rejected: `Pirax test blocked: awaiting audit of <plugin> <version>[, <plugin> <version>…]` |
 
 Rejected submissions create no entry and send no mail, and no feeds run.
 
@@ -55,7 +89,7 @@ If the redirect is unusable, or a later filter undoes the change, marked mail **
 
 ## Supported versions and behaviour
 
-Version 0.2.4. Marked submissions are accepted only on these exact audited versions, compared as exact strings:
+Version 0.3.0. Marked submissions are accepted only on these exact audited versions, compared as exact strings:
 
 | Plugin | Audited version | Applies to |
 |---|---|---|
@@ -65,7 +99,9 @@ Version 0.2.4. Marked submissions are accepted only on these exact audited versi
 | Anti-Spam by CleanTalk | 6.88 | GF and FF, when active |
 | FluentSMTP | 2.4.1 | GF and FF, when active |
 
-Pro, CleanTalk and FluentSMTP are optional: a site without them is checked against the core rows only. When one is active at any other version, marked submissions of the adapters it applies to are rejected with the "integrations could not be suppressed" message. This includes later patch releases such as FluentSMTP 2.4.2 or CleanTalk 6.88.1: 2.4.1 is the only audited FluentSMTP release, not 2.4.x. An active plugin whose version cannot be read counts as not audited. A new version is supported only after it is re-audited. Ordinary submissions still work with any version. The plugin also loads without either form plugin; each adapter is simply inactive.
+Pro, CleanTalk and FluentSMTP are optional: a site without them is checked against the core rows only. When one is active at any other version, marked submissions of the adapters it applies to are rejected. This includes later patch releases such as FluentSMTP 2.4.2 or CleanTalk 6.88.1: 2.4.1 is the only audited FluentSMTP release, not 2.4.x. An active plugin whose version cannot be read counts as not audited. A new version is supported only after it is re-audited. Ordinary submissions still work with any version. The plugin also loads without either form plugin; each adapter is simply inactive.
+
+**Awaiting audit or generic.** When the only reason for a block is plugins at known versions that are not audited yet, the rejection names them, for example `Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16`. Several are listed in the panel's order (core plugins, then optional ones). Unaudited callbacks do not change that only if each one is declared in a file inside one of those mismatched plugins' own directories, which the helper checks by reflecting the callback's source file, not by its name. Any other cause, alone or together with a version mismatch, keeps `Pirax test blocked: integrations could not be suppressed`: a version that cannot be read, a callback from any other plugin or custom code, an unsupported form, an unrecognized CleanTalk binding, or a removal failure. At the audited Pro version, Pro's Inventory module still gets the generic message. Both messages reject the submission before anything is saved, mailed or dispatched. The awaiting-audit message means the site is waiting for a re-audit; it does not promise that the new version, or its modules, will be accepted. The form checker does not read this message yet: its planned `awaiting-audit` warning and escalation are not implemented, so such a test is still reported like any other blocked submission.
 
 Tested only on a single WordPress 7.1.2 / PHP 8.3 site. The plugin header declares WordPress 6.4+ and PHP 7.4+, but those are untested. Multisite is untested.
 
@@ -100,6 +136,8 @@ Which CleanTalk check applies depends on the submission route:
   - GF is missing or not at its audited version (decided before any GF form API is called), or CleanTalk is not at its audited version;
   - CleanTalk would run this check but it is not its audited binding (moved to another priority, changed or wrapped), or a binding of it remains after the removal;
   - the token is in a field input the stored form does not have, such as a field that only a form filter (`gform_form_post_get_meta`, `gform_pre_render`, …) adds. Such dynamically added fields are unsupported for marked modern AJAX submissions while CleanTalk is active: the early check cannot know them without loading the form before GF initializes.
+
+  A refusal caused only by a known GF or CleanTalk version that is not audited gets the awaiting-audit message; every other early refusal is generic. The early check never reads GF's stored form just to choose the wording.
 
   Ordinary modern AJAX submissions keep CleanTalk's generic check. Without CleanTalk, modern AJAX submissions are checked only by the normal preflight.
 
@@ -136,7 +174,7 @@ Settings → Pirax Form Test shows a read-only **Compatibility** section below t
 
 All values are escaped. The panel has no JavaScript, endpoint, toggle or bypass. It stores nothing, removes no callbacks and submits nothing.
 
-**Last blocked test submission.** When a marked submission is rejected with "integrations could not be suppressed", the helper stores why in the option `pirax_form_test_last_block` (autoload off, replaced by the next block, removed on uninstall): the time, form plugin, form id, the reasons, and the unaudited callbacks seen in that request, by hook, callback identity and priority. It never stores submitted values, the marker or the token. The panel shows it below both sections. This matters because the submission request can load callbacks that the admin page does not, so the panel can say `ready` while a real test is still blocked.
+**Last blocked test submission.** When a marked submission is rejected with the generic or the awaiting-audit message, including by the early GF modern AJAX check, the helper stores why in the option `pirax_form_test_last_block` (autoload off, replaced by the next block, removed on uninstall): the time, form plugin, form id, the reasons, the unaudited callbacks seen in that request, by hook, callback identity and priority, and the rejection message. It never stores submitted values, the marker or the token. The panel shows the time, form, reasons and callbacks below both sections; the stored message itself is not displayed. This matters because the submission request can load callbacks that the admin page does not, so the panel can say `ready` while a real test is still blocked.
 
 `ready` covers only the plugins, versions and callbacks loaded for that admin page. It does not cover every form (payment, non-`form` and GF post-field forms are still rejected at submission), the marker, CAPTCHA, callbacks that only load on public pages or in later requests (such as CleanTalk's GF bindings on public pages and its generic check on GF modern AJAX requests), or mail delivery. Each marked submission is checked again when it arrives, and that check decides.
 
@@ -166,7 +204,7 @@ Install on **one site** first, verify the token/redirect and audited versions/in
 
 Extend to a small group, then to all sites. Each step needs the operator's explicit go-ahead after the previous step's results are reviewed. Local tests do not authorize rollout. The checker verifies arrival independently over read-only IMAP; this helper still only hands mail to WordPress. See the [native checker and real-mail test guide](../../test/forms/README.md) for the distinction between logged Playground mail and delivered mail.
 
-A site whose form-plugin, Pro, CleanTalk or FluentSMTP versions or integrations differ from the audited set rejects marked submissions. Treat it as not rollout-ready until it is re-audited, rather than working around the rejection.
+A site whose form-plugin, Pro, CleanTalk or FluentSMTP versions or integrations differ from the audited set rejects marked submissions (with the awaiting-audit message when versions alone differ). Treat it as not rollout-ready until it is re-audited, rather than working around the rejection.
 
 ## Known limitations
 

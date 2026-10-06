@@ -2,7 +2,7 @@
 // bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/harness.test.ts
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { FF_VERSION, GF_VERSION, pinnedVersion, preflight, startHarness, type Harness } from "./harness";
-import { nextPatch } from "./version-fixtures";
+import { nextPatch, withAlteredFile } from "./version-fixtures";
 import { findSecret } from "./artifacts";
 import { withoutSigningKey } from "../../scripts/build-plugin";
 import { mkdir, mkdtemp } from "node:fs/promises";
@@ -221,6 +221,38 @@ test("browser logs in to real wp-admin and submits unmarked forms for both plugi
   });
   expect(Object.keys(manifest.zips).sort()).toEqual(["fluentform", "gravityforms"]);
   expect(evidence.files).toEqual(expect.arrayContaining(["network.jsonl", "manifest.json"]));
+}, 300_000);
+
+test("withAlteredFile: repeated and nested plugin edits reach every Playground worker and restore the original bytes", async () => {
+  // Playground's run() goes round-robin over its workers (6 here); 7 fresh reads reach each of them.
+  const seen = async () => {
+    const versions = new Set<string>();
+    for (let i = 0; i < 7; i++)
+      versions.add(await h.php<string>(`return FLUENTFORM_VERSION . ' ' . get_file_data(WP_PLUGIN_DIR . '/gravityforms/gravityforms.php', ['v' => 'Version'])['v'];`));
+    return [...versions];
+  };
+  const [ff, gf] = [nextPatch(FF_VERSION), nextPatch(GF_VERSION)];
+  const ffDefine = (v: string) => `define('FLUENTFORM_VERSION', '${v}');`;
+  const gfHeader = (v: string) => `Version: ${v}\n`;
+  // Edit, one fresh read, restore: the restore runs on another worker than the edit, and within 7 cycles a later
+  // edit runs again on a worker that made an earlier backup (which that worker's file cache still lists).
+  for (let cycle = 0; cycle < 7; cycle++) {
+    await withAlteredFile(h, "fluentform/fluentform.php", ffDefine(FF_VERSION), ffDefine(ff), async () => {
+      expect(await h.php<string>(`return FLUENTFORM_VERSION;`)).toBe(ff);
+    });
+  }
+  // Nested, as in the compatibility suite: each fresh read on every worker sees exactly the current edits.
+  for (let round = 0; round < 2; round++) {
+    await withAlteredFile(h, "fluentform/fluentform.php", ffDefine(FF_VERSION), ffDefine(ff), async (outer) => {
+      expect(outer.altered).not.toBe(outer.original);
+      expect(await seen()).toEqual([`${ff} ${GF_VERSION}`]);
+      await withAlteredFile(h, "gravityforms/gravityforms.php", gfHeader(GF_VERSION), gfHeader(gf), async () => {
+        expect(await seen()).toEqual([`${ff} ${gf}`]);
+      });
+      expect(await seen()).toEqual([`${ff} ${GF_VERSION}`]);
+    });
+    expect(await seen()).toEqual([`${FF_VERSION} ${GF_VERSION}`]);
+  }
 }, 300_000);
 
 test("stop shuts the site down", async () => {

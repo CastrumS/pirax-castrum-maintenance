@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { findSecret } from "./artifacts";
 import { startHarness, type EnvelopeRecord, type Harness, type HttpRecord } from "./harness";
-import { nextPatch, PINS } from "./version-fixtures";
+import { nextPatch, PINS, withAlteredFile as alteredFile } from "./version-fixtures";
 
 // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
 setDefaultTimeout(180_000);
@@ -265,34 +265,12 @@ async function panel(plugin: "gf" | "ff") {
   return { rows, verdict: await section.locator(".pirax-form-test-verdict").innerText(), hooks };
 }
 
-/**
- * Replace `search` (exactly once) in an installed vendor file, run `body` with fresh requests, then
- * restore it. Hashes of the original and altered file are kept in the evidence notes.
- */
-async function withAlteredFile(file: string, search: string, replace: string, body: () => Promise<void>) {
-  const hashes = await h.php<{ original: string; altered: string }>(`
-    $file = WP_PLUGIN_DIR . '/' . ${lit(file)};
-    $source = file_get_contents($file);
-    if (1 !== substr_count($source, ${lit(search)})) throw new RuntimeException('fixture search string not found exactly once');
-    $altered = str_replace(${lit(search)}, ${lit(replace)}, $source);
-    copy($file, "$file.pirax-original");
-    file_put_contents($file, $altered);
-    if (function_exists('opcache_invalidate')) opcache_invalidate($file, true);
-    return ['original' => hash('sha256', $source), 'altered' => hash('sha256', $altered)];
-  `);
-  await note("altered vendor fixture", { file, search, replace, ...hashes });
-  try {
+/** withAlteredFile() on this stack; the original and altered hashes are kept in the evidence notes. */
+const withAlteredFile = (file: string, search: string, replace: string, body: () => Promise<void>) =>
+  alteredFile(h, file, search, replace, async (hashes) => {
+    await note("altered vendor fixture", { file, search, replace, ...hashes });
     await body();
-  } finally {
-    const restored = await h.php<string>(`
-      $file = WP_PLUGIN_DIR . '/' . ${lit(file)};
-      rename("$file.pirax-original", $file);
-      if (function_exists('opcache_invalidate')) opcache_invalidate($file, true);
-      return hash_file('sha256', $file);
-    `);
-    expect(restored).toBe(hashes.original);
-  }
-}
+  });
 
 // ---------------------------------------------------------------------------------------------
 // AC1/AC2 — marked success between ordinary controls

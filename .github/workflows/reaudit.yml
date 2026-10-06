@@ -1,0 +1,178 @@
+# Daily re-audit of the helper's five vendor pins (plan D6–D9; README "Automatic re-audit").
+# audit (read-only, vendor credentials, runs vendor code) -> publish (write, signing key, no vendor code, only this
+# run's validated candidate) -> heartbeat (write, fresh main, independent) -> notify (always, one email on failure).
+# Expressions never reach shell code: every value a step needs arrives through its own `env:`.
+# A rerun keeps the run ID and earlier attempts' artifacts, so every artifact name carries github.run_attempt and the
+# scripts accept only this attempt's (Actions sets GITHUB_RUN_ATTEMPT): a rerun never inherits an earlier candidate or
+# cleanup-confirmed summary. Rerunning failed jobs therefore never publishes an earlier attempt's audit; dispatch a
+# fresh main run instead (README "Automatic re-audit").
+name: reaudit
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pirax-reaudit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    if: github.repository == 'CastrumS/pirax-castrum-maintenance' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    # Acquisition and cleanup take minutes, the full plugin suite about an hour (run.ts bounds it at 105 minutes).
+    timeout-minutes: 150
+    permissions:
+      contents: read
+    outputs:
+      outcome: ${{ steps.run.outputs.outcome }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - name: Native tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential python3 gnupg zip unzip
+      - name: Dependencies
+        run: bun --no-env-file install --frozen-lockfile
+      - name: Chromium
+        run: bunx playwright install --with-deps chromium
+      - name: Build helper
+        run: bun --no-env-file run build:plugin
+      - name: Audit
+        id: run
+        env:
+          GPLVAULT_LICENSE_KEY: ${{ secrets.GPLVAULT_LICENSE_KEY }}
+          GPLVAULT_PRODUCT_ID: ${{ secrets.GPLVAULT_PRODUCT_ID }}
+          GPLVAULT_UPDATER_PASSPHRASE: ${{ secrets.GPLVAULT_UPDATER_PASSPHRASE }}
+          GH_TOKEN: ${{ github.token }}
+          REAUDIT_OUT: ${{ runner.temp }}/reaudit
+        run: bun --no-env-file scripts/reaudit/run.ts --out "$REAUDIT_OUT"
+      - name: Candidate
+        if: steps.run.outputs.outcome == 'audited-candidate'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: reaudit-candidate-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/reaudit/candidate.json
+          if-no-files-found: error
+          retention-days: 7
+      - name: Failure summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: reaudit-summary-${{ github.run_attempt }}-audit
+          path: ${{ runner.temp }}/reaudit/summary.json
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Sanitized evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: reaudit-evidence-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/reaudit/
+          if-no-files-found: ignore
+          retention-days: 30
+
+  publish:
+    needs: audit
+    if: needs.audit.result == 'success' && needs.audit.outputs.outcome == 'audited-candidate' && github.repository == 'CastrumS/pirax-castrum-maintenance' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      # The triggering main commit, the same one the audit checked out; never a ref from the candidate. No persisted
+      # credentials (plan D5): publish.ts authenticates its own git calls through gh with the step's GH_TOKEN.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - name: Candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: reaudit-candidate-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/candidate
+      - name: Publish
+        env:
+          PIRAX_HELPER_SIGNING_KEY: ${{ secrets.PIRAX_HELPER_SIGNING_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE: ${{ runner.temp }}/candidate/candidate.json
+          SUMMARY: ${{ runner.temp }}/summary/summary.json
+        run: |
+          mkdir -p "$(dirname "$SUMMARY")"
+          bun --no-env-file --no-install scripts/reaudit/publish.ts --candidate "$CANDIDATE" --summary "$SUMMARY"
+      - name: Failure summary
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: reaudit-summary-${{ github.run_attempt }}-publish
+          path: ${{ runner.temp }}/summary/summary.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  heartbeat:
+    needs: [audit, publish]
+    # Independent of the audit outcome, so weeks of failing gates cannot let the schedule be disabled.
+    if: always() && github.repository == 'CastrumS/pirax-castrum-maintenance' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      # No persisted credentials (plan D5): heartbeat.ts authenticates its push through gh with the step's GH_TOKEN.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - name: Heartbeat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bun --no-env-file --no-install scripts/reaudit/heartbeat.ts --run
+
+  notify:
+    needs: [audit, publish, heartbeat]
+    if: always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && github.repository == 'CastrumS/pirax-castrum-maintenance' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - name: Dependencies
+        run: bun --no-env-file install --frozen-lockfile
+      - name: Summaries
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: reaudit-summary-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/summaries
+      - name: Notify
+        env:
+          IMAP_USER: ${{ secrets.IMAP_USER }}
+          IMAP_PASSWORD: ${{ secrets.IMAP_PASSWORD }}
+          REAUDIT_NEEDS: ${{ toJSON(needs) }}
+          SUMMARIES: ${{ runner.temp }}/summaries
+        run: bun --no-env-file scripts/reaudit/notify.ts --jobs "$SUMMARIES"

@@ -21,6 +21,7 @@ import {
   type AuditedVersions,
   type PinKey,
 } from "./detect";
+import { loopbackSite } from "./notify";
 
 const ROOT = resolve(import.meta.dir, "../..");
 /** The harness's version-keyed wordpress.org cache (test/plugin/harness.ts reads `<slug>.<version>.zip` here). */
@@ -37,7 +38,9 @@ type Fetch = (url: string, init: RequestInit) => Promise<Response>;
 
 /** The official client's steps, as the parent drives them. Answers are reduced to safe facts in PHP. */
 export interface Vault {
-  status(): Promise<{ activated: boolean; remaining: number | null }>;
+  /** `activated` is the official boolean, or null when data.activated is absent or not a boolean. */
+  status(): Promise<{ activated: boolean | null; remaining: number | null }>;
+  /** `activated` is true only for an explicit boolean true receipt. */
   activate(): Promise<{ activated: boolean; remaining: number | null }>;
   /** Native WordPress self-update of gplvault-updater, then a fresh request reporting the loaded version. */
   selfUpdate(): Promise<{ before: string; after: string }>;
@@ -45,8 +48,11 @@ export interface Vault {
   catalog(pins: { gf: string; ff_pro: string }): Promise<unknown>;
   /** download(['product_id' => item]): the private package URL, or "" when refused. */
   download(item: number): Promise<string>;
+  /** `deactivated` is true only for an explicit boolean true receipt. */
   deactivate(): Promise<{ deactivated: boolean }>;
   close(): Promise<void>;
+  /** The throwaway site's loopback URL as the child reported it, when known. */
+  site?: string | null;
 }
 export type OpenVault = (options: { directory: string; env: Env }) => Promise<Vault>;
 
@@ -67,6 +73,8 @@ export interface Lifecycle {
   remainingBefore: number | null;
   remainingAfter: number | null;
   updater: { before: string; after: string } | null;
+  /** The throwaway site's loopback URL (recovery identifier, plan D4); null when not known. */
+  site: string | null;
 }
 export type Acquisition =
   | { status: "unchanged"; versions: AuditedVersions; packages: null; lifecycle: Lifecycle }
@@ -114,11 +122,11 @@ export async function decryptUpdater(ciphertext: string, out: string, passphrase
 }
 
 /** Bounded HTTPS GET without redirects; failures name the stage and key only. */
-async function get(fetcher: Fetch, url: string, stage: string, key: string, max: number, ms: number): Promise<Uint8Array> {
+async function get(fetcher: Fetch, url: string, stage: string, key: string, max: number, ms: number, abort?: AbortSignal): Promise<Uint8Array> {
   if (!URL.canParse(url) || new URL(url).protocol !== "https:") throw new ReauditError(stage, key, "url malformed");
   let response: Response;
   try {
-    response = await fetcher(url, { redirect: "error", signal: AbortSignal.timeout(ms) });
+    response = await fetcher(url, { redirect: "error", signal: abort ? AbortSignal.any([abort, AbortSignal.timeout(ms)]) : AbortSignal.timeout(ms) });
   } catch {
     throw new ReauditError(stage, key, "failed");
   }
@@ -140,12 +148,16 @@ async function get(fetcher: Fetch, url: string, stage: string, key: string, max:
   return Buffer.concat(chunks);
 }
 
-/** Download, check the main-file Version, then atomically place the verified bytes at `path`. */
-async function fetchPackage(fetcher: Fetch, key: PinKey, url: string, version: string, path: string): Promise<Package> {
-  const bytes = await get(fetcher, url, "download", key, MAX_ZIP, 300_000);
+/**
+ * Download, check the main-file Version, then atomically place the verified bytes at `path`. Once `abort` fires
+ * nothing is created or written, even if a (non-cooperative) download still answers afterwards.
+ */
+async function fetchPackage(fetcher: Fetch, key: PinKey, url: string, version: string, path: string, abort: AbortSignal): Promise<Package> {
+  const bytes = await get(fetcher, url, "download", key, MAX_ZIP, 300_000, abort);
   const found = await zipVersion(bytes, PLUGINS[key].main);
   if (!found) throw new ReauditError("download", key, "version unreadable");
   if (found !== version) throw new ReauditError("download", key, "version mismatch");
+  if (abort.aborted) throw new ReauditError("download", key, "interrupted");
   await mkdir(dirname(path), { recursive: true });
   await Bun.write(`${path}.part`, bytes);
   await rename(`${path}.part`, path);
@@ -187,14 +199,27 @@ export async function acquirePackages({
     remainingBefore: null,
     remainingAfter: null,
     updater: null,
+    site: null,
   };
   // A catchable signal rejects the pending step so `finally` can still deactivate; handlers stay until the end,
   // so a repeated signal cannot cut cleanup short. SIGKILL or runner loss cannot be handled (plan D12).
+  // A rejected race does not stop the raced operation: package downloads are tracked, the abort signal stops them
+  // and their writes, and nothing is removed or returned until every started download has settled. (Vault steps
+  // write nothing here; closing the child settles them.)
   let interrupt!: (error: ReauditError) => void;
   const interrupted = new Promise<never>((_, reject) => (interrupt = reject));
   interrupted.catch(() => {});
-  const handlers = (["SIGINT", "SIGTERM"] as const).map((signal) => [signal, () => interrupt(new ReauditError("signal", signal, "received"))] as const);
+  const abort = new AbortController();
+  const handlers = (["SIGINT", "SIGTERM"] as const).map(
+    (signal) => [signal, () => (abort.abort(), interrupt(new ReauditError("signal", signal, "received")))] as const,
+  );
   for (const [signal, handler] of handlers) process.on(signal, handler);
+  const inflight = new Set<Promise<unknown>>();
+  const tracked = <T>(download: Promise<T>) => {
+    inflight.add(download);
+    void download.then(() => inflight.delete(download), () => inflight.delete(download));
+    return download;
+  };
   const step = async <T>(stage: string, field: string, run: () => Promise<T>): Promise<T> => {
     try {
       return await Promise.race([run(), interrupted]);
@@ -229,9 +254,14 @@ export async function acquirePackages({
     );
     vault = await step("playground", "boot", () => (opening = openVault({ directory, env })));
     const v = vault;
-    lifecycle.remainingBefore = count((await step("activation", "status", () => v.status())).remaining);
+    lifecycle.site = loopbackSite(v.site);
+    const initial = await step("activation", "status", () => v.status());
+    // Only an explicit inactive status may be activated: an already-active instance is not this run's seat to release.
+    if (initial.activated === true) throw new ReauditError("activation", "status", "already active");
+    if (initial.activated !== false) throw new ReauditError("activation", "status", "malformed");
+    lifecycle.remainingBefore = count(initial.remaining);
     lifecycle.activationAttempted = true;
-    if (!(await step("activation", "activate", () => v.activate())).activated) throw new ReauditError("activation", "activate", "refused");
+    if ((await step("activation", "activate", () => v.activate())).activated !== true) throw new ReauditError("activation", "activate", "refused");
     lifecycle.activationConfirmed = true;
     const updater = await step("updater", "self-update", () => v.selfUpdate());
     if (!/^\d+(\.\d+)*$/.test(updater.before) || !/^\d+(\.\d+)*$/.test(updater.after)) throw new ReauditError("updater", "version", "malformed");
@@ -247,10 +277,11 @@ export async function acquirePackages({
       const url = await step("download", key, () => v.download(catalog[key].item));
       const path = join(directory, `${PLUGINS[key].slug}.${latest[key]}.zip`);
       paidFiles.push(path);
-      packages[key] = await step("download", key, () => fetchPackage(fetcher, key, url, latest![key], path));
+      packages[key] = await step("download", key, () => tracked(fetchPackage(fetcher, key, url, latest![key], path, abort.signal)));
     }
   } catch (error) {
     failure = error;
+    abort.abort();
   } finally {
     if (vault && lifecycle.activationAttempted) {
       lifecycle.deactivationAttempted = true;
@@ -279,11 +310,14 @@ export async function acquirePackages({
     try {
       for (const key of FREE_KEYS)
         packages[key] = await step("download", key, () =>
-          fetchPackage(fetcher, key, free[key].url, latest![key], join(cache, `${PLUGINS[key].slug}.${latest![key]}.zip`)),
+          tracked(fetchPackage(fetcher, key, free[key].url, latest![key], join(cache, `${PLUGINS[key].slug}.${latest![key]}.zip`), abort.signal)),
         );
     } catch (error) {
       failure = error;
+      abort.abort();
     }
+  // Drain: an interrupted step may still be running; after abort it can no longer write, and once settled nothing can.
+  while (inflight.size) await Promise.allSettled([...inflight]);
   for (const [signal, handler] of handlers) process.off(signal, handler);
 
   if (failure) {
@@ -299,7 +333,8 @@ export async function acquirePackages({
 
 // PHP steps for the official client. Each runs as its own request (after wp-load), so the self-updated client
 // code is what later steps load. They return only booleans, counts, versions and item ids — except download,
-// whose private URL goes straight to fetchPackage.
+// whose private URL goes straight to fetchPackage. Flags are the official client's JSON booleans (WooCommerce API
+// Manager `activated`/`deactivated`); a missing or non-boolean flag is never read as a receipt or as "inactive".
 const PHP = {
   configure: `
     $key = getenv('GPLVAULT_LICENSE_KEY'); $product = getenv('GPLVAULT_PRODUCT_ID');
@@ -309,10 +344,11 @@ const PHP = {
   status: `
     $r = gv_api_manager()->set_initials()->status();
     if (is_wp_error($r) || !isset($r['data']) || !is_array($r['data'])) throw new Exception('status');
-    return ['activated' => !empty($r['data']['activated']), 'remaining' => $r['data']['activations_remaining'] ?? null];`,
+    $flag = $r['data']['activated'] ?? null;
+    return ['activated' => is_bool($flag) ? $flag : null, 'remaining' => $r['data']['activations_remaining'] ?? null];`,
   activate: `
     $r = gv_api_manager()->set_initials()->activate();
-    if (is_wp_error($r) || empty($r['activated'])) return ['activated' => false, 'remaining' => null];
+    if (is_wp_error($r) || !is_array($r) || ($r['activated'] ?? null) !== true) return ['activated' => false, 'remaining' => null];
     gv_settings_manager()->enable_activation_status();
     return ['activated' => true, 'remaining' => $r['data']['activations_remaining'] ?? null];`,
   selfUpdate: `
@@ -358,13 +394,17 @@ const PHP = {
     return is_string($url) ? $url : '';`,
   deactivate: `
     $r = gv_api_manager()->set_initials()->deactivate();
-    return ['deactivated' => !is_wp_error($r) && !empty($r['deactivated'])];`,
+    return ['deactivated' => !is_wp_error($r) && is_array($r) && ($r['deactivated'] ?? null) === true];`,
 };
 
-/** Decrypt the committed official updater, boot it in a throwaway Playground and return its driver. */
+/**
+ * Decrypt the committed official updater, boot it in a throwaway Playground and return its driver. `directory` is
+ * private scratch that this driver creates when missing (run.ts hands over a fresh path inside its own scratch).
+ */
 export async function openOfficialVault({ directory, env, ciphertext = CIPHERTEXT }: { directory: string; env: Env; ciphertext?: string }): Promise<Vault> {
   const passphrase = env.GPLVAULT_UPDATER_PASSPHRASE;
   if (!passphrase) throw new ReauditError("environment", "GPLVAULT_UPDATER_PASSPHRASE", "missing");
+  await mkdir(directory, { recursive: true, mode: 0o700 });
   const scratch = await mkdtemp(join(directory, "updater-"));
   const zip = join(scratch, "gplvault-updater.zip");
   const child = await decryptUpdater(ciphertext, zip, passphrase)
@@ -386,6 +426,7 @@ export async function openOfficialVault({ directory, env, ciphertext = CIPHERTEX
   // Child output is never printed: only MARK lines are parsed, everything else is dropped.
   const pending = new Map<number, (message: any) => void>();
   let ready!: () => void;
+  let site: string | null = null;
   const booted = new Promise<void>((r) => (ready = r));
   void (async () => {
     let buffer = "";
@@ -395,7 +436,7 @@ export async function openOfficialVault({ directory, env, ciphertext = CIPHERTEX
       for (const line of lines) {
         if (!line.startsWith(MARK)) continue;
         const message = JSON.parse(line.slice(MARK.length));
-        if (message.ready) ready();
+        if (message.ready) (site = loopbackSite(message.site)), ready();
         else pending.get(message.id)?.(message), pending.delete(message.id);
       }
     }
@@ -456,5 +497,6 @@ export async function openOfficialVault({ directory, env, ciphertext = CIPHERTEX
     download: (item) => php(PHP.download(item)),
     deactivate: () => php(PHP.deactivate, { ms: 60_000 }),
     close,
+    site,
   };
 }

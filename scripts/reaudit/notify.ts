@@ -8,8 +8,13 @@
 //                                                                    its subject tag ID for a separate arrival check
 //   bun --env-file=.env scripts/reaudit/notify.ts <summary.json>   send that summary; an invalid summary sends a
 //                                                                    fixed fallback notice and still exits 1
+//   bun scripts/reaudit/notify.ts --jobs <dir>                     reaudit.yml's notice job: REAUDIT_NEEDS (toJSON(needs))
+//                                                                    names the failed job; this attempt's (GITHUB_RUN_ATTEMPT)
+//                                                                    <dir>/reaudit-summary-<attempt>-<job>/summary.json is
+//                                                                    sent, else a fixed per-job fallback
 // Import-safe: nothing runs on import.
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import nodemailer from "nodemailer";
 import { EnvError, EnvFormatError, readEnv } from "../../src/env.ts";
 import { addressPattern } from "../../src/forms/config.ts";
@@ -41,6 +46,8 @@ export type FailureSummary = {
   commit?: string;
   /** Intended release tag: `v` plus a stable dotted numeric helper version. */
   tag?: string;
+  /** The throwaway Playground site whose GPL Vault activation may remain (plan D4): a loopback URL only. */
+  site?: string;
 };
 
 export class NoticeError extends Error {}
@@ -49,8 +56,17 @@ const VERSION = /^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){1,3}$/;
 const REASON = /^[a-z][a-z0-9-]{0,63}$/;
 const COMMIT = /^[0-9a-f]{40}$/;
 const TAG = new RegExp(`^v${VERSION.source.slice(1)}`);
-const RUN_URL = new RegExp(`^https://github\\.com/${REPO}/actions/runs/[1-9][0-9]{0,19}(?:/attempts/[1-9][0-9]{0,3})?$`);
+const ATTEMPT = /^[1-9][0-9]{0,3}$/;
+const RUN_URL = new RegExp(`^https://github\\.com/${REPO}/actions/runs/[1-9][0-9]{0,19}(?:/attempts/${ATTEMPT.source.slice(1, -1)})?$`);
+const LOOPBACK = /^http:\/\/(?:127\.0\.0\.1|localhost|\[::1\]):([1-9][0-9]{0,4})$/;
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/** A throwaway site's loopback URL (`http://127.0.0.1:<port>`), its safe recovery identifier; null for anything else. */
+export function loopbackSite(value: unknown): string | null {
+  const port = typeof value === "string" ? LOOPBACK.exec(value)?.[1] : undefined;
+  return port && Number(port) <= 65535 ? (value as string) : null;
+}
+
 const invalid = (field: string) => new NoticeError(`invalid failure summary: ${field}`);
 
 function versions(value: unknown, field: string): VersionMap {
@@ -61,7 +77,7 @@ function versions(value: unknown, field: string): VersionMap {
 /** Strict: unknown keys or any unsafe value throw a NoticeError naming the field only. */
 export function parseFailureSummary(value: unknown): FailureSummary {
   if (!isObject(value)) throw invalid("not an object");
-  const allowed = ["stage", "reason", "oldVersions", "candidateVersions", "runUrl", "cleanup", "publication", "commit", "tag"];
+  const allowed = ["stage", "reason", "oldVersions", "candidateVersions", "runUrl", "cleanup", "publication", "commit", "tag", "site"];
   // Fixed message: a key's name is caller data and may be secret-shaped however harmless its characters look.
   if (Object.keys(value).some((k) => !allowed.includes(k))) throw invalid("unknown keys");
   const oneOf = <T extends readonly string[]>(list: T, field: string) => {
@@ -85,6 +101,11 @@ export function parseFailureSummary(value: unknown): FailureSummary {
     if (v === undefined) continue;
     if (typeof v !== "string" || !pattern.test(v)) throw invalid(field);
     summary[field] = v;
+  }
+  if (value.site !== undefined) {
+    const site = loopbackSite(value.site);
+    if (!site) throw invalid("site");
+    summary.site = site;
   }
   return summary;
 }
@@ -120,6 +141,7 @@ export function formatFailure(input: FailureSummary, selftestId?: string): { sub
     `Publication: ${publication}. ${PUBLICATION_TEXT[publication]}`,
     ...(s.commit ? [`Intended commit: ${s.commit}`] : []),
     ...(s.tag ? [`Intended tag: ${s.tag}`] : []),
+    ...(s.site ? [`Throwaway site: ${s.site}. Its GPL Vault activation may remain: deactivate this site in the GPL Vault account before the next run (README, Automatic re-audit).`] : []),
     "",
     "Audited (old) versions:",
     table(s.oldVersions),
@@ -169,6 +191,45 @@ export async function sendFailure(summary: FailureSummary, env: Record<string, s
   }
 }
 
+// reaudit.yml's notice job sends exactly one notice per run: the first failed or cancelled job in this order.
+const NOTICE_JOBS = ["publish", "audit", "heartbeat"] as const;
+const JOB_FALLBACK: Record<(typeof NOTICE_JOBS)[number], Omit<FailureSummary, "reason">> = {
+  // The audit job also owns setup (checkout, toolchain, install): a failure there leaves no summary.
+  audit: { stage: "setup", cleanup: "unknown", publication: "not-attempted" },
+  publish: { stage: "publication", cleanup: "not-applicable", publication: "unknown" },
+  heartbeat: { stage: "heartbeat", cleanup: "not-applicable", publication: "unknown" },
+};
+/** The failed job's own valid summary, else fixed safe text for that job; never a raw or partially valid summary. */
+export function chooseNotice(needs: unknown, summaries: Partial<Record<string, unknown>>, runUrl?: string): FailureSummary {
+  const url = runUrl ? { runUrl } : {};
+  for (const job of NOTICE_JOBS) {
+    const result = (needs as Record<string, { result?: unknown } | undefined> | null)?.[job]?.result;
+    if (result !== "failure" && result !== "cancelled") continue;
+    try {
+      const summary = parseFailureSummary(summaries[job]);
+      return { ...url, ...summary };
+    } catch {
+      return { ...JOB_FALLBACK[job], reason: `${job}-job-${result}`, ...url };
+    }
+  }
+  return { stage: "unknown", reason: "no-failed-job-identified", cleanup: "unknown", publication: "unknown", ...url };
+}
+
+/**
+ * The downloaded summaries of this run attempt only (`<dir>/reaudit-summary-<attempt>-<job>/summary.json`). A rerun
+ * keeps its run ID and earlier attempts' artifacts, so an absent or malformed attempt reads nothing: an earlier
+ * attempt's summary (say, with confirmed cleanup) can never describe this one.
+ */
+export function readSummaries(dir: string, attempt: string | undefined): Partial<Record<string, unknown>> {
+  const summaries: Record<string, unknown> = {};
+  if (!attempt || !ATTEMPT.test(attempt)) return summaries;
+  for (const job of NOTICE_JOBS)
+    try {
+      summaries[job] = JSON.parse(readFileSync(join(dir, `reaudit-summary-${attempt}-${job}`, "summary.json"), "utf8"));
+    } catch {}
+  return summaries;
+}
+
 function newId(): string {
   const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
   let id = "";
@@ -178,15 +239,24 @@ function newId(): string {
 
 if (import.meta.main) {
   const args = process.argv.slice(2);
-  if (args.length !== 1 || (args[0]!.startsWith("-") && args[0] !== "--selftest")) {
-    console.error("usage: bun scripts/reaudit/notify.ts --selftest | <summary.json>");
+  const jobs = args[0] === "--jobs" && args.length === 2;
+  if (!jobs && (args.length !== 1 || (args[0]!.startsWith("-") && args[0] !== "--selftest"))) {
+    console.error("usage: bun scripts/reaudit/notify.ts --selftest | <summary.json> | --jobs <summary-dir>");
     process.exit(2);
   }
   const runUrl = runUrlFromEnv();
   let summary: FailureSummary;
   let exitCode = 0;
   let selftestId: string | undefined;
-  if (args[0] === "--selftest") {
+  if (jobs) {
+    let needs: unknown = null;
+    try {
+      needs = JSON.parse(process.env.REAUDIT_NEEDS ?? "");
+    } catch {
+      console.error("notify: REAUDIT_NEEDS is not JSON; sending the fixed fallback notice");
+    }
+    summary = chooseNotice(needs, readSummaries(args[1]!, process.env.GITHUB_RUN_ATTEMPT), runUrl);
+  } else if (args[0] === "--selftest") {
     selftestId = newId();
     summary = { stage: "notify-selftest", reason: "selftest", cleanup: "not-applicable", publication: "not-attempted", ...(runUrl && { runUrl }) };
   } else {
@@ -202,7 +272,7 @@ if (import.meta.main) {
     const facts = await sendFailure(summary, process.env, { selftestId });
     console.log(JSON.stringify({ smtpAttempts: 1, smtpAccepted: true, ...facts, stage: summary.stage, ...(selftestId && { selftestId }) }));
   } catch (e) {
-    console.error(JSON.stringify({ smtpAttempts: e instanceof EnvError || e instanceof EnvFormatError ? 0 : 1, smtpAccepted: false, error: safeError(e) }));
+    console.error(JSON.stringify({ smtpAttempts: e instanceof EnvError || e instanceof EnvFormatError ? 0 : 1, smtpAccepted: false, stage: summary.stage, error: safeError(e) }));
     exitCode = 1;
   }
   process.exit(exitCode);

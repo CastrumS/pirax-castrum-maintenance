@@ -6,6 +6,7 @@
 //   parseAuditedVersions(text)                 strict parse of compatibility.php text
 //   readAuditedVersions(sourceDirectory?)      the same, read from a plugin source directory
 //   readHelperVersion(sourceDirectory?)        the header version, which must equal VERSION
+//   parseHelperVersion(text)                   the same, from pirax-form-test.php text
 // The default directory is plugin/pirax-form-test next to this script, never the working directory.
 // Synchronous and import-safe. Errors name the file and field, never the rejected text: it could be
 // anything, even private material pasted by mistake.
@@ -45,8 +46,10 @@ export function parseAuditedVersions(text: string): AuditedVersions {
 
 export const readAuditedVersions = (sourceDirectory = SOURCE) => parseAuditedVersions(readFileSync(join(sourceDirectory, COMPATIBILITY), "utf8"));
 
-export function readHelperVersion(sourceDirectory = SOURCE) {
-  const main = readFileSync(join(sourceDirectory, MAIN), "utf8");
+export const readHelperVersion = (sourceDirectory = SOURCE) => parseHelperVersion(readFileSync(join(sourceDirectory, MAIN), "utf8"));
+
+/** The helper version from pirax-form-test.php text (e.g. a release ZIP entry): header and VERSION must agree. */
+export function parseHelperVersion(main: string) {
   const header = only(main, /^ \* Version:[ \t]*(.*)$/gm, MAIN, "Version header").trim();
   const version = only(main, /^const VERSION = '([^']*)';$/gm, MAIN, "VERSION constant");
   if (header !== version) throw new Error(`${MAIN}: Version header and VERSION constant differ`);

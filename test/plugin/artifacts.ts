@@ -3,7 +3,6 @@
 import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
-import { withoutSigningKey } from "../../scripts/build-plugin";
 
 export const REDACTED = "[REDACTED]";
 
@@ -45,8 +44,11 @@ async function files(dir: string): Promise<string[]> {
   return entries.filter((e) => e.isFile()).map((e) => join(e.parentPath, e.name));
 }
 
+/** zip/unzip need no credential: only these names reach them (plan D8/D10), never the signing seed or a token. */
+const ARCHIVE_ENV = ["PATH", "TMPDIR", "LANG", "LC_ALL"];
 async function run(cmd: string[], cwd?: string) {
-  const proc = Bun.spawn(cmd, { cwd, env: withoutSigningKey(), stdout: "ignore", stderr: "pipe" });
+  const env = Object.fromEntries(ARCHIVE_ENV.flatMap((n) => (process.env[n] === undefined ? [] : [[n, process.env[n]!]])));
+  const proc = Bun.spawn(cmd, { cwd, env, stdout: "ignore", stderr: "pipe" });
   if ((await proc.exited) !== 0) throw new Error(`${cmd[0]} failed: ${await new Response(proc.stderr).text()}`);
 }
 

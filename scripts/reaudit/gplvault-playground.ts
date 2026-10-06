@@ -40,7 +40,8 @@ const server = await runCLI({
     ],
   } as any,
 });
-send({ ready: true });
+// The loopback URL identifies this throwaway site's activation for manual recovery (plan D4); nothing private.
+send({ ready: true, site: server.serverUrl });
 
 let stopping = false;
 const input = createInterface({ input: process.stdin });

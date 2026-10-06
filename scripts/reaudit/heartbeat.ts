@@ -4,6 +4,7 @@
 // means no commit. Failures carry a fixed stage, never git stderr, paths or URLs.
 //
 // Usage: bun scripts/reaudit/heartbeat.ts --run   (in the workflow's disposable main checkout)
+//   needs GH_TOKEN for the push: the checkout persists no credentials, and git asks gh (GIT_AUTH).
 // Import-safe: nothing runs on import, and tests pass a local file:// remote.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -38,6 +39,12 @@ export function heartbeatDue(lastCommit: string, now: number): boolean {
   return age >= HEARTBEAT_DUE_MS;
 }
 
+/**
+ * Plan D5: checkouts persist no credentials, so every git child authenticates explicitly. An empty helper resets any
+ * configured one (nothing can store the token); then gh answers for github.com only, reading GH_TOKEN from the
+ * child environment. No credential value is ever on argv or written to disk.
+ */
+export const GIT_AUTH = ["-c", "credential.helper=", "-c", "credential.https://github.com.helper=!gh auth git-credential"];
 const CHILD_NAMES = ["PATH", "HOME", "USER", "LANG", "LC_ALL", "TMPDIR", "XDG_CONFIG_HOME", "GH_TOKEN", "GITHUB_TOKEN", "GH_HOST", "SSH_AUTH_SOCK"];
 /** git/gh children get only an allowlist (repository token kept; mail, vendor and signing secrets dropped) and never prompt. */
 export function safeChildEnv(env: Record<string, string | undefined> = process.env): Record<string, string> {
@@ -54,7 +61,7 @@ export function runHeartbeat({ cwd, now, remoteUrl = REMOTE, env = process.env, 
   if (!Number.isFinite(now)) throw new HeartbeatError("heartbeat: refusing a nonfinite clock");
   const childEnv = safeChildEnv(env);
   const git = (stage: string, args: string[]) => {
-    const p = Bun.spawnSync(["git", "-c", "core.hooksPath=/dev/null", ...args], { cwd, env: childEnv, stdout: "pipe", stderr: "pipe", timeout: CHILD_TIMEOUT_MS });
+    const p = Bun.spawnSync(["git", ...GIT_AUTH, "-c", "core.hooksPath=/dev/null", ...args], { cwd, env: childEnv, stdout: "pipe", stderr: "pipe", timeout: CHILD_TIMEOUT_MS });
     if (p.exitCode !== 0) throw new HeartbeatError(`heartbeat: git ${stage} failed (exit ${p.exitCode ?? "timeout"})`);
     // trimEnd, not trim: porcelain status lines start with a significant space (" M path").
     return p.stdout.toString().trimEnd();

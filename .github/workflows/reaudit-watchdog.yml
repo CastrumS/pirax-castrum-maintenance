@@ -1,0 +1,39 @@
+# Same-host liveness check of reaudit.yml (plan D9; README "Automatic re-audit"): emails when the audit workflow is
+# disabled, missing or has not started for more than 48 hours. It runs on the same GitHub Actions scheduler, so it
+# cannot report a platform-wide scheduler outage or its own disabling.
+name: reaudit-watchdog
+
+on:
+  schedule:
+    - cron: "43 15 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: pirax-reaudit-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    if: github.repository == 'CastrumS/pirax-castrum-maintenance' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: "1.4.2"
+      - name: Dependencies
+        run: bun --no-env-file install --frozen-lockfile
+      - name: Watchdog
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAP_USER: ${{ secrets.IMAP_USER }}
+          IMAP_PASSWORD: ${{ secrets.IMAP_PASSWORD }}
+        run: bun --no-env-file scripts/reaudit/watchdog.ts

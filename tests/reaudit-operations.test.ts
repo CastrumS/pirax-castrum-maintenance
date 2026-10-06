@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { HEARTBEAT_PATH, heartbeatDue, parseInstant, runHeartbeat, safeChildEnv } from "../scripts/reaudit/heartbeat.ts";
+import { GIT_AUTH, HEARTBEAT_PATH, heartbeatDue, parseInstant, runHeartbeat, safeChildEnv } from "../scripts/reaudit/heartbeat.ts";
 import { RECIPIENT, formatFailure, parseFailureSummary, runUrlFromEnv, safeError, sendFailure, type FailureSummary } from "../scripts/reaudit/notify.ts";
 import { decideWatchdog, normalizeWatchdogFacts, observe, runWatchdog, type Gh } from "../scripts/reaudit/watchdog.ts";
 
@@ -33,6 +33,14 @@ describe("failure summary validation", () => {
     for (const fact of ["plugin-suite-failed", RUN, "6.2.14", "6.2.15", "ff_pro", "fluent_smtp", "confirmed"]) expect(text).toContain(fact);
     expect(text).toContain("No publication step was attempted");
     expect(RECIPIENT).toBe("piraxcastrum@gmail.com");
+  });
+
+  test("a loopback throwaway site is rendered as recovery guidance; any other site is refused", () => {
+    const site = "http://127.0.0.1:41234";
+    const { text } = formatFailure(parseFailureSummary({ ...full, stage: "cleanup", reason: "cleanup-failed", cleanup: "failed", site }));
+    expect(text).toContain(`Throwaway site: ${site}`);
+    for (const bad of [PRIVATE_URL, "http://example.com:80", "http://127.0.0.1:0", "http://127.0.0.1:65536", "http://127.0.0.1:8080/wp-admin", 8080])
+      expect(() => parseFailureSummary({ ...full, site: bad })).toThrow("invalid failure summary: site");
   });
 
   test("absent cleanup/publication are explicit unknowns, never 'nothing published'", () => {
@@ -231,6 +239,29 @@ describe("safe child environment", () => {
   });
 });
 
+// Plan D5: checkouts persist no credentials, so pushes authenticate explicitly. GIT_AUTH resets every configured
+// helper (none can store the token) and asks gh, which reads GH_TOKEN from the child environment, for github.com
+// only. Synthetic token; a real push is post-merge evidence.
+describe("git authentication without persisted credentials", () => {
+  test("git gets github.com credentials from gh and GH_TOKEN; other helpers are reset and nothing is stored", () => {
+    const home = mkdtempSync(join(tmpdir(), "reaudit-git-auth-"));
+    try {
+      const store = join(home, "store");
+      writeFileSync(join(home, ".gitconfig"), `[credential]\n\thelper = store --file=${store}\n`);
+      writeFileSync(store, "https://x-access-token:stale-synthetic@github.com\n");
+      const credential = (op: string, input: string) =>
+        Bun.spawnSync(["git", ...GIT_AUTH, "credential", op], { env: { ...safeChildEnv({ PATH: process.env.PATH, HOME: home, GH_TOKEN: SECRET }), GIT_CONFIG_NOSYSTEM: "1" }, stdin: Buffer.from(input), stdout: "pipe", stderr: "pipe" });
+      const fill = credential("fill", "protocol=https\nhost=github.com\n\n");
+      expect(fill.exitCode).toBe(0);
+      expect(fill.stdout.toString().includes(`password=${SECRET}\n`)).toBe(true);
+      expect(fill.stdout.toString().includes("stale-synthetic")).toBe(false);
+      expect(credential("approve", fill.stdout.toString() + "\n").exitCode).toBe(0);
+      expect(readFileSync(store, "utf8").includes(SECRET)).toBe(false);
+      expect(GIT_AUTH.join(" ").includes(SECRET)).toBe(false);
+    } finally { rmSync(home, { recursive: true, force: true }); }
+  });
+});
+
 describe("heartbeat operation against a local temp remote", () => {
   const git = (cwd: string, args: string[], env: Record<string, string> = {}) => {
     const p = Bun.spawnSync(["git", ...args], { cwd, env: { ...offlineEnv, GIT_CONFIG_NOSYSTEM: "1", GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@example.com", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@example.com", ...env }, stdout: "pipe", stderr: "pipe" });
@@ -270,6 +301,24 @@ describe("heartbeat operation against a local temp remote", () => {
       expect(git(f.remote, ["diff", "--name-only", f.base, "main"])).toBe(HEARTBEAT_PATH);
       expect(git(f.remote, ["tag", "--list"])).toBe("");
       expect(readFileSync(join(f.work, HEARTBEAT_PATH), "utf8")).toBe(`${iso(now)}\n`);
+    } finally { f.cleanup(); }
+  });
+
+  test("due: remote git commands carry GIT_AUTH and GH_TOKEN in their environment, never the token on argv", () => {
+    const f = fixture(now - 31 * DAY);
+    try {
+      const bin = join(f.dir, "bin");
+      const log = join(f.dir, "git.log");
+      mkdirSync(bin);
+      writeFileSync(join(bin, "git"), `#!/bin/sh\nprintf '%s|token=%s\\n' "$*" "\${GH_TOKEN:+yes}" >> '${log}'\nexec '${Bun.which("git")}' "$@"\n`, { mode: 0o755 });
+      expect(runHeartbeat({ cwd: f.work, now, remoteUrl: f.url, env: { ...offlineEnv, PATH: `${bin}:${offlineEnv.PATH}`, GH_TOKEN: SECRET } }).outcome).toBe("pushed");
+      const calls = readFileSync(log, "utf8").trim().split("\n");
+      for (const op of [" fetch ", " ls-remote ", " push "]) {
+        const call = calls.find((c) => c.includes(op))!;
+        expect(call.startsWith(GIT_AUTH.join(" "))).toBe(true);
+        expect(call.endsWith("|token=yes")).toBe(true);
+      }
+      expect(calls.some((c) => c.includes(SECRET))).toBe(false);
     } finally { f.cleanup(); }
   });
 

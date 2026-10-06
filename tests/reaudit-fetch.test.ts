@@ -3,14 +3,18 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { findSecret } from "../test/plugin/artifacts";
 import { type AuditedVersions, ReauditError } from "../scripts/reaudit/detect";
 import { parseCatalog } from "../scripts/reaudit/detect";
 import { acquirePackages, gpg, openOfficialVault, vaultChildEnv, type Vault } from "../scripts/reaudit/fetch";
+import { BUMP_FILES } from "../scripts/reaudit/bump";
+import { realDeps, runAudit, type RunDeps } from "../scripts/reaudit/run";
+import { readAuditedVersions } from "../scripts/plugin-source";
 
+const ROOT = resolve(import.meta.dir, "..");
 const PINS: AuditedVersions = { gf: "3.1.2", ff: "6.2.14", ff_pro: "6.2.15", cleantalk: "6.88", fluent_smtp: "2.4.1" };
 const MAIN = {
   gf: "gravityforms/gravityforms.php",
@@ -104,6 +108,11 @@ async function run(scenario: Scenario = {}) {
   return { ...outcome, fetched, calls, directory, cache, opened };
 }
 
+/** A status double answering `first` once, then `later`. */
+const afterFirst = <T>(first: T, later: T) => {
+  let calls = 0;
+  return async () => (calls++ ? later : first);
+};
 const downloads = (fetched: string[]) => fetched.filter((u) => !u.startsWith("https://api.wordpress.org/"));
 const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
@@ -124,6 +133,7 @@ describe("acquirePackages", () => {
       remainingBefore: 139,
       remainingAfter: 139,
       updater: { before: "5.3.9", after: "5.4.0" },
+      site: null, // this double exposes no site; never invented
     });
   });
 
@@ -193,7 +203,8 @@ describe("acquirePackages", () => {
   test("a refused or unconfirmed deactivation fails even when acquisition succeeded, and removes paid files", async () => {
     const { error, directory } = await run({
       latest: { ff: "6.2.15" },
-      vault: { deactivate: async () => ({ deactivated: false }), status: async () => ({ activated: true, remaining: 138 }) },
+      // Inactive before activation (a pre-existing seat is refused separately), still active after the refused deactivation.
+      vault: { deactivate: async () => ({ deactivated: false }), status: afterFirst({ activated: false, remaining: 139 }, { activated: true, remaining: 138 }) },
     });
     expect(error!.message).toBe("cleanup: deactivate unconfirmed");
     expect(error!.lifecycle).toMatchObject({ deactivationAttempted: true, deactivationConfirmed: false });
@@ -215,7 +226,7 @@ describe("acquirePackages", () => {
 
   test("a failure plus a failed cleanup reports cleanup as the stage", async () => {
     const { error } = await run({
-      vault: { catalog: () => Promise.reject(new Error("x")), deactivate: () => Promise.reject(new Error("y")), status: async () => ({ activated: true, remaining: 1 }) },
+      vault: { catalog: () => Promise.reject(new Error("x")), deactivate: () => Promise.reject(new Error("y")), status: afterFirst({ activated: false, remaining: 2 }, { activated: true, remaining: 1 }) },
     });
     expect(error!.message).toBe("cleanup: deactivate unconfirmed (after catalog: schema failed)");
   });
@@ -277,6 +288,58 @@ describe("acquirePackages", () => {
     expect(error!.message).toBe("signal: SIGTERM received");
     expect(calls.slice(-3)).toEqual(["deactivate", "status", "close"]);
     expect(process.listenerCount("SIGTERM")).toBe(0);
+  });
+
+  test("an already-active or unreadable initial status fails before activate/deactivate, preserving a pre-existing seat", async () => {
+    for (const activated of [true, null, "no", 1] as unknown[]) {
+      const { error, calls } = await run({ vault: { status: async () => ({ activated, remaining: 138 }) as never } });
+      expect(error!.message).toBe(activated === true ? "activation: status already active" : "activation: status malformed");
+      expect(calls).not.toContain("activate");
+      expect(calls).not.toContain("deactivate");
+      expect(calls.at(-1)).toBe("close");
+      expect((error!.lifecycle as { activationAttempted: boolean }).activationAttempted).toBe(false);
+    }
+  });
+
+  test("a truthy non-boolean activation receipt is a refusal, still followed by confirmed deactivation", async () => {
+    for (const activated of ["yes", 1, "true"] as unknown[]) {
+      const { error, calls } = await run({ vault: { activate: async () => ({ activated, remaining: 138 }) as never } });
+      expect(error!.message).toBe("activation: activate refused");
+      expect(calls.slice(-3)).toEqual(["deactivate", "status", "close"]);
+      expect(calls).not.toContain("selfUpdate");
+    }
+  });
+
+  test("a truthy non-boolean deactivation receipt with an unreachable status is not a confirmed cleanup", async () => {
+    let statuses = 0;
+    const { error, calls } = await run({
+      vault: {
+        status: async () => {
+          if (statuses++) throw new Error("unreachable");
+          return { activated: false, remaining: 139 };
+        },
+        deactivate: async () => ({ deactivated: "yes" }) as never,
+      },
+    });
+    expect(error!.message).toBe("cleanup: deactivate unconfirmed");
+    expect(calls.at(-1)).toBe("close");
+  });
+
+  test("an interrupted paid download is drained before cleanup and never recreates the private directory", async () => {
+    // The download answer arrives after the signal and ignores abort; a race-only rejection would leave it
+    // free to mkdir/write/rename into the private directory after the caller deleted it.
+    const late = async () => {
+      process.emit("SIGTERM");
+      await Bun.sleep(300);
+      return new Response(await pluginZip(MAIN.gf, "3.1.3"));
+    };
+    const { error, calls, directory } = await run({ latest: { gf: "3.1.3" }, responses: { [PRIVATE_URL(29365)]: late } });
+    expect(error!.message).toBe("signal: SIGTERM received");
+    expect(calls.slice(-3)).toEqual(["deactivate", "status", "close"]);
+    expect(process.listenerCount("SIGTERM")).toBe(0);
+    await rm(directory, { recursive: true, force: true });
+    await Bun.sleep(700);
+    expect(existsSync(directory)).toBe(false);
   });
 
   test("a downgrade from the official catalog fails closed after cleanup", async () => {
@@ -356,4 +419,169 @@ test("the official-vault driver runs every PHP step in a real Playground child",
   } finally {
     await vault.close();
   }
+}, 600_000);
+
+// Flag strictness at the shared PHP boundary (integration finding): a stand-in whose official-method answers are
+// scripted per call from responses.json in its own directory ("wp_error" = WP_Error). Synthetic shapes only, chosen
+// from the official 5.3.9 client's reading of WooCommerce API Manager booleans (data.activated, activated, deactivated).
+const SCRIPTED_STAND_IN = `<?php
+/*
+ * Plugin Name: Synthetic scripted GPL Vault client stand-in (test only)
+ * Version: 5.3.9
+ */
+function pirax_scripted($method) {
+  $all = get_option('stand_in_script');
+  if (!is_array($all)) $all = json_decode(file_get_contents(__DIR__ . '/responses.json'), true);
+  $answer = array_shift($all[$method]);
+  update_option('stand_in_script', $all);
+  return $answer === 'wp_error' ? new WP_Error('refused', 'refused') : $answer;
+}
+final class Pirax_Scripted_Settings {
+  function save_api_settings($v) {}
+  function enable_activation_status() {}
+  function save_client_schema($s) {}
+}
+final class Pirax_Scripted_Api {
+  function set_initials() { return $this; }
+  function status() { return pirax_scripted('status'); }
+  function activate() { return pirax_scripted('activate'); }
+  function deactivate() { return pirax_scripted('deactivate'); }
+  function client_schema() { return ['data' => ['slug' => 'gplvault-updater']]; }
+  function schema() {
+    $p = apply_filters('gplvault_schema_payload', [])['plugins'];
+    return ['plugins' => [
+      'gravityforms/gravityforms.php' => ['product_id' => 29365, 'version' => $p['gravityforms/gravityforms.php']],
+      'fluentformpro/fluentformpro.php' => ['product_id' => 1111130, 'version' => $p['fluentformpro/fluentformpro.php']],
+    ]];
+  }
+  function download($a) { return ''; }
+}
+function gv_api_manager() { static $a; return $a ??= new Pirax_Scripted_Api(); }
+function gv_settings_manager() { static $s; return $s ??= new Pirax_Scripted_Settings(); }
+`;
+
+async function scriptedVault(responses: Record<"status" | "activate" | "deactivate", unknown[]>) {
+  const dir = await mkdtemp(join(scratch, "scripted-"));
+  await mkdir(join(dir, "gplvault-updater"));
+  await writeFile(join(dir, "gplvault-updater/gplvault-updater.php"), SCRIPTED_STAND_IN);
+  await writeFile(join(dir, "gplvault-updater/responses.json"), JSON.stringify(responses));
+  expect(await Bun.spawn(["zip", "-q", "-r", "-X", "updater.zip", "gplvault-updater"], { cwd: dir }).exited).toBe(0);
+  const passphrase = "SYNTHETIC-PASSPHRASE-0123456789";
+  const ciphertext = join(dir, "updater.zip.gpg");
+  await gpg(["--symmetric", "--output", ciphertext, join(dir, "updater.zip")], passphrase, "encrypt");
+  const env = { ...SECRETS, GPLVAULT_UPDATER_PASSPHRASE: passphrase, PATH: process.env.PATH, HOME: process.env.HOME };
+  return { env, open: (options: { directory: string }) => openOfficialVault({ ...options, env, ciphertext }) };
+}
+
+const unchangedDiscovery = (async (url: string | URL) => {
+  const slug = String(url).match(/info\/1\.0\/(.+)\.json$/)?.[1];
+  const key = (Object.keys(SLUG) as (keyof typeof SLUG)[]).find((k) => SLUG[k] === slug);
+  return key ? Response.json({ slug, version: PINS[key], download_link: freeUrl(slug!, PINS[key]) }) : new Response("", { status: 404 });
+}) as typeof fetch;
+
+test("real Playground child: only explicit booleans count as activation, deactivation or status facts", async () => {
+  const stand = await scriptedVault({
+    status: [
+      { data: { activations_remaining: 139 } },
+      { data: { activated: "no", activations_remaining: 139 } },
+      { data: { activated: 0, activations_remaining: 139 } },
+      { data: { activated: false, activations_remaining: 139 } },
+      { data: { activated: true, activations_remaining: 138 } },
+      "wp_error",
+    ],
+    activate: [{ activated: "yes", data: { activations_remaining: 138 } }, { activated: 1 }, { activated: true, data: { activations_remaining: 138 } }],
+    deactivate: [{ deactivated: "yes" }, { deactivated: 1 }, { deactivated: true }],
+  });
+  const vault = await stand.open({ directory: await mkdtemp(join(scratch, "private-")) });
+  try {
+    expect(await vault.status()).toEqual({ activated: null, remaining: 139 });
+    expect(await vault.status()).toEqual({ activated: null, remaining: 139 });
+    expect(await vault.status()).toEqual({ activated: null, remaining: 139 });
+    expect(await vault.status()).toEqual({ activated: false, remaining: 139 });
+    expect(await vault.status()).toEqual({ activated: true, remaining: 138 });
+    await expect(vault.status()).rejects.toThrow();
+    expect((await vault.activate()).activated).toBe(false);
+    expect((await vault.activate()).activated).toBe(false);
+    expect(await vault.activate()).toEqual({ activated: true, remaining: 138 });
+    expect(await vault.deactivate()).toEqual({ deactivated: false });
+    expect(await vault.deactivate()).toEqual({ deactivated: false });
+    expect(await vault.deactivate()).toEqual({ deactivated: true });
+  } finally {
+    await vault.close();
+  }
+}, 600_000);
+
+test("real Playground child: a final status without data.activated does not confirm cleanup", async () => {
+  const stand = await scriptedVault({
+    status: [{ data: { activated: false, activations_remaining: 139 } }, { data: { activations_remaining: 139 } }],
+    activate: [{ activated: true, data: { activations_remaining: 138 } }],
+    deactivate: [{ deactivated: true }],
+  });
+  const error = await acquirePackages({ pins: PINS, directory: await mkdtemp(join(scratch, "private-")), env: stand.env, fetch: unchangedDiscovery, openVault: stand.open }).catch((e) => e as ReauditError);
+  expect(error).toBeInstanceOf(ReauditError);
+  expect((error as ReauditError).message).toBe("cleanup: deactivate unconfirmed");
+  expect((error as ReauditError).lifecycle).toMatchObject({ activationAttempted: true, deactivationAttempted: true, deactivationConfirmed: false });
+}, 600_000);
+
+test("real Playground child: a truthy malformed deactivation receipt plus an unreachable status does not confirm cleanup", async () => {
+  const stand = await scriptedVault({
+    status: [{ data: { activated: false, activations_remaining: 139 } }, "wp_error"],
+    activate: [{ activated: true, data: { activations_remaining: 138 } }],
+    deactivate: [{ deactivated: "yes" }],
+  });
+  const error = await acquirePackages({ pins: PINS, directory: await mkdtemp(join(scratch, "private-")), env: stand.env, fetch: unchangedDiscovery, openVault: stand.open }).catch((e) => e as ReauditError);
+  expect((error as ReauditError).message).toBe("cleanup: deactivate unconfirmed");
+}, 600_000);
+
+test("real Playground child: an already-active initial status is refused before any activate or deactivate", async () => {
+  const stand = await scriptedVault({
+    status: [{ data: { activated: true, activations_remaining: 138 } }],
+    activate: ["wp_error"],
+    deactivate: ["wp_error"],
+  });
+  const error = await acquirePackages({ pins: PINS, directory: await mkdtemp(join(scratch, "private-")), env: stand.env, fetch: unchangedDiscovery, openVault: stand.open }).catch((e) => e as ReauditError);
+  expect((error as ReauditError).message).toBe("activation: status already active");
+  expect((error as ReauditError).lifecycle).toMatchObject({ activationAttempted: false, deactivationAttempted: false });
+}, 600_000);
+
+// Orchestrator handoff (integration finding): run.ts gives acquisition a not-yet-created `packages` directory inside
+// its private scratch, and the official driver's first write is there. Real run.ts → acquirePackages → driver →
+// Playground child (stand-in client); only discovery, the ciphertext and the release check are fixtures.
+test("runAudit's private directory reaches the real official driver; lifecycle evidence keeps flags, counts, updater versions and the loopback site", async () => {
+  const dir = await mkdtemp(join(scratch, "run-stand-in-"));
+  await mkdir(join(dir, "gplvault-updater"));
+  await writeFile(join(dir, "gplvault-updater/gplvault-updater.php"), STAND_IN);
+  expect(await Bun.spawn(["zip", "-q", "-r", "-X", "updater.zip", "gplvault-updater"], { cwd: dir }).exited).toBe(0);
+  const passphrase = "SYNTHETIC-PASSPHRASE-0123456789";
+  const ciphertext = join(dir, "updater.zip.gpg");
+  await gpg(["--symmetric", "--output", ciphertext, join(dir, "updater.zip")], passphrase, "encrypt");
+  const root = join(dir, "checkout");
+  for (const file of BUMP_FILES) {
+    await mkdir(dirname(join(root, file)), { recursive: true });
+    await cp(join(ROOT, file), join(root, file));
+  }
+  for (const args of [["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "fixture"]])
+    expect(Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t.invalid", "-c", "commit.gpgsign=false", ...args], { cwd: root }).exitCode).toBe(0);
+  const temp = join(dir, "runner-temp");
+  await mkdir(temp);
+  const deps: RunDeps = {
+    ...realDeps,
+    acquire: (options) => acquirePackages({ ...options, fetch: unchangedDiscovery, openVault: (o) => openOfficialVault({ ...o, ciphertext }) }),
+    currentRelease: async () => "verified",
+  };
+  const env = { ...SECRETS, GPLVAULT_UPDATER_PASSPHRASE: passphrase, PATH: process.env.PATH, HOME: process.env.HOME, RUNNER_TEMP: temp };
+  const out = join(dir, "out");
+  const decision = await runAudit({ root, out, runId: "1234567890", runAttempt: "1", env, deps });
+  expect(decision).toEqual({ outcome: "unchanged", versions: readAuditedVersions(join(root, "plugin/pirax-form-test")) });
+  expect(JSON.parse(await readFile(join(out, "evidence/lifecycle.json"), "utf8"))).toEqual({
+    activationAttempted: true,
+    activationConfirmed: true,
+    deactivationAttempted: true,
+    deactivationConfirmed: true,
+    remainingBefore: 139,
+    remainingAfter: 139,
+    updater: { before: "5.3.9", after: "5.3.9" },
+    site: expect.stringMatching(/^http:\/\/127\.0\.0\.1:[1-9]\d*$/),
+  });
+  expect(await readdir(temp)).toEqual([]); // private scratch removed
 }, 600_000);

@@ -63,12 +63,12 @@ export async function buildPlugin({ source = SOURCE, zip = ZIP }: { source?: str
     }
     await mkdir(dirname(zip), { recursive: true });
     await rm(zip, { force: true });
-    await Bun.$`zip -q -r -X ${zip} pirax-form-test`.cwd(stage).env(withoutSigningKey()).quiet();
+    await Bun.$`zip -q -r -X ${zip} pirax-form-test`.cwd(stage).env({ PATH: process.env.PATH, TMPDIR: process.env.TMPDIR, LANG: process.env.LANG, LC_ALL: process.env.LC_ALL }).quiet();
   } finally {
     await rm(stage, { recursive: true, force: true });
   }
 
-  const entries = (await Bun.$`unzip -Z1 ${zip}`.env(withoutSigningKey()).text()).trim().split("\n").filter((e) => !e.endsWith("/"));
+  const entries = (await Bun.$`unzip -Z1 ${zip}`.env({ PATH: process.env.PATH, TMPDIR: process.env.TMPDIR, LANG: process.env.LANG, LC_ALL: process.env.LC_ALL }).text()).trim().split("\n").filter((e) => !e.endsWith("/"));
   const expected = FILES.map((f) => `pirax-form-test/${f}`).sort();
   if (JSON.stringify(entries.sort()) !== JSON.stringify(expected)) throw new Error(`archive contents differ from the allowlist: ${entries.join(", ")}`);
 

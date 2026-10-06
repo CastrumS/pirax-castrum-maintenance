@@ -1,6 +1,6 @@
 // Builds and signs a helper release, then publishes it as a GitHub release on CastrumS/pirax-castrum-maintenance.
 // The version (header + VERSION constant) and the audited matrix (AUDITED_VERSIONS) are read from the
-// production PHP source. The ZIP is built by build:plugin's buildPlugin(); dist/ then also holds
+// production PHP source by plugin-source.ts. The ZIP is built by build:plugin's buildPlugin(); dist/ then also holds
 // pirax-form-test-manifest.json {version, package, sha256, audited} and its .sig, the base64 of the
 // 64-byte detached Ed25519 signature over the exact manifest bytes.
 //
@@ -15,9 +15,11 @@
 //                                             `gh release create v<version> --verify-tag --latest` with the three assets
 // Import-safe: remoteTag() is exported for tests; nothing runs on import.
 import { createPrivateKey, createPublicKey, sign, verify, type KeyObject } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { rm, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { buildPlugin, withoutSigningKey } from "./build-plugin.ts";
+import { only, readAuditedVersions, readHelperVersion } from "./plugin-source.ts";
 
 const ROOT = resolve(import.meta.dir, "..");
 const SOURCE = join(ROOT, "plugin/pirax-form-test");
@@ -27,8 +29,6 @@ const MANIFEST = join(DIST, "pirax-form-test-manifest.json");
 const SIGNATURE = `${MANIFEST}.sig`;
 const REPO = "CastrumS/pirax-castrum-maintenance";
 const KEY = "PIRAX_HELPER_SIGNING_KEY";
-/** Same rule as the updater's verify_release(): stable dotted numeric versions only. */
-const VERSION = /^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){1,3}$/;
 /** DER prefixes that wrap a raw 32-byte Ed25519 seed (PKCS#8) and public key (SPKI). */
 const PKCS8_ED25519 = Buffer.from("302e020100300506032b657004220420", "hex");
 const SPKI_ED25519 = Buffer.from("302a300506032b6570032100", "hex");
@@ -44,32 +44,11 @@ function signingKey(env = process.env): KeyObject {
 
 const rawPublicKey = (key: KeyObject) => createPublicKey(key).export({ format: "der", type: "spki" }).subarray(SPKI_ED25519.length).toString("base64");
 
-/** The capture of exactly one match of pattern in text, or an error naming the file. */
-function only(text: string, pattern: RegExp, file: string, what: string) {
-  const matches = [...text.matchAll(pattern)];
-  if (matches.length !== 1) throw new Error(`${file}: expected exactly one ${what}, found ${matches.length}`);
-  return matches[0]![1]!;
-}
-
-/** Version, audited matrix and embedded public key, parsed narrowly from the helper source. */
-async function readSource(source = SOURCE) {
-  const main = await Bun.file(join(source, "pirax-form-test.php")).text();
-  const header = only(main, /^ \* Version:[ \t]*(.*)$/gm, "pirax-form-test.php", "Version header").trim();
-  const version = only(main, /^const VERSION = '([^']*)';$/gm, "pirax-form-test.php", "VERSION constant");
-  if (header !== version) throw new Error("pirax-form-test.php: Version header and VERSION constant differ");
-  // Names the field only: the rejected text could be anything, even private material pasted by mistake.
-  if (!VERSION.test(version)) throw new Error("pirax-form-test.php: VERSION is not a stable dotted numeric version");
-
-  const compatibility = await Bun.file(join(source, "includes/compatibility.php")).text();
-  const block = only(compatibility, /^const AUDITED_VERSIONS = array\(\n([^]*?)\n\);$/gm, "includes/compatibility.php", "AUDITED_VERSIONS array");
-  const audited: Record<string, string> = {};
-  for (const line of block.split("\n")) {
-    const [, plugin, audit] = line.match(/^\t'([a-z_]+)' *=> '([^'\\]+)',$/) ?? [];
-    if (!plugin || !audit || plugin in audited) throw new Error("includes/compatibility.php: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal");
-    audited[plugin] = audit;
-  }
-
-  const updates = await Bun.file(join(source, "includes/updates.php")).text();
+/** Version, audited matrix (both via plugin-source.ts) and embedded public key, parsed narrowly from the helper source. */
+function readSource(source = SOURCE) {
+  const version = readHelperVersion(source);
+  const audited = readAuditedVersions(source);
+  const updates = readFileSync(join(source, "includes/updates.php"), "utf8");
   const publicKey = only(updates, /^const UPDATE_PUBLIC_KEY = '([^']*)';$/gm, "includes/updates.php", "UPDATE_PUBLIC_KEY");
   return { version, audited, publicKey };
 }
@@ -96,7 +75,7 @@ export async function remoteTag(repo: string, tag: string, env: Record<string, s
 
 async function release(dryRun: boolean) {
   const key = signingKey();
-  const { version, audited, publicKey } = await readSource();
+  const { version, audited, publicKey } = readSource();
   const tag = `v${version}`;
   let commit = "";
   if (!dryRun) {

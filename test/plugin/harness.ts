@@ -1,10 +1,10 @@
 // Real WordPress Playground harness for plugin tests (plan D10–D12).
 //
 // startHarness() boots a disposable loopback WordPress (via playground.ts under Node) with the
-// licensed Gravity Forms ZIP (GRAVITY_FORMS_ZIP) and Fluent Forms FF_VERSION from wordpress.org,
+// licensed Gravity Forms GF_VERSION ZIP (GRAVITY_FORMS_ZIP) and Fluent Forms FF_VERSION from wordpress.org,
 // installs the test-only mu-plugin, seeds native fixtures (fixtures.php) and returns a Harness.
 // startHarness({ compatibility: true }) adds the licensed Fluent Forms Pro ZIP (FLUENT_FORMS_PRO_ZIP)
-// and pinned CleanTalk and FluentSMTP, with third-party HTTP contained and FluentSMTP's Simulator
+// and pinned CleanTalk and FluentSMTP (all vendor pins come from the plugin's AUDITED_VERSIONS), with third-party HTTP contained and FluentSMTP's Simulator
 // as the mail transport (see mu-plugin.php):
 //   url, token, versions, users, fixtures      site facts
 //   http() / envelopes() / simulator()          compatibility stack: contained HTTP, effective PHPMailer envelopes, Simulator log
@@ -25,15 +25,19 @@ import { mkdir, rename, writeFile } from "node:fs/promises";
 import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { chromium, type Browser, type BrowserContext, type Page, type Request } from "playwright";
 import { withoutSigningKey } from "../../scripts/build-plugin";
+import { readAuditedVersions } from "../../scripts/plugin-source";
 import { redact, sanitizeZip } from "./artifacts";
 
-export const FF_VERSION = "6.2.14";
+/** Vendor pins: the plugin's own AUDITED_VERSIONS (exact versions, as it audits them); both licensed ZIPs must match too. */
+const PINS = readAuditedVersions();
+export const GF_VERSION = PINS.gf;
+export const FF_VERSION = PINS.ff;
+export const FF_PRO_VERSION = PINS.ff_pro;
+export const CLEANTALK_VERSION = PINS.cleantalk;
+export const FLUENT_SMTP_VERSION = PINS.fluent_smtp;
+/** Platform pins: not audited vendor packages. */
 export const WP_VERSION = "7.1.2";
 export const PHP_VERSION = "8.3";
-/** Compatibility stack pins (exact versions, as the plugin audits them). */
-export const FF_PRO_VERSION = "6.2.15";
-export const CLEANTALK_VERSION = "6.88";
-export const FLUENT_SMTP_VERSION = "2.4.1";
 
 const ROOT = resolve(import.meta.dir, "../..");
 const CACHE = join(ROOT, ".cache/plugin-test");
@@ -152,12 +156,16 @@ export function preflight(env: Record<string, string | undefined> = process.env,
   return { gfZip, proZip, token };
 }
 
-/** A plugin's Version header from inside its ZIP. The ZIP is unzip's stdin, so its path is not on the command line. */
-async function pluginVersion(zip: string, file: string, label: string): Promise<string> {
+/**
+ * Checks that a plugin ZIP's Version header is exactly expected. The ZIP is unzip's stdin, so its path is
+ * not on the command line; errors name it by label (a variable name for licensed ZIPs), never by path.
+ */
+export async function pinnedVersion(zip: string, file: string, label: string, expected: string): Promise<string> {
   const proc = Bun.spawn(["unzip", "-p", "/dev/stdin", file], { stdin: Bun.file(zip), stdout: "pipe", stderr: "ignore", env: withoutSigningKey() });
   const [header, code] = await Promise.all([new Response(proc.stdout).text(), proc.exited]);
   const version = code === 0 ? header.match(/^\s*\*?\s*Version:\s*(\S+)/m)?.[1] : undefined;
   if (!version) throw new Error(`${label} does not contain ${file} with a Version header`);
+  if (version !== expected) throw new Error(`${label} contains ${file} version ${version}, expected ${expected}`);
   return version;
 }
 
@@ -172,8 +180,7 @@ async function wordpressOrgZip(slug: string, version: string, main: string, name
     await Bun.write(`${zip}.part`, response);
     await rename(`${zip}.part`, zip);
   }
-  const found = await pluginVersion(zip, `${slug}/${main}`, `${name} ZIP`);
-  if (found !== version) throw new Error(`${name} ZIP is ${found}, expected ${version}`);
+  await pinnedVersion(zip, `${slug}/${main}`, `${name} ZIP`, version);
   return zip;
 }
 
@@ -201,17 +208,14 @@ export async function startHarness({ run = "run", compatibility = false }: { run
   await mkdir(artifactDir, { recursive: true });
 
   const [gfVersion, ffZip, extras] = await Promise.all([
-    pluginVersion(gfZip, "gravityforms/gravityforms.php", "GRAVITY_FORMS_ZIP"),
+    pinnedVersion(gfZip, "gravityforms/gravityforms.php", "GRAVITY_FORMS_ZIP", GF_VERSION),
     wordpressOrgZip("fluentform", FF_VERSION, "fluentform.php", "Fluent Forms"),
     compatibility
       ? Promise.all([
-          pluginVersion(proZip, "fluentformpro/fluentformpro.php", "FLUENT_FORMS_PRO_ZIP"),
+          pinnedVersion(proZip, "fluentformpro/fluentformpro.php", "FLUENT_FORMS_PRO_ZIP", FF_PRO_VERSION),
           wordpressOrgZip("cleantalk-spam-protect", CLEANTALK_VERSION, "cleantalk.php", "CleanTalk"),
           wordpressOrgZip("fluent-smtp", FLUENT_SMTP_VERSION, "fluent-smtp.php", "FluentSMTP"),
-        ]).then(([ffPro, cleantalk, fluentSmtp]) => {
-          if (ffPro !== FF_PRO_VERSION) throw new Error(`FLUENT_FORMS_PRO_ZIP contains Fluent Forms Pro ${ffPro}, expected ${FF_PRO_VERSION}`);
-          return { cleantalk, fluentSmtp };
-        })
+        ]).then(([, cleantalk, fluentSmtp]) => ({ cleantalk, fluentSmtp }))
       : undefined,
   ]);
   const versions: Harness["versions"] = { gf: gfVersion, ff: FF_VERSION, wp: WP_VERSION, php: PHP_VERSION };

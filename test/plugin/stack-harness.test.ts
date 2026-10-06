@@ -6,7 +6,7 @@
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { findSecret } from "./artifacts";
 import { withoutSigningKey } from "../../scripts/build-plugin";
-import { startHarness, type Harness } from "./harness";
+import { CLEANTALK_VERSION, FF_PRO_VERSION, FF_VERSION, FLUENT_SMTP_VERSION, startHarness, type Harness } from "./harness";
 
 // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
 setDefaultTimeout(180_000);
@@ -21,7 +21,7 @@ afterAll(async () => {
 
 test("optional plugins are real, exact, active, and activated after the safeguards", async () => {
   expect(h.compatibility).toBe(true);
-  expect(h.versions).toMatchObject({ ff: "6.2.14", ffPro: "6.2.15", cleantalk: "6.88", fluentSmtp: "2.4.1" });
+  expect(h.versions).toMatchObject({ ff: FF_VERSION, ffPro: FF_PRO_VERSION, cleantalk: CLEANTALK_VERSION, fluentSmtp: FLUENT_SMTP_VERSION });
   const info = await h.php<any>(`
     global $apbct;
     return [
@@ -36,7 +36,7 @@ test("optional plugins are real, exact, active, and activated after the safeguar
   `);
   for (const plugin of ["fluentformpro/fluentformpro.php", "cleantalk-spam-protect/cleantalk.php", "fluent-smtp/fluent-smtp.php"])
     expect(info.active).toContain(plugin);
-  expect(info).toMatchObject({ pro: "6.2.15", cleantalk: "6.88", smtp: "2.4.1", wp_mail: "fluent-smtp.php", simulate: true, builtin_http: 1, contact_forms: 1, webhook: "yes" });
+  expect(info).toMatchObject({ pro: FF_PRO_VERSION, cleantalk: CLEANTALK_VERSION, smtp: FLUENT_SMTP_VERSION, wp_mail: "fluent-smtp.php", simulate: true, builtin_http: 1, contact_forms: 1, webhook: "yes" });
 
   // The mu-plugin (HTTP containment, mail observers) was loaded in every optional plugin's activation request.
   const activations = await h.php<string[]>(`

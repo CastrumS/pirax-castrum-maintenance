@@ -1,7 +1,7 @@
 import { chmod, mkdir, readdir, rename } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { chromium } from 'playwright';
-import { startHarness, type Harness } from '../plugin/harness.ts';
+import { FF_VERSION, GF_VERSION, startHarness, type Harness } from '../plugin/harness.ts';
 import { readFormConfig } from '../../src/forms/config.ts';
 import { readImapConfig } from '../../src/mail/config.ts';
 import { readR2Config } from '../../src/env.ts';
@@ -43,7 +43,8 @@ export async function startFormsHarness(workspace: string): Promise<{ h: Harness
     finally { try { await h.stop(); } finally { await sanitizeArtifacts(h.artifactDir, h); } }
   };
   try {
-    assert(h.versions.gf === '3.1.2' && h.versions.ff === '6.2.14', 'Licensed GF 3.1.2 and FF 6.2.14 required');
+    // The plugin's own AUDITED_VERSIONS pins, shared with the native harness, so an audited pin bump carries this suite along.
+    assert(h.versions.gf === GF_VERSION && h.versions.ff === FF_VERSION, `Licensed GF ${GF_VERSION} and FF ${FF_VERSION} required`);
     // Use a unique real fixture credential, not the generic word "password" (which also occurs
     // in untouched visual JS resources). Authentication still goes through WordPress wp-login.
     h.users.admin.password = `PiraxNative-${crypto.randomUUID()}`;

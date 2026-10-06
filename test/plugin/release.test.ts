@@ -1,5 +1,5 @@
 // Release CLI (plan D7; AC4): the real `bun scripts/release-plugin.ts` runs inside disposable git
-// checkouts holding copies of the scripts and helper source, so this repository's dist/ and tags are
+// checkouts holding copies of the scripts (plugin-source.ts included) and helper source, so this repository's dist/ and tags are
 // never touched. Seeds are generated per run and reach only the CLI's environment. A gh wrapper on
 // PATH records every call, forwards only the CLI's two exact read-only `gh api` lookups to the real gh
 // and answers everything else itself, so no tag, ref or release is ever written. Logs, manifests and a
@@ -14,6 +14,7 @@ import { dirname, join, resolve } from "node:path";
 import { FILES, withoutSigningKey } from "../../scripts/build-plugin";
 import { findSecret } from "./artifacts";
 import { testKey } from "./update-fixture";
+import { HELPER_VERSION, nextPatch, pinLine, PINS, withHelperVersion } from "./version-fixtures";
 
 setDefaultTimeout(120_000);
 
@@ -52,7 +53,7 @@ const GIT = ["-c", "user.name=Release Test", "-c", "user.email=release@test.inva
 /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
 async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
   const dir = join(scratch, name);
-  for (const file of ["scripts/build-plugin.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+  for (const file of ["scripts/build-plugin.ts", "scripts/plugin-source.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
     await mkdir(dirname(join(dir, file)), { recursive: true });
     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
   }
@@ -89,8 +90,8 @@ echo '{"synthesized":true}'
 }
 
 const withKey = (publicKey: string) => ({ "includes/updates.php": (t: string) => t.replace(PRODUCTION_KEY, publicKey) });
-const withVersion = (version: string) => (t: string) =>
-  t.replace(/^( \* Version:\s+)0\.3\.0$/m, `$1${version}`).replace("const VERSION = '0.3.0';", `const VERSION = '${version}';`);
+/** Helper version edit from the shipping version, whatever it is; each declaration must match exactly once. */
+const withVersion = (version: string) => withHelperVersion(version);
 
 /**
  * Run the CLI exactly as documented; seed undefined leaves the variable unset. Output is retained, unless
@@ -113,7 +114,8 @@ async function cli(dir: string, label: string, args: string[], seed?: string, ex
 test("offline: dry run signs the exact manifest bytes from source-derived facts and never calls GitHub", async () => {
   const k = key();
   // A changed audited version must flow from the PHP source into the manifest: no second matrix.
-  const dir = await checkout("dry-run", { "includes/compatibility.php": (t) => t.replace("'ff_pro'      => '6.2.15',", "'ff_pro'      => '6.2.16',") });
+  const changed = nextPatch(PINS.ff_pro);
+  const dir = await checkout("dry-run", { "includes/compatibility.php": (t) => t.replace(pinLine("ff_pro"), pinLine("ff_pro", changed)) });
   const r = await cli(dir, "dry-run", ["--dry-run"], k.seed);
   expect(r.code).toBe(0);
   expect(r.calls).toEqual([]);
@@ -142,7 +144,7 @@ test("offline: dry run signs the exact manifest bytes from source-derived facts 
     sha256: sha256(zip),
     audited,
   });
-  expect(manifest.audited.ff_pro).toBe("6.2.16");
+  expect(manifest.audited.ff_pro).toBe(changed);
   for (const file of FILES) {
     const entry = await sh(dir, Bun.$`unzip -p dist/pirax-form-test.zip ${`pirax-form-test/${file}`}`);
     expect(sha256(entry.stdout)).toBe(sha256(await Bun.file(join(dir, "plugin/pirax-form-test", file)).bytes()));
@@ -211,10 +213,10 @@ test("offline: publishing refuses a seed whose public key is not the committed p
 test("offline: publishing refuses an existing local tag before any GitHub call", async () => {
   const k = key();
   const dir = await checkout("local-tag", withKey(k.publicKey));
-  await sh(dir, Bun.$`git ${GIT} tag v0.3.0`);
+  await sh(dir, Bun.$`git ${GIT} tag ${`v${HELPER_VERSION}`}`);
   const r = await cli(dir, "publish-local-tag", [], k.seed);
   expect(r.code).toBe(1);
-  expect(r.stderr).toContain("tag v0.3.0 already exists locally");
+  expect(r.stderr).toContain(`tag v${HELPER_VERSION} already exists locally`);
   expect(r.dist).toEqual([]);
   expect(r.calls).toEqual([]);
   summary.localTag = { exit: r.code, ghCalls: 0, dist: r.dist };
@@ -227,7 +229,7 @@ test("publishing fails closed when the real GitHub lookup cannot answer", async 
   // A real request with an invalid token: GitHub answers 401, which is not proof that the tag is absent.
   const r = await cli(dir, "publish-remote-error", [], k.seed, { GH_TOKEN: "invalid-pirax-release-test-token" });
   expect(r.code).toBe(1);
-  expect(r.stderr).toContain(`could not confirm that v0.3.0 is absent from ${REPO}`);
+  expect(r.stderr).toContain(`could not confirm that v${HELPER_VERSION} is absent from ${REPO}`);
   expect(r.calls.length).toBeGreaterThan(0);
   expect(r.calls.every((c) => c[0] === "api")).toBe(true);
   expect(r.dist).toEqual([]);
@@ -353,10 +355,13 @@ test("offline: a generated seed used as the source version never reaches CLI out
 test("offline: malformed or ambiguous source facts are refused before anything is built", async () => {
   const k = key();
   const cases: Record<string, Record<string, (t: string) => string>> = {
-    "header-differs-from-constant": { "pirax-form-test.php": (t) => t.replace("const VERSION = '0.3.0';", "const VERSION = '0.3.1';") },
-    prerelease: { "pirax-form-test.php": withVersion("0.3.0-beta") },
-    "duplicate-audited-key": { "includes/compatibility.php": (t) => t.replace("\t'gf'          => '3.1.2',\n", "\t'gf'          => '3.1.2',\n\t'gf'          => '3.1.3',\n") },
-    "non-literal-audited-version": { "includes/compatibility.php": (t) => t.replace("'cleantalk'   => '6.88',", "'cleantalk'   => CLEANTALK_VERSION,") },
+    "header-differs-from-constant": { "pirax-form-test.php": (t) => t.replace(`const VERSION = '${HELPER_VERSION}';`, `const VERSION = '${nextPatch(HELPER_VERSION)}';`) },
+    prerelease: { "pirax-form-test.php": withVersion(`${HELPER_VERSION}-beta`) },
+    "duplicate-audited-key": { "includes/compatibility.php": (t) => t.replace(`${pinLine("gf")}\n`, `${pinLine("gf")}\n${pinLine("gf", nextPatch(PINS.gf))}\n`) },
+    "non-literal-audited-version": { "includes/compatibility.php": (t) => t.replace(pinLine("cleantalk"), "\t'cleantalk'   => CLEANTALK_VERSION,") },
+    "missing-audited-key": { "includes/compatibility.php": (t) => t.replace(`${pinLine("fluent_smtp")}\n`, "") },
+    "unknown-audited-key": { "includes/compatibility.php": (t) => t.replace(`${pinLine("gf")}\n`, `${pinLine("gf")}\n\t'gravity'      => '1.0',\n`) },
+    "prerelease-audited-version": { "includes/compatibility.php": (t) => t.replace(pinLine("ff"), pinLine("ff", `${PINS.ff}-beta`)) },
   };
   const outcomes: Record<string, string> = {};
   for (const [name, edits] of Object.entries(cases)) {

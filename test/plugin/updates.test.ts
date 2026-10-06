@@ -12,7 +12,7 @@ import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { withoutSigningKey } from "../../scripts/build-plugin";
 import { findSecret } from "./artifacts";
-import { startHarness, type Harness } from "./harness";
+import { FF_VERSION, startHarness, type Harness } from "./harness";
 import {
   MANIFEST,
   SIGNATURE,
@@ -37,6 +37,8 @@ const B = "pirax-form-test/pirax-form-test.php";
 const F = "\\Pirax\\FormTest\\";
 const PRODUCTION_ROOT = "https://github.com/CastrumS/pirax-castrum-maintenance/releases";
 const PRODUCTION_KEY = "D8BfOn8TZC3jD+Hv5Q+p7SGPNGIYISVcMCqQWU0Dh9w=";
+/** Another plugin's real wordpress.org package URL, which the helper's download filter must leave alone. */
+const UNRELATED = `https://downloads.wordpress.org/plugin/fluentform.${FF_VERSION}.zip`;
 const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}', true)`;
 const sourceDigest = async () =>
   createHash("sha256")
@@ -355,9 +357,9 @@ test("the download boundary refuses unverified helper packages and leaves the in
       'helperPackageForOtherPlugin' => $code($u->download_package($canonical, false, ['plugin' => 'fluentform/fluentform.php'])),
       'prepopulatedForHelper' => $code(apply_filters('upgrader_pre_download', '/tmp/elsewhere.zip', $canonical, $u, ['plugin' => '${B}'])),
       'errorKept' => apply_filters('upgrader_pre_download', $existing, $canonical, $u, ['plugin' => '${B}']) === $existing,
-      'unrelatedFalse' => apply_filters('upgrader_pre_download', false, 'https://downloads.wordpress.org/plugin/fluentform.6.2.15.zip', $u, ['plugin' => 'fluentform/fluentform.php']),
+      'unrelatedFalse' => apply_filters('upgrader_pre_download', false, ${lit(UNRELATED)}, $u, ['plugin' => 'fluentform/fluentform.php']),
       'unrelatedReply' => apply_filters('upgrader_pre_download', '/tmp/other.zip', '${fixture.root}/download/v1.0/another-plugin.zip', $u, ['plugin' => 'fluentform/fluentform.php']),
-      'unrelatedNoContext' => apply_filters('upgrader_pre_download', false, 'https://downloads.wordpress.org/plugin/fluentform.6.2.15.zip', $u, []),
+      'unrelatedNoContext' => apply_filters('upgrader_pre_download', false, ${lit(UNRELATED)}, $u, []),
       'temps' => array_values(array_map('basename', glob(get_temp_dir() . 'pirax-form-test-*.tmp') ?: [])),
     ];
   `);

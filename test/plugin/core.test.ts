@@ -9,7 +9,8 @@ import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { withoutSigningKey } from "../../scripts/build-plugin";
 import { findSecret } from "./artifacts";
-import { startHarness, type Harness } from "./harness";
+import { FF_VERSION, GF_VERSION, startHarness, type Harness } from "./harness";
+import { HELPER_VERSION } from "./version-fixtures";
 
 // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
 setDefaultTimeout(180_000);
@@ -88,8 +89,9 @@ test("build:plugin produces only the allowlisted uploadable ZIP with no tests, s
   const source = (await Bun.$`unzip -p ${ZIP} ${"*.php"}`.env(withoutSigningKey()).text()).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   expect(source).not.toMatch(/register_rest_route|rest_api_init|\bwp_mail\s*\(|PHPMailer|PIRAX_FORM_TEST_HARNESS/);
   const main = await Bun.$`unzip -p ${ZIP} pirax-form-test/pirax-form-test.php`.env(withoutSigningKey()).text();
-  expect(main).toMatch(/^ \* Version:\s+0\.3\.0$/m);
-  expect(main).toMatch(/^const VERSION = '0\.3\.0';$/m);
+  // The shipping helper's own version (header and constant agree, read by scripts/plugin-source.ts), whatever it is now.
+  expect(main.match(/^ \* Version:\s+(\S+)$/m)?.[1]).toBe(HELPER_VERSION);
+  expect(main).toContain(`\nconst VERSION = '${HELPER_VERSION}';\n`);
   // A repository-specific Update URI keeps WordPress from matching a same-named wordpress.org plugin.
   expect(main).toMatch(/^ \* Update URI:\s+https:\/\/github\.com\/CastrumS\/pirax-castrum-maintenance$/m);
   const updates = await Bun.$`unzip -p ${ZIP} pirax-form-test/includes/updates.php`.env(withoutSigningKey()).text();
@@ -266,8 +268,8 @@ test("compatibility panel: admins only, read-only, every unaudited callback by h
   const { page } = admin;
   await page.goto(`${h.url}${SETTINGS}`);
   // Default stack: exact core versions, no optional plugins (not listed as version 0), both ready.
-  expect(await panel(page, "gf")).toEqual({ rows: [["Gravity Forms", "3.1.2", "audited"]], verdict: "ready", hooks: {} });
-  expect(await panel(page, "ff")).toEqual({ rows: [["Fluent Forms", "6.2.14", "audited"]], verdict: "ready", hooks: {} });
+  expect(await panel(page, "gf")).toEqual({ rows: [["Gravity Forms", GF_VERSION, "audited"]], verdict: "ready", hooks: {} });
+  expect(await panel(page, "ff")).toEqual({ rows: [["Fluent Forms", FF_VERSION, "audited"]], verdict: "ready", hooks: {} });
   expect(await page.locator("#pirax-form-test-compatibility").innerText()).toContain('"Ready" covers only the plugins, versions and hooked callbacks loaded for this admin page');
 
   // A real mu-plugin whose file name carries markup: closures and named callbacks on GF and FF hooks and a GF form-specific hook.
@@ -292,12 +294,12 @@ test("compatibility panel: admins only, read-only, every unaudited callback by h
     const gf = await panel(page, "gf");
     const ff = await panel(page, "ff");
     expect(gf).toEqual({
-      rows: [["Gravity Forms", "3.1.2", "audited"]],
+      rows: [["Gravity Forms", GF_VERSION, "audited"]],
       verdict: "blocked: 2 unaudited callback(s) on submission hooks",
       hooks: { gform_entry_created: [`closure:${file}`], [`gform_after_submission_${h.fixtures.gf}`]: ["pirax_hostile_numeric"] },
     });
     expect(ff).toEqual({
-      rows: [["Fluent Forms", "6.2.14", "audited"]],
+      rows: [["Fluent Forms", FF_VERSION, "audited"]],
       verdict: "blocked: 2 unaudited callback(s) on submission hooks",
       hooks: { "fluentform/before_form_actions_processing": ["pirax_hostile_named"], "fluentform/submission_inserted": [`closure:${file}`] },
     });

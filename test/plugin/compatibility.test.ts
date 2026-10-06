@@ -1,5 +1,5 @@
-// Production plugin on the opt-in compatibility stack (helper-compat plan D1–D7; AC1–AC7): GF 3.1.2,
-// FF 6.2.14 + FF Pro 6.2.15, CleanTalk 6.88 and FluentSMTP 2.4.1 active together, with HTTP contained,
+// Production plugin on the opt-in compatibility stack (helper-compat plan D1–D7; AC1–AC7): GF, FF + FF Pro,
+// CleanTalk and FluentSMTP at their AUDITED_VERSIONS pins, active together, with HTTP contained,
 // CleanTalk moderation and the Pro webhook answered at the Requests transport and FluentSMTP's
 // Simulator as the mail transport. Forms are submitted in headless Chromium; queues run natively.
 // bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/compatibility.test.ts
@@ -9,6 +9,7 @@ import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { findSecret } from "./artifacts";
 import { startHarness, type EnvelopeRecord, type Harness, type HttpRecord } from "./harness";
+import { nextPatch, PINS } from "./version-fixtures";
 
 // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
 setDefaultTimeout(180_000);
@@ -23,6 +24,8 @@ const INVALID_MARKER = "Pirax test blocked: invalid test marker";
 const INVALID_CONFIG = "Pirax test blocked: test configuration is invalid";
 const SETTINGS = "/wp-admin/options-general.php?page=pirax-form-test";
 const EMAIL_PRECHECK = "/wp-json/cleantalk-antispam/v1/check_email_before_post";
+/** A genuinely different GF version than the pin, for wrong-version cases. */
+const GF_NEXT = nextPatch(PINS.gf);
 
 /** A PHP expression decoding a JSON value (single-quoted literal, so `$` and `\` stay literal). */
 const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}', true)`;
@@ -441,19 +444,19 @@ for (const mode of ["wrap", "early"] as const) {
       expect(done.env.filter((e) => e.subject.startsWith("[pirax-test"))).toEqual([]);
 
       // Another GF version too: the audited CleanTalk's rebound check is an independent cause, so not version-only.
-      await setOptions({ pirax_harness_gf_ajax_version: "3.1.3" });
+      await setOptions({ pirax_harness_gf_ajax_version: GF_NEXT });
       await clearLastBlock();
       const m2 = await mark();
       const compound = await gfAjaxSubmit(`Pirax rebound GF version ${marker}`);
       const compoundBlock = await lastBlock();
       await h.drainQueues();
       const done2 = await since(m2);
-      await note(`GF modern AJAX generic check ${mode}, GF 3.1.3`, { marked: compound.ok, http: done2.http, added: done2.added, last: compoundBlock && { message: compoundBlock.message, reasons: compoundBlock.reasons } });
+      await note(`GF modern AJAX generic check ${mode}, GF ${GF_NEXT}`, { marked: compound.ok, http: done2.http, added: done2.added, last: compoundBlock && { message: compoundBlock.message, reasons: compoundBlock.reasons } });
       expect(compound.ok).toBe(false);
       expect(compound.text).toContain(BLOCKED);
       expect(compound.text).not.toContain(AWAITING);
       expect(compoundBlock).toMatchObject({ plugin: "gf", form: h.fixtures.gf, message: BLOCKED });
-      expect(compoundBlock.reasons).toEqual(["Gravity Forms 3.1.3 is not the audited 3.1.2", "CleanTalk's generic AJAX check could not be removed"]);
+      expect(compoundBlock.reasons).toEqual([`Gravity Forms ${GF_NEXT} is not the audited ${PINS.gf}`, "CleanTalk's generic AJAX check could not be removed"]);
       expect([done2.added, done2.env, genericCheck(done2.http), tokenBearing(done2.http)]).toEqual([[], [], [], []]);
     } finally {
       await setOptions({ pirax_harness_gf_ajax: null, pirax_harness_ct_ajax_rebind: null, pirax_harness_gf_ajax_version: null });
@@ -522,7 +525,7 @@ test("GF modern AJAX before GF initializes: ordinary requests read no stored for
     expectRedirected(done.env.filter((e) => e.subject.startsWith("[pirax-test")));
     expectOriginal(done.env.filter((e) => e.subject === `gf-${h.fixtures.gf} notification A`), "owner@client.test");
 
-    await setOptions({ pirax_harness_gf_ajax_version: "3.1.3" });
+    await setOptions({ pirax_harness_gf_ajax_version: GF_NEXT });
     try {
       await clearLastBlock();
       m = await mark();
@@ -531,13 +534,13 @@ test("GF modern AJAX before GF initializes: ordinary requests read no stored for
       const wrongOrdinary = await gfAjaxCounted("gf ordinary with another GF version");
       await h.drainQueues();
       done = await since(m);
-      await note("GF modern AJAX early reads: GF 3.1.3", { marked: [wrongMarked.ok, wrongMarked.reads], ordinary: [wrongOrdinary.ok, wrongOrdinary.reads], http: done.http, added: done.added });
+      await note(`GF modern AJAX early reads: GF ${GF_NEXT}`, { marked: [wrongMarked.ok, wrongMarked.reads], ordinary: [wrongOrdinary.ok, wrongOrdinary.reads], http: done.http, added: done.added });
       expect(wrongMarked).toMatchObject({ ok: false, reads: 0 });
       // Version-only: the known GF version is the whole observable cause, found without reading the form.
-      expect(wrongMarked.text).toContain(`${AWAITING}Gravity Forms 3.1.3`);
+      expect(wrongMarked.text).toContain(`${AWAITING}Gravity Forms ${GF_NEXT}`);
       expect(wrongMarked.text).not.toContain(BLOCKED);
-      expect(wrongBlock).toMatchObject({ plugin: "gf", form: h.fixtures.gf, message: `${AWAITING}Gravity Forms 3.1.3` });
-      expect(wrongBlock.reasons).toContain("Gravity Forms 3.1.3 is not the audited 3.1.2");
+      expect(wrongBlock).toMatchObject({ plugin: "gf", form: h.fixtures.gf, message: `${AWAITING}Gravity Forms ${GF_NEXT}` });
+      expect(wrongBlock.reasons).toContain(`Gravity Forms ${GF_NEXT} is not the audited ${PINS.gf}`);
       expect(wrongOrdinary).toMatchObject({ ok: true, text: "Pirax GF thanks", reads: 0 });
       expect(genericCheck(done.http).length).toBe(1); // the ordinary one only
       expect(tokenBearing(done.http)).toEqual([]);
@@ -835,34 +838,38 @@ test("CleanTalk re-registered during a marked submission's own dispatch is remov
 test("admin panel on the full stack: exact versions audited per form plugin and both ready", async () => {
   const [gf, ff] = [await panel("gf"), await panel("ff")];
   expect(gf.rows).toEqual([
-    ["Gravity Forms", "3.1.2", "audited"],
-    ["Anti-Spam by CleanTalk", "6.88", "audited"],
-    ["FluentSMTP", "2.4.1", "audited"],
+    ["Gravity Forms", PINS.gf, "audited"],
+    ["Anti-Spam by CleanTalk", PINS.cleantalk, "audited"],
+    ["FluentSMTP", PINS.fluent_smtp, "audited"],
   ]);
   expect(ff.rows).toEqual([
-    ["Fluent Forms", "6.2.14", "audited"],
-    ["Fluent Forms Pro", "6.2.15", "audited"],
-    ["Anti-Spam by CleanTalk", "6.88", "audited"],
-    ["FluentSMTP", "2.4.1", "audited"],
+    ["Fluent Forms", PINS.ff, "audited"],
+    ["Fluent Forms Pro", PINS.ff_pro, "audited"],
+    ["Anti-Spam by CleanTalk", PINS.cleantalk, "audited"],
+    ["FluentSMTP", PINS.fluent_smtp, "audited"],
   ]);
   expect([gf.verdict, ff.verdict]).toEqual(["ready", "ready"]);
   expect([gf.hooks, ff.hooks]).toEqual([{}, {}]);
 });
 
+/**
+ * One version declaration per plugin, rewritten from its pin to a genuinely different version (CleanTalk: a longer
+ * form, the others: the next patch). withAlteredFile() requires the declaration to occur exactly once.
+ */
 const VERSIONS = [
-  { name: "CleanTalk", file: "cleantalk-spam-protect/cleantalk.php", search: "Version: 6.88\n", replace: "Version: 6.88.1\n", label: "Anti-Spam by CleanTalk 6.88.1 is not the audited 6.88", awaiting: `${AWAITING}Anti-Spam by CleanTalk 6.88.1`, gf: true },
-  { name: "Fluent Forms Pro", file: "fluentformpro/fluentformpro.php", search: "define('FLUENTFORMPRO_VERSION', '6.2.15');", replace: "define('FLUENTFORMPRO_VERSION', '6.2.16');", label: "Fluent Forms Pro 6.2.16 is not the audited 6.2.15", awaiting: `${AWAITING}Fluent Forms Pro 6.2.16`, gf: false },
-  { name: "FluentSMTP", file: "fluent-smtp/boot.php", search: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.1');", replace: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.2');", label: "FluentSMTP 2.4.2 is not the audited 2.4.1", awaiting: `${AWAITING}FluentSMTP 2.4.2`, gf: true },
-];
+  { name: "CleanTalk", label: "Anti-Spam by CleanTalk", file: "cleantalk-spam-protect/cleantalk.php", declare: (v: string) => `Version: ${v}\n`, pin: PINS.cleantalk, wrong: `${PINS.cleantalk}.1`, gf: true },
+  { name: "Fluent Forms Pro", label: "Fluent Forms Pro", file: "fluentformpro/fluentformpro.php", declare: (v: string) => `define('FLUENTFORMPRO_VERSION', '${v}');`, pin: PINS.ff_pro, wrong: nextPatch(PINS.ff_pro), gf: false },
+  { name: "FluentSMTP", label: "FluentSMTP", file: "fluent-smtp/boot.php", declare: (v: string) => `define('FLUENTMAIL_PLUGIN_VERSION', '${v}');`, pin: PINS.fluent_smtp, wrong: nextPatch(PINS.fluent_smtp), gf: true },
+].map((v) => ({ ...v, search: v.declare(v.pin), replace: v.declare(v.wrong), reason: `${v.label} ${v.wrong} is not the audited ${v.pin}`, awaiting: `${AWAITING}${v.label} ${v.wrong}` }));
 
 for (const v of VERSIONS) {
   test(`${v.name} at another version blocks marked ${v.gf ? "FF and GF" : "FF (not GF)"} at the native gates with the version-only message; the panel shows the version and still lists callbacks`, async () => {
     await withAlteredFile(v.file, v.search, v.replace, async () => {
       const [gf, ff] = [await panel("gf"), await panel("ff")];
-      expect(ff.verdict).toContain(v.label);
-      expect(gf.verdict.includes(v.label)).toBe(v.gf);
+      expect(ff.verdict).toContain(v.reason);
+      expect(gf.verdict.includes(v.reason)).toBe(v.gf);
       if (v.name === "CleanTalk") {
-        // Its bindings are only audited for 6.88: now they are unaudited callbacks, still listed.
+        // Its bindings are only audited for the pinned version: now they are unaudited callbacks, still listed.
         expect(ff.hooks["fluentform/before_insert_submission"]).toEqual(["closure:cleantalk-spam-protect/lib/Cleantalk/Antispam/Integrations.php"]);
       }
 
@@ -877,7 +884,7 @@ for (const v of VERSIONS) {
       expect(ff1.status).toBe(423);
       expect(ffRejection(ff1.body)).toBe(v.awaiting);
       expect(last).toMatchObject({ plugin: v.gf ? "gf" : "ff", message: v.awaiting });
-      expect(last.reasons).toContain(v.label);
+      expect(last.reasons).toContain(v.reason);
       expect(done.feeds).toEqual([]);
       expect(done.http.filter((r) => r.purpose === "webhook-capture")).toEqual([]);
       if (v.gf) {
@@ -963,7 +970,7 @@ test("an unaudited optional Pro module (Inventory) keeps blocking marked FF with
   expect((await panel("ff")).verdict).toBe("ready");
 }, 300_000);
 
-test("Pro 6.2.16: its own Inventory callbacks keep the version-only message, a second mismatch is listed in report order, and a callback outside every mismatched plugin (a rebound CleanTalk wrapper) makes it generic; all stay blocked", async () => {
+test("Pro at the next patch: its own Inventory callbacks keep the version-only message, a second mismatch is listed in report order, and a callback outside every mismatched plugin (a rebound CleanTalk wrapper) makes it generic; all stay blocked", async () => {
   const [pro, smtp] = [VERSIONS.find((v) => v.name === "Fluent Forms Pro")!, VERSIONS.find((v) => v.name === "FluentSMTP")!];
   /** One marked FF submission: rejected before insert, mail, feeds and CleanTalk; returns its message. */
   const blocked = async (label: string) => {
@@ -985,7 +992,7 @@ test("Pro 6.2.16: its own Inventory callbacks keep the version-only message, a s
       await inventoryModule(false);
     }
     await withAlteredFile(smtp.file, smtp.search, smtp.replace, async () => {
-      expect(await blocked("pro and smtp")).toBe(`${AWAITING}Fluent Forms Pro 6.2.16, FluentSMTP 2.4.2`);
+      expect(await blocked("pro and smtp")).toBe(`${AWAITING}Fluent Forms Pro ${pro.wrong}, FluentSMTP ${smtp.wrong}`);
     });
     await setOptions({ pirax_harness_ct_rebind: true });
     try {
@@ -1008,7 +1015,7 @@ test("retained evidence names every version and ZIP hash and contains no token o
   const evidence = await h.saveEvidence();
   expect(evidence.files).toEqual(expect.arrayContaining(["http.jsonl", "envelopes.jsonl", "simulator.jsonl", "manifest.json"]));
   const manifest = await Bun.file(`${h.artifactDir}/manifest.json`).json();
-  expect(manifest.versions).toMatchObject({ gf: "3.1.2", ff: "6.2.14", ffPro: "6.2.15", cleantalk: "6.88", fluentSmtp: "2.4.1" });
+  expect(manifest.versions).toMatchObject({ gf: PINS.gf, ff: PINS.ff, ffPro: PINS.ff_pro, cleantalk: PINS.cleantalk, fluentSmtp: PINS.fluent_smtp });
   expect(Object.keys(manifest.zips).sort()).toEqual(["cleantalk", "fluentSmtp", "fluentform", "fluentformpro", "gravityforms"]);
   expect(await findSecret(h.artifactDir, [h.token, process.env.GRAVITY_FORMS_ZIP!, process.env.FLUENT_FORMS_PRO_ZIP!])).toEqual([]);
 }, 120_000);

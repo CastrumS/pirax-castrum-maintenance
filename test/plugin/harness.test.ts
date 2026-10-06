@@ -1,7 +1,8 @@
 // Smoke test for the real Playground harness (plan D10–D12). Run from a worktree with:
 // bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/harness.test.ts
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
-import { preflight, startHarness, type Harness } from "./harness";
+import { FF_VERSION, GF_VERSION, pinnedVersion, preflight, startHarness, type Harness } from "./harness";
+import { nextPatch } from "./version-fixtures";
 import { findSecret } from "./artifacts";
 import { withoutSigningKey } from "../../scripts/build-plugin";
 import { mkdir, mkdtemp } from "node:fs/promises";
@@ -53,6 +54,32 @@ test("compatibility preflight requires FLUENT_FORMS_PRO_ZIP by name only; the de
   expect(message).not.toContain(base.FORM_TEST_TOKEN);
 });
 
+test("licensed and cached ZIPs must declare exactly their pinned version, and refusals name the variable, not the path", async () => {
+  // Stand-in ZIPs under a private-looking directory name: never the real licensed files.
+  const dir = await mkdtemp(join(tmpdir(), "pirax-licensed-secret-path-"));
+  const zip = async (name: string, header: string | null) => {
+    await mkdir(join(dir, name, "gravityforms"), { recursive: true });
+    if (header !== null) await Bun.write(join(dir, name, "gravityforms/gravityforms.php"), `<?php\n/*\nPlugin Name: Gravity Forms\n${header}\n*/\n`);
+    else await Bun.write(join(dir, name, "gravityforms/other.php"), "<?php\n");
+    await Bun.$`zip -qr ${`../${name}.zip`} .`.cwd(join(dir, name)).env(withoutSigningKey());
+    return join(dir, `${name}.zip`);
+  };
+  const check = (path: string) => pinnedVersion(path, "gravityforms/gravityforms.php", "GRAVITY_FORMS_ZIP", GF_VERSION);
+  expect(await check(await zip("pinned", `Version: ${GF_VERSION}`))).toBe(GF_VERSION);
+  const refusals: Record<string, [string | null, string]> = {
+    "next patch": [`Version: ${nextPatch(GF_VERSION)}`, `GRAVITY_FORMS_ZIP contains gravityforms/gravityforms.php version ${nextPatch(GF_VERSION)}, expected ${GF_VERSION}`],
+    longer: [`Version: ${GF_VERSION}.1`, `GRAVITY_FORMS_ZIP contains gravityforms/gravityforms.php version ${GF_VERSION}.1, expected ${GF_VERSION}`],
+    "no header": ["Description: none", "GRAVITY_FORMS_ZIP does not contain gravityforms/gravityforms.php with a Version header"],
+    "no main file": [null, "GRAVITY_FORMS_ZIP does not contain gravityforms/gravityforms.php with a Version header"],
+  };
+  for (const [name, [header, expected]] of Object.entries(refusals)) {
+    const path = await zip(name.replace(/ /g, "-"), header);
+    const message = await check(path).then(() => "accepted", (error) => String(error));
+    expect({ name, message }).toEqual({ name, message: `Error: ${expected}` });
+    expect(message).not.toContain(dir);
+  }
+});
+
 test("loopback WordPress runs licensed Gravity Forms and pinned Fluent Forms with real PHP and database", async () => {
   expect(new URL(h.url).hostname).toBe("127.0.0.1");
   const info = await h.php<{
@@ -75,15 +102,15 @@ test("loopback WordPress runs licensed Gravity Forms and pinned Fluent Forms wit
   `);
   expect(info.active).toContain("gravityforms/gravityforms.php");
   expect(info.active).toContain("fluentform/fluentform.php");
-  expect(info.ff).toBe("6.2.14");
-  expect(info.gf).toBe(h.versions.gf);
-  expect(info.gf).toMatch(/^\d+\.\d+/);
+  expect(info.ff).toBe(FF_VERSION);
+  expect(info.gf).toBe(GF_VERSION);
+  expect(h.versions.gf).toBe(GF_VERSION);
   expect(info.users).toBeGreaterThanOrEqual(2);
   expect(info.tables).toBeGreaterThan(0);
   expect(info.mu).toBe(true);
   // The default stack stays GF + FF only: no optional plugins, no Pro prerequisite, baseline mail observer.
   expect(h.compatibility).toBe(false);
-  expect(h.versions).toEqual({ gf: h.versions.gf, ff: "6.2.14", wp: "7.1.2", php: "8.3" });
+  expect(h.versions).toEqual({ gf: GF_VERSION, ff: FF_VERSION, wp: "7.1.2", php: "8.3" });
   expect(info.active.filter((p) => !/^(gravityforms|fluentform)\//.test(p))).toEqual([]);
   await expect(h.php("throw new RuntimeException('boom');")).rejects.toThrow(/boom/);
 

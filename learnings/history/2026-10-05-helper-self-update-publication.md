@@ -18,3 +18,7 @@ The CLI now atomically creates `refs/tags/v<version>` at the intended commit thr
 ## Learning
 
 A read-only existence check establishes an observation, not exclusive ownership. The primitive that creates a shared identifier must enforce absence atomically. Separate remote operations also have separate failure states: a failed client command is not proof that the server made no change, and cleanup advice must not pretend it is.
+
+## Applied — 2026-10-07
+
+The re-audit publisher delegates publication to this atomic-claim CLI instead of implementing a second tag/release path. It records the intended commit/tag and uncertain partial state, never retries or deletes automatically, and verifies the remote assets independently. `tests/reaudit-publish.test.ts` covers existing-tag refusal and failure after a claim using intercepted mutations; no real publication is claimed by those fixtures.

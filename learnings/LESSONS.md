@@ -1,8 +1,8 @@
 # Lessons
 
-- Playground workers can retain a reused backup filename after another worker renames it away: use a unique name per mutation and verify copy/write/rename plus exact readback, rather than trusting `file_exists()` or a lucky green run — 2026-10-06 — [case and evidence](history/2026-10-06-playground-reused-file-names.md).
+- GitHub reruns preserve the run ID and earlier artifacts: bind candidate data and artifact selection to the current attempt, and never use an old cleanup confirmation when current evidence is missing — 2026-10-07 — [case and evidence](history/2026-10-07-workflow-attempt-artifacts.md).
 
-- Release preflight did not reserve a tag: `gh release create` could reuse an intervening tag, while its multi-call draft/upload/publish flow could leave remote state after an error; atomic ref creation closed the ownership race and recovery diagnostics were changed to require inspection — 2026-10-05 — [case and evidence](history/2026-10-05-helper-self-update-publication.md).
+- Playground workers can retain a reused backup filename after another worker renames it away: use a unique name per mutation and verify copy/write/rename plus exact readback, rather than trusting `file_exists()` or a lucky green run — 2026-10-06 — [case and evidence](history/2026-10-06-playground-reused-file-names.md).
 
 - Safe outgoing HTTP fields do not protect a log if a shared logger later appends a raw inbound URI; inspect the final record and test both URI boundaries, separately from known-secret scanning — 2026-09-28 — [case and evidence](history/2026-09-28-helper-compat-http-context-review-b.md).
 

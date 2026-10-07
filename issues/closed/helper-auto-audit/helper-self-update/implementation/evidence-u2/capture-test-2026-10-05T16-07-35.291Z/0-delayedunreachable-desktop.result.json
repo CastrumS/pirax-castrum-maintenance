@@ -1,0 +1,15 @@
+{
+  "state": "blocked",
+  "detail": "navigation failed: net::ERR_CONNECTION_REFUSED",
+  "image": null,
+  "health": {
+    "status": null,
+    "finalUrl": "chrome-error://chromewebdata/",
+    "criticalError": false,
+    "consoleErrors": [],
+    "failedRequests": [],
+    "mixedContent": []
+  },
+  "warnings": [],
+  "tracePath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/runs/capture-test-2026-10-05T16-07-35.291Z/0-delayedunreachable-desktop.trace.zip"
+}

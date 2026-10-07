@@ -1,0 +1,13 @@
+$ bun scripts/release-plugin.ts 
+exit 1
+leaked false
+--- stdout
+v0.0.1: dist/pirax-form-test.zip sha256 d0d596ab792ad0f2471ae7c588d62c62eac76b9d385b5c5c88a0333a149fbd09, signed by public key z+xwDz2D8LL8hUDWA8Dp70EYiFJepuQ/HY5+E6BOLzk=
+--- stderr
+release-plugin: could not create tag v0.0.1 on CastrumS/pirax-castrum-maintenance (HTTP 422); release creation was not attempted; inspect remote tag state before retrying
+--- gh calls
+[["api","--include","repos/CastrumS/pirax-castrum-maintenance/git/ref/tags/v0.0.1"],["api","--paginate","repos/CastrumS/pirax-castrum-maintenance/releases?per_page=100","--jq",".[].tag_name"],["api","--method","POST","repos/CastrumS/pirax-castrum-maintenance/git/refs","-f","ref=refs/tags/v0.0.1","-f","sha=e07d4d523f7d19ac8b753181be7c1a59e7b8ccdc"]]
+--- dist
+pirax-form-test-manifest.json
+pirax-form-test-manifest.json.sig
+pirax-form-test.zip

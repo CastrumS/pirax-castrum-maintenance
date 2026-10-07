@@ -1,0 +1,33 @@
+Unit 2 is done and committed as **`fe5d0a3`** in the `reaudit-job-u2` worktree (code only). The full configured test suite passes, but no live GPL Vault, GitHub or setup step was run: those are left for you, as the brief says. The report is at `implementation/report-u2.md`, with logs in `implementation/evidence-u2/`.
+
+**What was built**
+- **`scripts/reaudit/detect.ts`:** checks that all five pins are present and valid, and compares versions numerically, including multi-digit parts. It rejects missing, duplicate, unknown or malformed entries, downgrades, and equal versions spelled differently (`6.88` vs `6.88.0`). Errors name only the stage and field, never a value.
+- **`scripts/reaudit/fetch.ts`:** `acquirePackages({pins, directory, env?, cache?, fetch?, openVault?})` returns either unchanged (no form package downloaded) or changed (all five packages with version, SHA-256 and absolute path). Its record of what happened to the license is listed below. Exact signatures are in the report.
+  - Free packages go into the test cache under `<slug>.<version>.zip`; paid ones stay in the private directory you pass in.
+  - Downloads are HTTPS only, with no redirects, size and time limits, and a check of each plugin's own Version header. A failure never falls back to an older package.
+  - The license is marked as "activation attempted" before the request is sent. Deactivation always runs at the end, and only counts as confirmed when the updater's own status check reports the site inactive.
+  - Ctrl-C/SIGTERM still lets deactivation run.
+- **`scripts/reaudit/gplvault-playground.ts`:** the Node 24 child that runs a throwaway WordPress 7.1.2 / PHP 8.3 with networking and only the official updater installed. License values reach PHP only through the environment of one request, never on the command line.
+- **`scripts/reaudit/setup.ts`:** the one-time setup script. It uses the existing `GPLVAULT_UPDATER_PASSPHRASE`, refuses to overwrite an existing encrypted file that doesn't match, checks the round trip, and sends five secrets to `gh` through stdin. It only checks that the signing secret exists and never changes it.
+- **Tests:** `tests/reaudit-{detect,fetch}.test.ts`, plus `tests/reaudit-setup.test.ts`, which I added beyond the brief's list.
+
+**Test results**
+- New tests: failed first because the modules didn't exist, then 71 pass / 0 fail.
+- Typecheck passes and the plugin build succeeded.
+- Full changed-test command: exit 0, **357 pass / 0 fail** (31 files, about 54 minutes).
+- The saved logs have 0 `findSecret` hits for all 9 credential names.
+
+**What is real and what is synthetic**
+- **Real:** wordpress.org lookups, the Playground child running every step of the updater sequence, gpg, and the checks on what each child process receives.
+- **Synthetic:** every GPL Vault answer. One test runs the real Playground against a stand-in plugin that copies the official 5.3.9 method names and response shapes. That proves the plumbing, not GPL Vault login.
+
+**Before you run it live**
+- **CleanTalk has moved:** wordpress.org now has FF 6.2.15 and CleanTalk 6.89 (pin 6.88), so the first real run will audit both, not just FF.
+- **Self-update never ran:** the stand-in offers no newer client, so the path where the updater updates and reactivates itself is untested.
+- **Assumption about the catalog:** I assume GPL Vault returns catalog entries for products listed at their current pins; the earlier probe listed FF Pro at an older version. If it doesn't, the run fails safely with `catalog: <key> missing`.
+- **Activation counts are reported, not enforced:** checking that the before and after counts match is up to you.
+- **A license can be left active:** a hard kill or runner loss skips deactivation. On a GitHub Actions cancel, cleanup has about 10 seconds, which is also the updater's own timeout per request.
+- **Orchestrator must delete the private directory:** an interrupted paid download can still land a file in it after failure cleanup.
+- **Passphrase length:** setup refuses a passphrase shorter than 16 characters, so it will stop if the operator's existing value is shorter.
+
+**Not yet verified:** live acquisition and the activation counts, the setup run itself (no encrypted file committed, no secrets set), and scanning evidence from the later orchestration steps.

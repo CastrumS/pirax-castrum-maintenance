@@ -1,0 +1,13 @@
+$ bun scripts/release-plugin.ts --dry-run
+exit 0
+leaked false
+--- stdout
+v0.3.0: dist/pirax-form-test.zip sha256 6e441f97830ce170065df2a50ec63312a5f3200cb5651cfaa455b431e8362885, signed by public key J+a0kxKU1VlXiCcUH8EZGJyrQGe+YfnItD9uqjyJoto=
+dry run: dist/pirax-form-test-manifest.json and .sig written; nothing published
+--- stderr
+--- gh calls
+[]
+--- dist
+pirax-form-test-manifest.json
+pirax-form-test-manifest.json.sig
+pirax-form-test.zip

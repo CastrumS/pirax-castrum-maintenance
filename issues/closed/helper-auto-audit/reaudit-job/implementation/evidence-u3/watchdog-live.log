@@ -1,0 +1,11 @@
+2026-10-06T06:49:05Z
+$ bun --no-env-file scripts/reaudit/watchdog.ts --no-notify
+{"healthy":false,"reason":"actions-query-failed","notice":"skipped"}
+exit=1
+$ gh api repos/CastrumS/pirax-castrum-maintenance/actions/workflows --jq ".workflows[].path"
+
+2026-10-06T06:55:03Z
+Note: ~/.local/bin/gh is a mise wrapper that hangs under the allowlisted child env (60s timeout -> actions-query-failed above, correctly unhealthy). Rerun with the mise-installed gh binary directory first on PATH:
+$ PATH=<mise gh dir>:$PATH bun --no-env-file scripts/reaudit/watchdog.ts --no-notify
+{"healthy":false,"reason":"workflow-missing","notice":"skipped"}
+exit=1

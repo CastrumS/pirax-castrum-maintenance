@@ -1,0 +1,60 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-bump.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../scripts/reaudit/bump' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-bump.test.ts'
+-------------------------------
+
+
+tests/reaudit-decide.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../scripts/reaudit/bump' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-decide.test.ts'
+-------------------------------
+
+
+tests/reaudit-privacy.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../scripts/reaudit/privacy' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-privacy.test.ts'
+-------------------------------
+
+
+tests/reaudit-publish.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../scripts/reaudit/bump' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-publish.test.ts'
+-------------------------------
+
+
+tests/reaudit-workflow.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+15 | afterAll(() => rm(scratch, { recursive: true, force: true }));
+16 | 
+17 | type Step = { name?: string; uses?: string; run?: string; if?: string; id?: string; with?: Record<string, unknown>; env?: Record<string, string> };
+18 | type Job = { if?: string; needs?: string | string[]; permissions?: Record<string, string>; "timeout-minutes"?: number; "runs-on"?: string; steps: Step[]; outputs?: Record<string, string> };
+19 | type Workflow = { on: Record<string, unknown>; permissions?: unknown; concurrency?: { group: string; "cancel-in-progress": boolean }; jobs: Record<string, Job> };
+20 | const load = async (name: string) => Bun.YAML.parse(await readFile(join(ROOT, ".github/workflows", name), "utf8")) as Workflow;
+                                                               ^
+ENOENT: no such file or directory, open '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/.github/workflows/reaudit.yml'
+    path: "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/.github/workflows/reaudit.yml",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-workflow.test.ts:20:59)
+-------------------------------
+
+
+ 0 pass
+ 5 fail
+ 5 errors
+Ran 5 tests across 5 files. [20.00ms]
+exit 1

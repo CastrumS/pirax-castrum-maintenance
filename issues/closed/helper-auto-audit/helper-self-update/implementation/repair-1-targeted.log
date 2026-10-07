@@ -1,0 +1,25 @@
+$ tsc --noEmit
+bun test v1.4.2 (744846f84)
+
+test/plugin/artifacts.test.ts:
+(pass) findSecret and sanitizeZip keep the signing seed for scanning but not for their zip/unzip children [30.03ms]
+
+ 1 pass
+ 0 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [40.00ms]
+{
+  "newLineFromUpdatesTest": true,
+  "old": {
+    "exit": 1,
+    "assertionFailed": true,
+    "canaryPrinted": true,
+    "received": "environment dump"
+  },
+  "new": {
+    "exit": 1,
+    "assertionFailed": true,
+    "canaryPrinted": false,
+    "received": "presence only"
+  }
+}

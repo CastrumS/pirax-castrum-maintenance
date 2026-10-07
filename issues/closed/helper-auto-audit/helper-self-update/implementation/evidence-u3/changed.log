@@ -1,0 +1,36 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/runs/capture-test-2026-10-05T17-16-58.563Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/runs/capture-test-2026-10-05T17-16-58.563Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/runs/capture-test-2026-10-05T17-16-58.563Z
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/runs/2026-10-05T17-17-42.820Z/index.html
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/runs/forms-browser-5b6166bd-7575-4392-bf20-b7ae4a3ca9d6
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/runs/forms-playground-7dc3e5b1-ccf7-4830-aea1-f0b13357b67f/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/runs/forms-collision-c4527f92-7332-411f-af2e-62e9ead4613f/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/runs/forms-report-tests-6cc81576-75c8-44a3-9547-7c31c0999705/summary.json
+
+ 267 pass
+ 0 fail
+ 3544 expect() calls
+Ran 267 tests across 24 files. [2745.10s]

@@ -1,0 +1,11 @@
+lookup started 2026-10-06T06:48:59Z; read-only pollDelivery (EXAMINE INBOX + configured spam folder), script below
+import { readImapConfig } from "./src/mail/config.ts";
+import { pollDelivery } from "./src/mail/imap.ts";
+const commands: string[] = [];
+const t = performance.now();
+// Notices go to the account's own address, so look in INBOX plus the configured spam folder (read-only EXAMINE).
+const r = await pollDelivery({ id: process.argv[2]!, config: { ...readImapConfig(), folder: "INBOX" }, onCommand: (c) => commands.push(c) });
+console.log(JSON.stringify({ selftestId: process.argv[2], outcome: r.outcome, elapsedMs: Math.round(performance.now() - t), commands: [...new Set(commands)].sort() }));
+process.exit(r.outcome === "failed" ? 1 : 0);
+{"selftestId":"n2flwqprza2x","outcome":"delivered","elapsedMs":759,"commands":["AUTHENTICATE","CAPABILITY","COMPRESS","ENABLE","EXAMINE","ID","LOGOUT","UID FETCH (UID X-GM-MSGID MODSEQ BODY.PEEK[HEADER.FIELDS (SUBJECT)])","UID SEARCH"]}
+exit=0

@@ -1,0 +1,66 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/capture-test-2026-10-05T14-25-18.063Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/capture-test-2026-10-05T14-25-18.063Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/capture-test-2026-10-05T14-25-18.063Z
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/2026-10-05T14-26-02.351Z/index.html
+
+test/forms/awaiting-audit-commands.test.ts:
+Awaiting-audit command evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-awaiting-commands-8ed3011e-56da-4ed9-961c-e7e436d778c9/summary.json
+
+test/forms/awaiting-audit.test.ts:
+Awaiting-audit state evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-awaiting-8b7602eb-f0fa-4e66-9f98-0cd1b85a6b8d/summary.json
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-playground-d8331cb1-b738-45ae-ab00-6bcb87e49af1/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-collision-4909aa1c-b191-4a2b-b5ef-92d6528fdbbd/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-report-tests-9acf543c-d9e1-4aa1-8ca6-e1fe48525d7b/summary.json
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: rejected
+Awaiting-audit fixture /gf-summary-only: rejected
+Awaiting-audit fixture /gf-awaiting-only-container: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-second-helper: rejected
+Awaiting-audit fixture /ff-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-invalid: rejected
+Awaiting-audit fixture /ff-awaiting-invalid: rejected
+Awaiting-audit fixture /gf-generic: rejected
+Awaiting-audit fixture /ff-generic: rejected
+Awaiting-audit fixture /gf-lowercase: rejected
+Awaiting-audit fixture /gf-blank: rejected
+Awaiting-audit fixture /ff-blank: rejected
+Awaiting-audit fixture /gf-no-version: rejected
+Awaiting-audit fixture /gf-bad-separator: rejected
+Awaiting-audit fixture /gf-mid-sentence: rejected
+Awaiting-audit fixture /gf-foreign-awaiting: failed
+Awaiting-audit fixture /ff-stale-awaiting: failed
+Awaiting-audit fixture /ff-foreign-awaiting: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-browser-7e010a62-0cae-473c-b832-184830313317
+
+ 262 pass
+ 0 fail
+ 3909 expect() calls
+Ran 262 tests across 25 files. [2407.43s]

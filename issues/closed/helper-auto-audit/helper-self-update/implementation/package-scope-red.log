@@ -1,0 +1,44 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/updates.test.ts:
+358 |       'unrelatedReply' => apply_filters('upgrader_pre_download', '/tmp/other.zip', '${fixture.root}/download/v1.0/another-plugin.zip', $u, ['plugin' => 'fluentform/fluentform.php']),
+359 |       'unrelatedNoContext' => apply_filters('upgrader_pre_download', false, 'https://downloads.wordpress.org/plugin/fluentform.6.2.15.zip', $u, []),
+360 |       'temps' => array_values(array_map('basename', glob(get_temp_dir() . 'pirax-form-test-*.tmp') ?: [])),
+361 |     ];
+362 |   `);
+363 |   expect(direct).toEqual({
+                       ^
+error: expect(received).toEqual(expected)
+
+  {
+    "errorKept": true,
+    "helperPackageAsInstall": "pirax_form_test_update",
+    "helperPackageForOtherPlugin": "pirax_form_test_update",
+    "hostileForHelper": "pirax_form_test_update",
+    "localFileForHelper": "pirax_form_test_update",
+    "prepopulatedForHelper": "pirax_form_test_update",
+    "temps": [],
+    "unrelatedFalse": false,
+    "unrelatedNoContext": false,
+-   "unrelatedReply": "/tmp/other.zip",
++   "unrelatedReply": {
++     "error_data": [],
++     "errors": {
++       "pirax_form_test_update": [
++         "Pirax Form Test update refused: another download handler answered first.",
++       ],
++     },
++   },
+  }
+
+- Expected  - 1
++ Received  + 8
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update/test/plugin/updates.test.ts:363:18)
+(fail) the download boundary refuses unverified helper packages and leaves the installed bytes unchanged [55159.89ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 38 expect() calls
+Ran 1 test across 1 file. [88.88s]

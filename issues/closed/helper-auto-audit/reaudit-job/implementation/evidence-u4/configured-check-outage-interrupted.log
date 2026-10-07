@@ -1,0 +1,316 @@
+Queued 2026-10-06T14:10:42Z
+Lock acquired 2026-10-06T14:28:58Z; head 2ac17e5674fae7a4d4e799fe70198707dc2abf7a; gh /home/rudi/.local/share/mise/installs/gh/latest/gh_2.101.0_linux_amd64/bin/gh; node v24.21.0
+$ bun scripts/build-plugin.ts
+dist/pirax-form-test.zip (11 files, sha256 82c1565ba17718371c4c3e23d31731ec18568cd91729adeab02463ed05da59c4)
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/capture-test-2026-10-06T14-28-58.546Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/capture-test-2026-10-06T14-28-58.546Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/capture-test-2026-10-06T14-28-58.546Z
+
+tests/reaudit-operations.test.ts:
+watchdog: notice not sent: Error
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/2026-10-06T14-29-47.216Z/index.html
+
+tests/reaudit-publish.test.ts:
+v0.3.1: dist/pirax-form-test.zip sha256 f45685f44c579c213b1ff576074173f5a20fcfff64f84194359d4e1535f83727, signed by public key uRRN6d+dpbhf+X1+pRmuNAPWQy6LmBcd6eLMNh1nhnA=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+v0.3.1: dist/pirax-form-test.zip sha256 e8930a8a0821fd86f03d646400e5858362c302adcf7065a28f5dd2e4258c8744, signed by public key rSS+hNh3eVGMSX+YHn/xhhNkwqEayuj82R2Whko+2GU=
+HTTP 502: Bad Gateway
+release-plugin: gh release create failed (exit 1); tag v0.3.1 was claimed on CastrumS/pirax-castrum-maintenance at 043e49a1cb395443a1981d837c1a84c2d16e6408; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly
+v0.3.1: dist/pirax-form-test.zip sha256 e34e9325da137b49629e1e36f88a68f8b5f379bdd54e8afc2e623a53e2e497ef, signed by public key exE1ryUKaMi5BPDO+Hb5UXfzlMj97ZK2NUtVtt7k4i4=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+
+test/forms/awaiting-audit-commands.test.ts:
+Awaiting-audit command evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/forms-awaiting-commands-854bff1d-1e03-4ba9-a396-62af119ab810/summary.json
+
+test/forms/awaiting-audit.test.ts:
+Awaiting-audit state evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/forms-awaiting-f0877461-b66b-4039-a829-2e298c9ad984/summary.json
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: rejected
+Awaiting-audit fixture /gf-summary-only: rejected
+Awaiting-audit fixture /gf-awaiting-only-container: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-second-helper: rejected
+Awaiting-audit fixture /ff-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-invalid: rejected
+Awaiting-audit fixture /ff-awaiting-invalid: rejected
+Awaiting-audit fixture /gf-generic: rejected
+Awaiting-audit fixture /ff-generic: rejected
+Awaiting-audit fixture /gf-lowercase: rejected
+Awaiting-audit fixture /gf-blank: rejected
+Awaiting-audit fixture /ff-blank: rejected
+Awaiting-audit fixture /gf-no-version: rejected
+Awaiting-audit fixture /gf-bad-separator: rejected
+Awaiting-audit fixture /gf-mid-sentence: rejected
+Awaiting-audit fixture /gf-foreign-awaiting: failed
+Awaiting-audit fixture /ff-stale-awaiting: failed
+Awaiting-audit fixture /ff-foreign-awaiting: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/forms-browser-38072c28-cb5c-434f-9d57-2ea161d28612
+killed 2 dangling processes
+
+test/forms/playground.test.ts:
+(fail) production check captures both widths unchanged on both scope pages and applies the same selection: one submission, five skips [360000.42ms]
+  ^ this test timed out after 360000ms.
+
+# Unhandled error between tests
+-------------------------------
+315 | test('production check captures both widths unchanged on both scope pages and applies the same selection: one submission, five skips', async () => {
+316 |   const { pages, ids } = harness.fixtures;
+317 |   const site = siteFor([pages.scopeA, pages.scopeB], true, designate(pages.scopeB, 'gravity', ids.gf));
+318 |   const options = { runsDir:join(workspace,'check'), log:()=>{}, forms:timing };
+319 |   const baseline = await runBaseline([site], store, options);
+320 |   expect(baseline.exitCode).toBe(0);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/forms/playground.test.ts:320:29)
+-------------------------------
+
+(fail) (unnamed) [120000.01ms]
+  ^ a beforeEach/afterEach hook timed out for this test.
+
+test/forms/report.test.ts:
+85 |     if (typeof prefix !== "string" || (prefix !== "" && !(bare && safePath(bare))))
+86 |       throw new StoreError(`unsafe list prefix ${JSON.stringify(prefix)}`);
+87 |     const keys: string[] = [];
+88 |     let continuationToken: string | undefined;
+89 |     do {
+90 |       const page = await s3().list({ prefix: root + prefix, maxKeys: pageSize, continuationToken });
+                                   ^
+S3Error: an unexpected error has occurred
+ path: "",
+ code: "DNSResolveFailed"
+
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/src/store.ts:90:31)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/forms/report.test.ts:68:34)
+(fail) production forms command publishes with a nonsecret folder in both run and site paths [30098.74ms]
+85 |     if (typeof prefix !== "string" || (prefix !== "" && !(bare && safePath(bare))))
+86 |       throw new StoreError(`unsafe list prefix ${JSON.stringify(prefix)}`);
+87 |     const keys: string[] = [];
+88 |     let continuationToken: string | undefined;
+89 |     do {
+90 |       const page = await s3().list({ prefix: root + prefix, maxKeys: pageSize, continuationToken });
+                                   ^
+S3Error: an unexpected error has occurred
+ path: "",
+ code: "DNSResolveFailed"
+
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/src/store.ts:90:31)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/forms/report.test.ts:288:36)
+(fail) forms-only local and published reports > real R2: manifest last, traces excluded, approval still selects the older check [20738.44ms]
+194 |       expect(clean(text)).toBe(true);
+195 |     }
+196 |     evidence.privacyScan = "passed (raw, URL-encoded, JSON-escaped secrets and signed URL markers; trace unpacked)";
+197 |     await Bun.write(join(dir, "summary.json"), JSON.stringify(evidence, null, 2) + "\n");
+198 |     expect(evidence.local?.ok).toBe(true);
+199 |     expect(evidence.remote?.ok).toBe(true);
+                                      ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: undefined
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/forms/report.test.ts:199:33)
+(fail) forms-only local and published reports > (unnamed) [11.63ms]
+
+test/plugin/adapters.test.ts:
+249 |   const writeLog = () => writeFile(join(artifactDir, "playground.log"), log.join("\n") + "\n");
+250 |   const failure = (what: string) => new Error(`${what}\n--- playground.log (redacted, tail) ---\n${log.slice(-30).join("\n")}`);
+251 | 
+252 |   const url = await Promise.race([
+253 |     readyUrl,
+254 |     child.exited.then((code) => Promise.reject(failure(`Playground exited with code ${code} before it was ready`))),
+                                                     ^
+error: Playground exited with code 1 before it was ready
+--- playground.log (redacted, tail) ---
+
+WordPress Playground CLI
+
+PHP 8.3  WordPress 7.1.2
+Extensions intl, redis, memcached
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+[TypeError: fetch failed] {
+  [cause]: Error: getaddrinfo EAI_AGAIN api.wordpress.org
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:123:26) {
+    errno: -3001,
+    code: 'EAI_AGAIN',
+    syscall: 'getaddrinfo',
+    hostname: 'api.wordpress.org'
+  }
+}
+
+Node.js v24.21.0
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/plugin/harness.ts:254:48)
+(fail) (unnamed) [20921.82ms]
+
+test/plugin/compatibility.test.ts:
+173 | async function wordpressOrgZip(slug: string, version: string, main: string, name: string): Promise<string> {
+174 |   const zip = join(CACHE, `${slug}.${version}.zip`);
+175 |   if (!existsSync(zip)) {
+176 |     await mkdir(CACHE, { recursive: true });
+177 |     const url = `https://downloads.wordpress.org/plugin/${slug}.${version}.zip`;
+178 |     const response = await fetch(url);
+                                 ^
+TypeError: getaddrinfo ETIMEOUT downloads.wordpress.org
+     path: "https://downloads.wordpress.org/plugin/fluent-smtp.2.4.1.zip",
+  syscall: "getaddrinfo",
+ hostname: "downloads.wordpress.org",
+    errno: 12,
+     code: "ETIMEOUT"
+
+      at async wordpressOrgZip (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/plugin/harness.ts:178:28)
+(fail) (unnamed) [10048.29ms]
+
+test/plugin/core.test.ts:
+249 |   const writeLog = () => writeFile(join(artifactDir, "playground.log"), log.join("\n") + "\n");
+250 |   const failure = (what: string) => new Error(`${what}\n--- playground.log (redacted, tail) ---\n${log.slice(-30).join("\n")}`);
+251 | 
+252 |   const url = await Promise.race([
+253 |     readyUrl,
+254 |     child.exited.then((code) => Promise.reject(failure(`Playground exited with code ${code} before it was ready`))),
+                                                     ^
+error: Playground exited with code 1 before it was ready
+--- playground.log (redacted, tail) ---
+
+WordPress Playground CLI
+
+PHP 8.3  WordPress 7.1.2
+Extensions intl, redis, memcached
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+[TypeError: fetch failed] {
+  [cause]: Error: getaddrinfo EAI_AGAIN api.wordpress.org
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:123:26) {
+    errno: -3001,
+    code: 'EAI_AGAIN',
+    syscall: 'getaddrinfo',
+    hostname: 'api.wordpress.org'
+  }
+}
+
+Node.js v24.21.0
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/plugin/harness.ts:254:48)
+(fail) (unnamed) [20728.07ms]
+
+test/plugin/harness.test.ts:
+249 |   const writeLog = () => writeFile(join(artifactDir, "playground.log"), log.join("\n") + "\n");
+250 |   const failure = (what: string) => new Error(`${what}\n--- playground.log (redacted, tail) ---\n${log.slice(-30).join("\n")}`);
+251 | 
+252 |   const url = await Promise.race([
+253 |     readyUrl,
+254 |     child.exited.then((code) => Promise.reject(failure(`Playground exited with code ${code} before it was ready`))),
+                                                     ^
+error: Playground exited with code 1 before it was ready
+--- playground.log (redacted, tail) ---
+
+WordPress Playground CLI
+
+PHP 8.3  WordPress 7.1.2
+Extensions intl, redis, memcached
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+[TypeError: fetch failed] {
+  [cause]: Error: getaddrinfo EAI_AGAIN api.wordpress.org
+      at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:123:26) {
+    errno: -3001,
+    code: 'EAI_AGAIN',
+    syscall: 'getaddrinfo',
+    hostname: 'api.wordpress.org'
+  }
+}
+
+Node.js v24.21.0
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/plugin/harness.ts:254:48)
+(fail) (unnamed) [20725.59ms]
+
+test/plugin/release.test.ts:
+65 |  */
+66 | export async function remoteTag(repo: string, tag: string, env: Record<string, string | undefined> = process.env) {
+67 |   const ref = run(["gh", "api", "--include", `repos/${repo}/git/ref/tags/${tag}`], env);
+68 |   const status = ref.stdout.match(/^HTTP\/[\d.]+ (\d{3})/)?.[1];
+69 |   if (ref.code === 0 && status === "200") return "present";
+70 |   if (status !== "404") throw new Error(`could not confirm that ${tag} is absent from ${repo}: tag lookup ${status ? `HTTP ${status}` : `failed (exit ${ref.code})`}`);
+                                       ^
+error: could not confirm that v0.0.0-pirax-never-released is absent from CastrumS/pirax-castrum-maintenance: tag lookup failed (exit 1)
+      at remoteTag (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/scripts/release-plugin.ts:70:35)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/plugin/release.test.ts:241:16)
+(fail) remote lookup tells a missing tag from an existing one [10058.03ms]
+291 |   return { r, k, dir, commit, claim, lookups, writes: r.calls.slice(at) };
+292 | }
+293 | 
+294 | test("publishing checks GitHub read-only, claims the tag at HEAD, then creates exactly one release from it with the three signed assets", async () => {
+295 |   const { r, k, dir, commit, claim, lookups, writes } = await publish("publish");
+296 |   expect(r.code).toBe(0);
+                       ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/plugin/release.test.ts:296:18)
+(fail) publishing checks GitHub read-only, claims the tag at HEAD, then creates exactly one release from it with the three signed assets [10115.51ms]
+313 | test("a tag claimed concurrently or an unanswered claim stops publication before gh release create", async () => {
+314 |   const outcomes: Record<string, unknown> = {};
+315 |   for (const [fail, reason] of [["ref-exists", "HTTP 422"], ["ref-error", "exit 1"]] as const) {
+316 |     const { r, claim, writes } = await publish(`publish-${fail}`, fail);
+317 |     expect(r.code).toBe(1);
+318 |     expect(r.stderr).toContain(`could not create tag v0.0.1 on ${REPO} (${reason})`);
+                           ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "could not create tag v0.0.1 on CastrumS/pirax-castrum-maintenance (HTTP 422)"
+Received: "release-plugin: could not confirm that v0.0.1 is absent from CastrumS/pirax-castrum-maintenance: tag lookup failed (exit 1)\n"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/plugin/release.test.ts:318:22)
+(fail) a tag claimed concurrently or an unanswered claim stops publication before gh release create [10101.73ms]
+324 | });
+325 | 
+326 | test("a release failure after the claim leaves the tag for deliberate recovery: no retry, overwrite or delete", async () => {
+327 |   const { r, commit, claim, writes } = await publish("publish-release-failure", "release");
+328 |   expect(r.code).toBe(1);
+329 |   expect(writes.length).toBe(2);
+                              ^
+error: expect(received).toBe(expected)
+
+Expected: 2
+Received: 0
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/plugin/release.test.ts:329:25)
+(fail) a release failure after the claim leaves the tag for deliberate recovery: no retry, overwrite or delete [10098.86ms]

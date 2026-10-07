@@ -1,0 +1,63 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/runs/capture-test-2026-10-02T15-36-06.676Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/runs/capture-test-2026-10-02T15-36-06.676Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/runs/capture-test-2026-10-02T15-36-06.676Z
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/runs/2026-10-02T15-36-51.251Z/index.html
+
+test/forms/awaiting-audit.test.ts:
+Awaiting-audit state evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/runs/forms-awaiting-678cdf87-9018-4c81-8c49-01d92ae76dd1/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/runs/forms-collision-7c0e527a-72fe-4fc8-ae79-d43fb19a71bd/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/runs/forms-report-tests-3997870e-e4be-4138-b38b-699e65e1d44c/summary.json
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: rejected
+Awaiting-audit fixture /gf-summary-only: rejected
+Awaiting-audit fixture /gf-awaiting-only-container: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-second-helper: rejected
+Awaiting-audit fixture /ff-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-invalid: rejected
+Awaiting-audit fixture /ff-awaiting-invalid: rejected
+Awaiting-audit fixture /gf-generic: rejected
+Awaiting-audit fixture /ff-generic: rejected
+Awaiting-audit fixture /gf-lowercase: rejected
+Awaiting-audit fixture /gf-blank: rejected
+Awaiting-audit fixture /ff-blank: rejected
+Awaiting-audit fixture /gf-no-version: rejected
+Awaiting-audit fixture /gf-bad-separator: rejected
+Awaiting-audit fixture /gf-mid-sentence: rejected
+Awaiting-audit fixture /gf-foreign-awaiting: failed
+Awaiting-audit fixture /ff-stale-awaiting: failed
+Awaiting-audit fixture /ff-foreign-awaiting: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/runs/forms-browser-f56e3c43-bf1d-48a8-a1ee-389a0166a32f
+
+test/forms/awaiting-audit-commands.test.ts:
+Awaiting-audit command evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/runs/forms-awaiting-commands-f2b5764c-e602-4409-be53-36a08d0e09a9/summary.json
+
+ 185 pass
+ 0 fail
+ 2543 expect() calls
+Ran 185 tests across 17 files. [267.05s]

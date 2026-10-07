@@ -1,0 +1,154 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/fixture-probe.test.ts:
+[
+ {
+  "cycle": 0,
+  "alter": {
+   "tid": 5,
+   "source": "original\n",
+   "copied": true,
+   "copyError": null,
+   "put": 8,
+   "backupExists": true,
+   "backup": "original\n"
+  },
+  "restore": {
+   "tid": 6,
+   "renamed": true,
+   "renameError": null,
+   "after": "original\n"
+  }
+ },
+ {
+  "cycle": 1,
+  "alter": {
+   "tid": 2,
+   "source": "original\n",
+   "copied": true,
+   "copyError": null,
+   "put": 8,
+   "backupExists": true,
+   "backup": "original\n"
+  },
+  "restore": {
+   "tid": 1,
+   "renamed": true,
+   "renameError": null,
+   "after": "original\n"
+  }
+ },
+ {
+  "cycle": 2,
+  "alter": {
+   "tid": 3,
+   "source": "original\n",
+   "copied": true,
+   "copyError": null,
+   "put": 8,
+   "backupExists": true,
+   "backup": "original\n"
+  },
+  "restore": {
+   "tid": 4,
+   "renamed": true,
+   "renameError": null,
+   "after": "original\n"
+  }
+ },
+ {
+  "cycle": 3,
+  "alter": {
+   "tid": 5,
+   "source": "original\n",
+   "copied": false,
+   "copyError": "copy(/wordpress/wp-content/plugins/pirax-probe.txt.pirax-original): Failed to open stream: No such file or directory",
+   "put": 8,
+   "backupExists": true,
+   "backup": false
+  },
+  "restore": {
+   "tid": 6,
+   "renamed": false,
+   "renameError": "rename(/wordpress/wp-content/plugins/pirax-probe.txt.pirax-original,/wordpress/wp-content/plugins/pirax-probe.txt): No such file or directory",
+   "after": "altered\n"
+  }
+ },
+ {
+  "cycle": 4,
+  "alter": {
+   "tid": 2,
+   "source": "altered\n",
+   "copied": false,
+   "copyError": "copy(/wordpress/wp-content/plugins/pirax-probe.txt.pirax-original): Failed to open stream: No such file or directory",
+   "put": 8,
+   "backupExists": true,
+   "backup": false
+  },
+  "restore": {
+   "tid": 1,
+   "renamed": false,
+   "renameError": "rename(/wordpress/wp-content/plugins/pirax-probe.txt.pirax-original,/wordpress/wp-content/plugins/pirax-probe.txt): No such file or directory",
+   "after": "altered\n"
+  }
+ },
+ {
+  "cycle": 5,
+  "alter": {
+   "tid": 3,
+   "source": "altered\n",
+   "copied": false,
+   "copyError": "copy(/wordpress/wp-content/plugins/pirax-probe.txt.pirax-original): Failed to open stream: No such file or directory",
+   "put": 8,
+   "backupExists": true,
+   "backup": false
+  },
+  "restore": {
+   "tid": 4,
+   "renamed": false,
+   "renameError": "rename(/wordpress/wp-content/plugins/pirax-probe.txt.pirax-original,/wordpress/wp-content/plugins/pirax-probe.txt): No such file or directory",
+   "after": "altered\n"
+  }
+ },
+ {
+  "cycle": 6,
+  "alter": {
+   "tid": 5,
+   "source": "altered\n",
+   "copied": false,
+   "copyError": "copy(/wordpress/wp-content/plugins/pirax-probe.txt.pirax-original): Failed to open stream: No such file or directory",
+   "put": 8,
+   "backupExists": true,
+   "backup": false
+  },
+  "restore": {
+   "tid": 6,
+   "renamed": false,
+   "renameError": "rename(/wordpress/wp-content/plugins/pirax-probe.txt.pirax-original,/wordpress/wp-content/plugins/pirax-probe.txt): No such file or directory",
+   "after": "altered\n"
+  }
+ },
+ {
+  "cycle": 7,
+  "alter": {
+   "tid": 2,
+   "source": "altered\n",
+   "copied": false,
+   "copyError": "copy(/wordpress/wp-content/plugins/pirax-probe.txt.pirax-original): Failed to open stream: No such file or directory",
+   "put": 8,
+   "backupExists": true,
+   "backup": false
+  },
+  "restore": {
+   "tid": 1,
+   "renamed": false,
+   "renameError": "rename(/wordpress/wp-content/plugins/pirax-probe.txt.pirax-original,/wordpress/wp-content/plugins/pirax-probe.txt): No such file or directory",
+   "after": "altered\n"
+  }
+ }
+]
+
+ 1 pass
+ 0 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [59.10s]

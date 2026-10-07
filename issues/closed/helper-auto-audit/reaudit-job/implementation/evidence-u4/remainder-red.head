@@ -1,0 +1,9 @@
+2ac17e5674fae7a4d4e799fe70198707dc2abf7a
+ test/plugin/artifacts.test.ts    | 17 ++++++++------
+ tests/reaudit-decide.test.ts     | 26 ++++++++++++++++++++
+ tests/reaudit-fetch.test.ts      | 51 ++++++++++++++++++++++++++++++++++++++--
+ tests/reaudit-operations.test.ts | 51 +++++++++++++++++++++++++++++++++++++++-
+ tests/reaudit-privacy.test.ts    | 24 ++++++++++++++++++-
+ tests/reaudit-publish.test.ts    | 47 +++++++++++++++++++++++++++++++++---
+ tests/reaudit-workflow.test.ts   | 10 ++++++++
+ 7 files changed, 212 insertions(+), 14 deletions(-)

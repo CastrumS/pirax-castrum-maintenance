@@ -1,0 +1,105 @@
+bun test v1.4.2 (744846f84)
+
+tests/plugin-source.test.ts:
+40 | };
+41 | 
+42 | /** The table line of key, exactly as the shipping source writes it. */
+43 | const line = (key: string) => {
+44 |   const found = COMPATIBILITY.split("\n").filter((l) => l.startsWith(`\t'${key}' `));
+45 |   expect(found.length).toBe(1);
+                            ^
+error: expect(received).toBe(expected)
+
+Expected: 1
+Received: 4
+
+      at line (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/tests/plugin-source.test.ts:45:24)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/tests/plugin-source.test.ts:53:38)
+(fail) the shipping table holds exactly the five known pins as stable numeric versions [1.46ms]
+ 97 |     "two tables": [table((t) => t.replace(/^const AUDITED_VERSIONS = array\([^]*?\n\);$/m, (block) => `${block}\n${block}`)), /expected exactly one AUDITED_VERSIONS array, found 2/],
+ 98 |     "empty source": [() => parseAuditedVersions(""), /found 0/],
+ 99 |   };
+100 |   for (const [name, [read, expected]] of Object.entries(cases)) {
+101 |     const text = message(read);
+102 |     expect({ name, text }).toEqual({ name, text: expect.stringMatching(expected) });
+                                 ^
+error: expect(received).toEqual(expected)
+
+@@ -2,3 +2,9 @@
+    "name": "missing key",
+-   "text": StringMatching /missing fluent_smtp/,
++   "text": 
++ "Error: expect(received).toBe(expected)
++ 
++ Expected: 1
++ Received: 3
++ "
++ ,
+  }
+
+- Expected  - 1
++ Received  + 7
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/tests/plugin-source.test.ts:102:28)
+(fail) malformed, incomplete, duplicate, unknown or nonliteral pins are refused by field, never by value [0.83ms]
+40 | };
+41 | 
+42 | /** The table line of key, exactly as the shipping source writes it. */
+43 | const line = (key: string) => {
+44 |   const found = COMPATIBILITY.split("\n").filter((l) => l.startsWith(`\t'${key}' `));
+45 |   expect(found.length).toBe(1);
+                            ^
+error: expect(received).toBe(expected)
+
+Expected: 1
+Received: 4
+
+      at line (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/tests/plugin-source.test.ts:45:24)
+      at includes/compatibility.php (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/tests/plugin-source.test.ts:109:63)
+      at withSource (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/tests/plugin-source.test.ts:23:21)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/tests/plugin-source.test.ts:109:3)
+(fail) readAuditedVersions reads the given source directory [1.56ms]
+163 |   const dir = join(ROOT, "test/plugin");
+164 |   const found: string[] = [];
+165 |   for (const file of readdirSync(dir).filter((f) => f.endsWith(".test.ts")))
+166 |     for (const [key, pin] of Object.entries(PINS))
+167 |       if (new RegExp(`(?<![\\w.])${pin.replace(/\./g, "\\.")}(?![\\w.])`).test(readFileSync(join(dir, file), "utf8"))) found.push(`${file}: ${key} ${pin}`);
+168 |   expect(found).toEqual([]);
+                      ^
+error: expect(received).toEqual(expected)
+
+- []
++ [
++   "compatibility.test.ts: gf 3.1.2",
++   "compatibility.test.ts: ff 6.2.14",
++   "compatibility.test.ts: ff_pro 6.2.15",
++   "compatibility.test.ts: cleantalk 6.88",
++   "compatibility.test.ts: fluent_smtp 2.4.1",
++   "core.test.ts: gf 3.1.2",
++   "core.test.ts: ff 6.2.14",
++   "harness.test.ts: ff 6.2.14",
++   "release.test.ts: gf 3.1.2",
++   "release.test.ts: ff_pro 6.2.15",
++   "release.test.ts: cleantalk 6.88",
++   "safety.test.ts: gf 3.1.2",
++   "safety.test.ts: ff 6.2.14",
++   "safety.test.ts: ff_pro 6.2.15",
++   "safety.test.ts: cleantalk 6.88",
++   "safety.test.ts: fluent_smtp 2.4.1",
++   "stack-harness.test.ts: ff 6.2.14",
++   "stack-harness.test.ts: ff_pro 6.2.15",
++   "stack-harness.test.ts: cleantalk 6.88",
++   "stack-harness.test.ts: fluent_smtp 2.4.1",
++ ]
+
+- Expected  - 1
++ Received  + 22
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/tests/plugin-source.test.ts:168:17)
+(fail) native plugin tests carry no fixed audited vendor version [1.14ms]
+
+ 5 pass
+ 4 fail
+ 96 expect() calls
+Ran 9 tests across 1 file. [26.00ms]
+exit 1

@@ -1,0 +1,8 @@
+$ bun --no-env-file test test/plugin/release.test.ts
+bun test v1.4.2 (744846f84)
+
+ 14 pass
+ 0 fail
+ 200 expect() calls
+Ran 14 tests across 1 file. [8.16s]
+exit=0

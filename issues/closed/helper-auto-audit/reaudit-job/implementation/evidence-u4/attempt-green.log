@@ -1,0 +1,21 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-operations.test.ts:
+watchdog: notice not sent: Error
+
+tests/reaudit-publish.test.ts:
+v0.3.1: dist/pirax-form-test.zip sha256 f20d397493c7212e0272e27045933dededc0f8e50b6e3dced58ff167ffec0acb, signed by public key MC2roQ73kHyKRl1ldTCKnqDzovU3S1hV6+yZYIMNiDA=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+v0.3.1: dist/pirax-form-test.zip sha256 cca1f81aabd1530b2ff1f41e68059e24828d3eec0743616ad3dd1625a3c1bf2a, signed by public key 0CERZ5aEiPuE45T1a64LeOy7ODvttudTkz6WUgwK8Dw=
+HTTP 502: Bad Gateway
+release-plugin: gh release create failed (exit 1); tag v0.3.1 was claimed on CastrumS/pirax-castrum-maintenance at f67b0581f16cc59734f77f8979ed99df9c0ec5eb; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly
+v0.3.1: dist/pirax-form-test.zip sha256 3decbe512d22997674d8bc7c60559931a98b6fadb502fa28bb9c2c61b1c890a9, signed by public key gPY+nAMt1ko9CwbxbHjTzGIQAxjr/bD5y6BMbjY5Tng=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+
+ 186 pass
+ 0 fail
+ 1071 expect() calls
+Ran 186 tests across 8 files. [11.97s]
+exit=0

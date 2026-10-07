@@ -1,0 +1,241 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-operations.test.ts:
+(pass) failure summary validation > accepts complete safe facts and renders every one [0.41ms]
+(pass) failure summary validation > a loopback throwaway site is rendered as recovery guidance; any other site is refused [0.23ms]
+(pass) failure summary validation > absent cleanup/publication are explicit unknowns, never 'nothing published' [0.09ms]
+(pass) failure summary validation > partial publication states carry inspection guidance [0.06ms]
+(pass) failure summary validation > rejects injection, private URLs, unknown keys and nonnumeric versions [0.26ms]
+(pass) failure summary validation > validation errors name fields, never the rejected value [0.06ms]
+(pass) failure summary validation > unknown keys are never echoed, even purely alphabetic ones [0.06ms]
+(pass) failure summary validation > intended commit and tag for partial publication are validated and rendered [0.38ms]
+(pass) failure summary validation > run URL comes only from the fixed official repository [0.07ms]
+(pass) sendFailure > missing credentials fail by name before any transport [0.39ms]
+(pass) sendFailure > fixed Gmail implicit TLS, bounded timeouts, no logging, fixed recipient, one attempt [0.32ms]
+(pass) sendFailure > transport errors become safe codes: no raw message, secret, URL or retry [0.22ms]
+(pass) sendFailure > unsafe error codes are dropped [0.11ms]
+(pass) sendFailure > only allowlisted public codes and built-in error names are reported [0.18ms]
+(pass) sendFailure > a hanging send is bounded and closed [50.34ms]
+(pass) sendFailure > a recipient not accepted is a failure [0.17ms]
+(pass) sendFailure > CLI: usage, invalid summary and missing credentials exit nonzero by name only [217.14ms]
+(pass) time parsing > strict ISO instants with offsets [0.26ms]
+(pass) heartbeat due predicate > due at exactly 30 days, not one millisecond before [0.07ms]
+(pass) heartbeat due predicate > small clock skew is not due; real future and malformed dates fail closed [0.04ms]
+(pass) heartbeat due predicate > a nonfinite injected clock throws rather than answering not due [0.04ms]
+(pass) safe child environment > only allowlisted names reach git/gh children, prompts disabled [0.08ms]
+(pass) git authentication without persisted credentials > git gets github.com credentials from gh and GH_TOKEN; other helpers are reset and nothing is stored [97.08ms]
+(pass) heartbeat operation against a local temp remote > due: commits only the heartbeat file and fast-forwards remote main without tags [80.64ms]
+(pass) heartbeat operation against a local temp remote > due: remote git commands carry GIT_AUTH and GH_TOKEN in their environment, never the token on argv [61.15ms]
+(pass) heartbeat operation against a local temp remote > due with an already tracked heartbeat: updates only that file and pushes without tags [66.44ms]
+(pass) heartbeat operation against a local temp remote > a nonfinite clock is refused before any commit [28.35ms]
+(pass) heartbeat operation against a local temp remote > not due: no commit, remote unchanged [32.16ms]
+(pass) heartbeat operation against a local temp remote > dirty checkout, other branch and stale HEAD are refused without pushing [59.24ms]
+(pass) heartbeat operation against a local temp remote > main advancing before push is refused; nothing force-pushed [69.52ms]
+(pass) heartbeat operation against a local temp remote > git failures report a fixed stage, not stderr or paths [26.87ms]
+(pass) watchdog > latest started schedule/manual run decides overdue at >48h exactly [0.55ms]
+(pass) watchdog > newest schedule or manual run counts; other events are ignored; a failed audit means the scheduler is alive [0.09ms]
+(pass) watchdog > disabled workflow alerts even with a recent run [0.10ms]
+(pass) watchdog > no history: initial installation grace for 48h, then alert [0.08ms]
+433 |       [workflow(), runs({ ...run("schedule", now), run_started_at: "2026-02-30T00:00:00Z" })], [workflow(), runs(run("schedule", now + DAY))],
+434 |       [workflow(), runs({ ...run("schedule", now), event: 5 })],
+435 |       [workflow(), runs({ ...run("schedule", now), head_branch: undefined })],
+436 |       [workflow({ created_at: "2026-10-06T12:00:00+99:99" }), runs()], [workflow(), runs({ ...run("schedule", now), run_started_at: "2026-10-06T11:00:00+00:99" })],
+437 |     ];
+438 |     for (const [w, r] of bad) expect(() => normalizeWatchdogFacts(w, r, now)).toThrow();
+                                                                                    ^
+error: expect(received).toThrow()
+
+Received function did not throw
+Received value: {
+  state: "active",
+  createdAt: 1790424000000,
+  lastStartedAt: 1791288000000,
+}
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u5/tests/reaudit-operations.test.ts:438:79)
+(fail) watchdog > malformed, unknown or future facts are not healthy [0.64ms]
+(pass) watchdog > a nonfinite injected clock is never healthy [0.18ms]
+(pass) watchdog > observe uses read-only GET lookups on the fixed repository [0.49ms]
+470 |         { ...run("workflow_dispatch", now - HOUR, "skipped"), head_branch: "feature" },
+471 |         run("schedule", now - 3 * DAY),
+472 |       )),
+473 |       "workflows/reaudit.yml": http(200, workflow()),
+474 |     });
+475 |     expect(observe(g, now)).toEqual({ healthy: false, reason: "audit-overdue" });
+                                  ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "healthy": false,
+-   "reason": "audit-overdue",
++   "healthy": true,
++   "reason": "healthy",
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u5/tests/reaudit-operations.test.ts:475:29)
+(fail) watchdog > recent skipped non-main dispatch cannot mask overdue main; requests main history [1.56ms]
+(pass) watchdog > missing workflow, API failure and unparsable output are unhealthy [0.23ms]
+watchdog: notice not sent: Error
+(pass) watchdog > healthy sends nothing; unhealthy sends one safe notice; notice failure is reported without retry [0.75ms]
+(pass) imports are inert > no output, network, mail or git on import [164.92ms]
+
+tests/reaudit-publish.test.ts:
+(pass) real read-only lookup: an absent release is reported missing, never healthy [465.93ms]
+v0.3.1: dist/pirax-form-test.zip sha256 d76737bbb8ca6a2b96fe80089871b37deca0523b230a0dc8ad7c38e9660fbc1f, signed by public key zlXOPytqfzgM+54RDy8DOe1rZSBRkTG7/8w6bFsebMI=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+(pass) publishes this run's candidate: reconstructed allowlisted commit, normal push, existing release CLI, independent verification [1806.83ms]
+v0.3.1: dist/pirax-form-test.zip sha256 a622641457c77e2975fbcb31fc81f058bb26978134fdc5d222476949760058bb, signed by public key /675jgK6IjyXejZiu3ORgaBaKkU3oisg2wU8sPM6vIg=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+177 | });
+178 | 
+179 | test("encoded signing seed in final ZIP is withheld before any tag or release mutation", async () => {
+180 |   const f = await fixture(true);
+181 |   const s = await failure(publish({ root: f.dir, candidatePath: f.candidatePath, runId: RUN, runAttempt: ATTEMPT, env: f.env, remoteUrl: f.remote }));
+182 |   expect(mutations(await f.calls()).length).toBe(0);
+                                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 2
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u5/tests/reaudit-publish.test.ts:182:45)
+(fail) encoded signing seed in final ZIP is withheld before any tag or release mutation [1812.48ms]
+(pass) main advanced since the audit: nothing is committed, pushed, claimed or released [962.35ms]
+(pass) main advancing between the preflight and the push is refused by the normal push [883.05ms]
+(pass) an existing target tag (synthetic remote state) publishes nothing [46.99ms]
+(pass) a candidate from another run, a corrupt candidate or a changed source publishes nothing [829.09ms]
+(pass) a rerun attempt never publishes an earlier attempt's candidate of the same run [32.27ms]
+(pass) an unreadable new commit is refused before any push: no empty commit can disable the tag-commit check [841.05ms]
+v0.3.1: dist/pirax-form-test.zip sha256 8e34f5abf3b054f0fa7849e3df815d373324f74b81e3d1410c0ea54365683aea, signed by public key 2RMLKUsrMVrBcL9oe7Cp1vbHY+ae8agDrTXmOk96I04=
+HTTP 502: Bad Gateway
+release-plugin: gh release create failed (exit 1); tag v0.3.1 was claimed on CastrumS/pirax-castrum-maintenance at 7ee7f9b7c122bf2a5ac906679176dd9382e3ca3f; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly
+(pass) a release failure after the claim reports the pushed commit and claimed tag as uncertain, without retry or deletion [1775.55ms]
+v0.3.1: dist/pirax-form-test.zip sha256 3b4a2d878edb7a2a7a2d4b6ac33ea99e39118b75930bb6ad62af74faf314e714, signed by public key Lq8c0gwDPJTQwwMrjvGEndkrKN1OnNIvnsDUAb+pf2Y=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+(pass) a published release whose manifest does not verify is reported incomplete [1739.13ms]
+(pass) a signed, hash-consistent release whose plugin Version header disagrees is refused; the matching control verifies [125.71ms]
+
+tests/reaudit-workflow.test.ts:
+(pass) triggers: daily off-the-hour UTC schedule and manual dispatch only; fixed repository-wide concurrency, never cancelled [0.14ms]
+(pass) every job is guarded to main of the fixed repository, bounded and explicitly permissioned [0.09ms]
+(pass) no expression is interpolated into shell; every action is pinned to a commit [0.18ms]
+(pass) audit: read-only, no persisted credentials, explicit Node 24/Bun 1.4.2/native tools/Chromium, frozen install, >=90 min budget, vendor secrets only on the audit step [0.20ms]
+(pass) plan D5: no checkout persists credentials; publish and heartbeat push with the run token on their own step only [0.08ms]
+(pass) publish: only after this run's successful audited candidate, write-capable, no install/vendor code, trusted checkout, signing key on one step [0.13ms]
+121 | test("reruns keep run_id and earlier artifacts: every artifact upload/download is bound to this run attempt", () => {
+122 |   const A = "${{ github.run_attempt }}";
+123 |   const names = Object.entries(audit.jobs).flatMap(([job, j]) =>
+124 |     j.steps.filter((s) => /^actions\/(upload|download)-artifact@/.test(s.uses ?? "")).map((s) => [job, s.uses!.split("@")[0], s.with?.name ?? s.with?.pattern]),
+125 |   );
+126 |   expect(names).toEqual([
+                      ^
+error: expect(received).toEqual(expected)
+
+  [
+    [
+      "audit",
+      "actions/upload-artifact",
+      "reaudit-candidate-${{ github.run_attempt }}",
+    ],
+    [
+      "audit",
+      "actions/upload-artifact",
+      "reaudit-summary-${{ github.run_attempt }}-audit",
+    ],
+    [
+      "audit",
+      "actions/upload-artifact",
+      "reaudit-evidence-${{ github.run_attempt }}",
+    ],
+    [
+      "publish",
+      "actions/download-artifact",
+      "reaudit-candidate-${{ github.run_attempt }}",
+    ],
+    [
+      "publish",
+      "actions/upload-artifact",
+      "reaudit-summary-${{ github.run_attempt }}-publish",
+    ],
+    [
+      "notify",
+      "actions/download-artifact",
+-     "reaudit-summary-${{ github.run_attempt }}-audit",
+-   ],
+-   [
+-     "notify",
+-     "actions/download-artifact",
+-     "reaudit-summary-${{ github.run_attempt }}-publish",
++     "reaudit-summary-${{ github.run_attempt }}-*",
+    ],
+  ]
+
+- Expected  - 6
++ Received  + 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u5/tests/reaudit-workflow.test.ts:126:17)
+(fail) reruns keep run_id and earlier artifacts: every artifact upload/download is bound to this run attempt [0.17ms]
+(pass) heartbeat: independent final job, runs even after failures, fresh main and write token only [0.05ms]
+(pass) notice: one always() job observing every other job, with mail credentials only on its send step [0.06ms]
+(pass) watchdog: separate daily/manual workflow with actions:read, Gmail secrets only, its own concurrency [0.05ms]
+(pass) every referenced script exists; the initial heartbeat payload is a valid instant [0.30ms]
+(pass) the four guides document the workflows, the manual dispatch and only scripts that exist [0.43ms]
+(pass) documented CLIs refuse unknown arguments with usage (exit 2) and do nothing else [293.03ms]
+(pass) notify --jobs picks the failed job's summary and, without mail credentials, fails safely before any SMTP attempt [264.98ms]
+260 |       expect(Bun.spawnSync(["unzip", "-q", archive, "-d", destination], { env: { PATH: process.env.PATH } }).exitCode).toBe(0);
+261 |     }
+262 |     const dir = expand(step(audit.jobs.notify!, (s) => !!s.run?.includes("scripts/reaudit/notify.ts")).env!.SUMMARIES);
+263 |     const needs = { [job]: { result: "failure" } };
+264 |     const notice = chooseNotice(needs, readSummaries(dir, "1"));
+265 |     expect(notice).toEqual(summary); // Every stage/reason/version/cleanup/site/partial-publication fact survives.
+                         ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "candidateVersions": {
+-     "cleantalk": "6.88",
+-     "ff": "6.2.14.1",
+-     "ff_pro": "6.2.15",
+-     "fluent_smtp": "2.4.1",
+-     "gf": "3.1.2",
+-   },
+-   "cleanup": "confirmed",
+-   "oldVersions": {
+-     "cleantalk": "6.88",
+-     "ff": "6.2.14",
+-     "ff_pro": "6.2.15",
+-     "fluent_smtp": "2.4.1",
+-     "gf": "3.1.2",
+-   },
++   "cleanup": "unknown",
+    "publication": "not-attempted",
+-   "reason": "native-suite-failed",
+-   "stage": "audit",
++   "reason": "audit-job-failure",
++   "stage": "setup",
+  }
+
+- Expected  - 17
++ Received  + 3
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u5/tests/reaudit-workflow.test.ts:265:20)
+(fail) pinned download action's flat single-match/named extraction reaches the real summary loader and CLI [3.02ms]
+(pass) publish and heartbeat jobs install nothing: their scripts load without node_modules [21.79ms]
+
+5 tests failed:
+(fail) watchdog > malformed, unknown or future facts are not healthy [0.64ms]
+(fail) watchdog > recent skipped non-main dispatch cannot mask overdue main; requests main history [1.56ms]
+(fail) encoded signing seed in final ZIP is withheld before any tag or release mutation [1812.48ms]
+(fail) reruns keep run_id and earlier artifacts: every artifact upload/download is bound to this run attempt [0.17ms]
+(fail) pinned download action's flat single-match/named extraction reaches the real summary loader and CLI [3.02ms]
+
+ 65 pass
+ 5 fail
+ 522 expect() calls
+Ran 70 tests across 3 files. [12.95s]

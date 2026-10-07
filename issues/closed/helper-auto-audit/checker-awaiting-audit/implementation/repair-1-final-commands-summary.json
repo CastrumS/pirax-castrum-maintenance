@@ -1,0 +1,367 @@
+{
+  "note": "Checker behavior evidence from loopback fixtures; not released-helper audit evidence.",
+  "root": "test/forms-awaiting-audit-commands-2026-10-05T15-54-46.390Z-9edabfca/",
+  "directory": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d",
+  "scenarios": {
+    "forms-first": {
+      "command": "forms",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/01-forms-first/2026-10-05T15-54-46.926Z",
+      "posts": 1,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/01-forms-first/2026-10-05T15-54-46.926Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:skipped,gravity:skipped",
+        "gravity:awaiting-audit,gravity:skipped,fluent:skipped",
+        ""
+      ],
+      "designated": {
+        "selector": "form >> nth=0",
+        "plugin": "gravity",
+        "outcome": "awaiting-audit",
+        "detail": "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16 Awaiting audit since 2026-10-05T15:54:48.014Z (0d 0h 0m 0.000s); fails after 72 hours."
+      },
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/01-forms-first/2026-10-05T15-54-46.926Z/index.html",
+      "status": "warning",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/01-forms-first/report-render.trace.zip"
+    },
+    "forms-repeat-reversed": {
+      "command": "forms",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/02-forms-repeat-reversed/2026-10-05T15-54-50.433Z",
+      "posts": 1,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/02-forms-repeat-reversed/2026-10-05T15-54-50.433Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:awaiting-audit,gravity:skipped,fluent:skipped",
+        "gravity:skipped,gravity:skipped"
+      ],
+      "designated": {
+        "selector": "form >> nth=0",
+        "plugin": "gravity",
+        "outcome": "awaiting-audit",
+        "detail": "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16 Awaiting audit since 2026-10-05T15:54:48.014Z (0d 0h 0m 3.512s); fails after 72 hours."
+      },
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/02-forms-repeat-reversed/2026-10-05T15-54-50.433Z/index.html",
+      "status": "warning",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/02-forms-repeat-reversed/report-render.trace.zip"
+    },
+    "forms-ff-new-version": {
+      "command": "forms",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/03-forms-ff-new-version/2026-10-05T15-54-53.156Z",
+      "posts": 1,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/03-forms-ff-new-version/2026-10-05T15-54-53.156Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:skipped,gravity:skipped",
+        "fluent:awaiting-audit,gravity:skipped"
+      ],
+      "designated": {
+        "selector": "#fluentform_2",
+        "plugin": "fluent",
+        "outcome": "awaiting-audit",
+        "detail": "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.17, FluentSMTP 2.4.2 Awaiting audit since 2026-10-05T15:54:48.014Z (0d 0h 0m 6.220s); fails after 72 hours."
+      },
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/03-forms-ff-new-version/2026-10-05T15-54-53.156Z/index.html",
+      "status": "warning",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/03-forms-ff-new-version/report-render.trace.zip"
+    },
+    "baseline": {
+      "command": "baseline",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/04-baseline/2026-10-05T15-54-55.712Z",
+      "posts": 0,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "awaiting-a /other/ desktop: capture captured, visual not-compared, health pass",
+        "awaiting-a /other/ mobile: capture captured, visual not-compared, health pass",
+        "awaiting-a /gf/ desktop: capture captured, visual not-compared, health pass",
+        "awaiting-a /gf/ mobile: capture captured, visual not-compared, health pass",
+        "Baseline artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/04-baseline/2026-10-05T15-54-55.712Z"
+      ]
+    },
+    "check-warning": {
+      "command": "check",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/05-check-warning/2026-10-05T15-55-01.168Z",
+      "posts": 1,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 1,
+      "logs": [
+        "awaiting-a /other/ desktop: capture captured, visual same, health pass",
+        "awaiting-a /other/ mobile: capture captured, visual same, health pass",
+        "awaiting-a /gf/ desktop: capture captured, visual same, health pass",
+        "awaiting-a /gf/ mobile: capture captured, visual same, health pass",
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/05-check-warning/2026-10-05T15-55-01.168Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:skipped,gravity:skipped",
+        "gravity:awaiting-audit,gravity:skipped,fluent:skipped"
+      ],
+      "designated": {
+        "selector": "form >> nth=0",
+        "plugin": "gravity",
+        "outcome": "awaiting-audit",
+        "detail": "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.17, FluentSMTP 2.4.2 Awaiting audit since 2026-10-05T15:54:48.014Z (0d 0h 0m 19.367s); fails after 72 hours."
+      },
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/05-check-warning/2026-10-05T15-55-01.168Z/index.html",
+      "status": "warning",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/05-check-warning/report-render.trace.zip"
+    },
+    "forms-escalated": {
+      "command": "forms",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/06-forms-escalated/2026-10-05T15-55-14.576Z",
+      "posts": 1,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/06-forms-escalated/2026-10-05T15-55-14.576Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:skipped,gravity:skipped",
+        "gravity:failed,gravity:skipped,fluent:skipped"
+      ],
+      "designated": {
+        "selector": "form >> nth=0",
+        "plugin": "gravity",
+        "outcome": "failed",
+        "detail": "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.17, FluentSMTP 2.4.2 Awaiting audit for 4d 4h 0m 1.576s since 2026-10-01T11:55:14.058Z, exceeding the threshold of 72 hours."
+      },
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/06-forms-escalated/2026-10-05T15-55-14.576Z/index.html",
+      "status": "failure",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/06-forms-escalated/report-render.trace.zip"
+    },
+    "forms-escalated-repeat": {
+      "command": "forms",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/07-forms-escalated-repeat/2026-10-05T15-55-17.049Z",
+      "posts": 1,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/07-forms-escalated-repeat/2026-10-05T15-55-17.049Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:skipped,gravity:skipped",
+        "gravity:failed,gravity:skipped,fluent:skipped"
+      ],
+      "designated": {
+        "selector": "form >> nth=0",
+        "plugin": "gravity",
+        "outcome": "failed",
+        "detail": "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.17, FluentSMTP 2.4.2 Awaiting audit for 4d 4h 0m 4.070s since 2026-10-01T11:55:14.058Z, exceeding the threshold of 72 hours."
+      },
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/07-forms-escalated-repeat/2026-10-05T15-55-17.049Z/index.html",
+      "status": "failure",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/07-forms-escalated-repeat/report-render.trace.zip"
+    },
+    "check-escalated": {
+      "command": "check",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/08-check-escalated/2026-10-05T15-55-19.527Z",
+      "posts": 1,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "awaiting-a /other/ desktop: capture captured, visual same, health pass",
+        "awaiting-a /other/ mobile: capture captured, visual same, health pass",
+        "awaiting-a /gf/ desktop: capture captured, visual same, health pass",
+        "awaiting-a /gf/ mobile: capture captured, visual same, health pass",
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/08-check-escalated/2026-10-05T15-55-19.527Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:skipped,gravity:skipped",
+        "gravity:failed,gravity:skipped,fluent:skipped"
+      ],
+      "designated": {
+        "selector": "form >> nth=0",
+        "plugin": "gravity",
+        "outcome": "failed",
+        "detail": "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.17, FluentSMTP 2.4.2 Awaiting audit for 4d 4h 0m 12.070s since 2026-10-01T11:55:14.058Z, exceeding the threshold of 72 hours."
+      },
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/08-check-escalated/2026-10-05T15-55-19.527Z/index.html",
+      "status": "failure",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/08-check-escalated/report-render.trace.zip"
+    },
+    "clear-normal-rejection": {
+      "command": "forms",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/09-clear-normal-rejection/2026-10-05T15-55-33.350Z",
+      "posts": 1,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/09-clear-normal-rejection/2026-10-05T15-55-33.350Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:skipped,gravity:skipped",
+        "gravity:rejected,gravity:skipped,fluent:skipped"
+      ],
+      "designated": {
+        "selector": "form >> nth=0",
+        "plugin": "gravity",
+        "outcome": "rejected",
+        "detail": "Plugin refused submission: There was a problem with your submission.; Pirax test blocked: integrations could not be suppressed"
+      },
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/09-clear-normal-rejection/2026-10-05T15-55-33.350Z/index.html",
+      "status": "failure",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/09-clear-normal-rejection/report-render.trace.zip"
+    },
+    "clear-confirmed-undelivered": {
+      "command": "forms",
+      "exitCode": 1,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/10-clear-confirmed-undelivered/2026-10-05T15-55-36.497Z",
+      "posts": 1,
+      "mailboxConnections": 1,
+      "imapClientConnects": 1,
+      "foreignProbes": 0,
+      "logs": [
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/10-clear-confirmed-undelivered/2026-10-05T15-55-36.497Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:skipped,gravity:skipped",
+        "gravity:failed,gravity:skipped,fluent:skipped"
+      ],
+      "designated": {
+        "selector": "form >> nth=0",
+        "plugin": "gravity",
+        "outcome": "failed",
+        "detail": "Native Gravity Forms confirmation: GF accepted Submission omkudijgsyb9. IMAP connect failed (ClosedAfterConnectText)."
+      },
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/10-clear-confirmed-undelivered/2026-10-05T15-55-36.497Z/index.html",
+      "status": "failure",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/10-clear-confirmed-undelivered/report-render.trace.zip"
+    },
+    "clear-helper-false": {
+      "command": "forms",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/11-clear-helper-false/2026-10-05T15-55-39.672Z",
+      "posts": 0,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/11-clear-helper-false/2026-10-05T15-55-39.672Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:not-verified,gravity:skipped,fluent:skipped"
+      ],
+      "designated": {
+        "selector": "form >> nth=0",
+        "plugin": "gravity",
+        "outcome": "not-verified",
+        "detail": "Helper not enabled; filled without submission. Native client validation passed. Delivery not verified."
+      },
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/11-clear-helper-false/2026-10-05T15-55-39.672Z/index.html",
+      "status": "warning",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/11-clear-helper-false/report-render.trace.zip"
+    },
+    "clear-no-designation": {
+      "command": "forms",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/12-clear-no-designation/2026-10-05T15-55-42.477Z",
+      "posts": 0,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/12-clear-no-designation/2026-10-05T15-55-42.477Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:skipped,gravity:skipped,fluent:skipped"
+      ],
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/12-clear-no-designation/2026-10-05T15-55-42.477Z/index.html",
+      "status": "pass",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/12-clear-no-designation/report-render.trace.zip"
+    },
+    "clear-empty-scan": {
+      "command": "forms",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/13-clear-empty-scan/2026-10-05T15-55-45.195Z",
+      "posts": 0,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/13-clear-empty-scan/2026-10-05T15-55-45.195Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        ""
+      ],
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/13-clear-empty-scan/2026-10-05T15-55-45.195Z/index.html",
+      "status": "pass",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/13-clear-empty-scan/report-render.trace.zip"
+    },
+    "check-fresh-after-clear": {
+      "command": "check",
+      "exitCode": 0,
+      "runDir": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/14-check-fresh-after-clear/2026-10-05T15-55-47.544Z",
+      "posts": 1,
+      "mailboxConnections": 0,
+      "imapClientConnects": 0,
+      "foreignProbes": 0,
+      "logs": [
+        "awaiting-a /other/ desktop: capture captured, visual same, health pass",
+        "awaiting-a /other/ mobile: capture captured, visual same, health pass",
+        "awaiting-a /gf/ desktop: capture captured, visual same, health pass",
+        "awaiting-a /gf/ mobile: capture captured, visual same, health pass",
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/14-check-fresh-after-clear/2026-10-05T15-55-47.544Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ],
+      "shape": [
+        "gravity:skipped,gravity:skipped",
+        "gravity:awaiting-audit,gravity:skipped,fluent:skipped"
+      ],
+      "designated": {
+        "selector": "form >> nth=0",
+        "plugin": "gravity",
+        "outcome": "awaiting-audit",
+        "detail": "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.17, FluentSMTP 2.4.2 Awaiting audit since 2026-10-05T15:55:53.841Z (0d 0h 0m 0.000s); fails after 72 hours."
+      },
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/14-check-fresh-after-clear/2026-10-05T15-55-47.544Z/index.html",
+      "status": "warning",
+      "renderTrace": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-d48489b5-d101-43ab-8405-c7fa2d8d693d/14-check-fresh-after-clear/report-render.trace.zip"
+    }
+  },
+  "privacy": {
+    "fixtureHits": [],
+    "skippedCaptureTraces": 16
+  },
+  "cleanup": {
+    "deleted": 90,
+    "remaining": 0
+  }
+}

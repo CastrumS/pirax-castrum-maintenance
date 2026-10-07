@@ -1,0 +1,24 @@
+Unit 5 is finished. All five findings (A-F1, A-F2/B-F1, B-F2, B-F3) are fixed in one scoped commit, **`086e95a`**, on top of `db2cba1`. The full test command passed: **exit 0, 286 pass, 0 fail** across 28 files (about 45 minutes). The worktree is clean, nothing was pushed or published, no lifecycle action was taken, and no `.env` file was opened.
+
+**What changed (9 files):**
+- **Seed kept from `zip`/`unzip` (A-F2/B-F1):** the shared archive runner in `test/plugin/artifacts.ts` now strips `PIRAX_HELPER_SIGNING_KEY` from its children, and so do the three direct calls in `harness.test.ts` and `stack-harness.test.ts`. The parent still has the seed for scanning.
+- **New test, `test/plugin/artifacts.test.ts`:** it starts a fresh process with a fake (synthetic) seed and wrapped `zip`/`unzip` that record only whether the variable reached them, then run the real tools. Before the fix it failed (all four children saw the seed); after the fix it passes.
+- **Updater check (B-F2):** `updates.test.ts` no longer dumps the whole environment. The child now reports only "present" or nothing, so a failure can't print other credentials. I showed this with fake values only: when stripping is deliberately broken, the old version prints the fake token and the new one prints only `"present"`.
+- **Docs (A-F1, B-F3):**
+  - The root README, plugin README and `test/forms/README.md` now say helper 0.3.0 and newer send the awaiting-audit refusal. Sites on 0.2.4 or older keep the generic refusal, which the checker reports as rejected. The checker warns with exit 0 and fails only after more than 72 hours.
+  - `test/plugin/README.md` now explains that two release tests intentionally write a generated (non-production) seed into a throwaway checkout that is deleted afterwards. It also lists the new test.
+
+**One thing you should know:** this worktree's `.env` is a symlink to the real `.env`, and Bun loads it automatically. Removing the seed from the environment wasn't enough, because Bun reloaded it from the file. Setting it to an empty value does stick, and the code treats empty as absent. So the full run used `PIRAX_HELPER_SIGNING_KEY=` (empty), and Bun loaded the other credentials from the file as normal.
+
+**Privacy check:** I scanned the evidence folder and every artifact folder this run created for all 9 credentials, including the seed in three encodings. There were no hits and nothing to redact in the run log. Two 11-byte placeholder `.zip` files that a forms test writes on purpose can't be unzipped, so I scanned those as raw bytes.
+
+**Limitations (also in the report):**
+- The three direct archive calls are covered by reading the code and by the passing full run, not by their own seed-presence test.
+- The demonstration that a failing updater check doesn't leak credentials is a saved probe script, not a committed test.
+- The full run had no seed, so the "seed present" paths in the WordPress test suites didn't run with the real value.
+- Review A's N1 is still open: suites this leaf doesn't own (forms, R2, visual, checker) still pass the seed to their child processes.
+
+The report in `worker-5.md` fills in all four required fields, with "Unverified criteria: none". Evidence is in `implementation/evidence-u5/`; the most useful files are `changed.exit` (the exit marker), `red-artifacts.log` and `green-artifacts.log`, and `secret-scan.json`. The full run log is `changed.log` in the same folder.
+
+Files are in `/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/helper-auto-audit/helper-self-update/implementation/`:
+- worker-5.md

@@ -1,0 +1,37 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-operations.test.ts:
+watchdog: notice not sent: Error
+
+tests/reaudit-fetch.test.ts:
+538 |     status: [{ data: { activated: true, activations_remaining: 138 } }],
+539 |     activate: ["wp_error"],
+540 |     deactivate: ["wp_error"],
+541 |   });
+542 |   const error = await acquirePackages({ pins: PINS, directory: await mkdtemp(join(scratch, "private-")), env: stand.env, fetch: unchangedDiscovery, openVault: stand.open }).catch((e) => e as ReauditError);
+543 |   expect((error as ReauditError).message).toBe("activation: status already active");
+                                                ^
+error: expect(received).toBe(expected)
+
+Expected: "activation: status already active"
+Received: "playground: boot failed"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-fetch.test.ts:543:43)
+(fail) real Playground child: an already-active initial status is refused before any activate or deactivate [2360.61ms]
+
+tests/reaudit-publish.test.ts:
+v0.3.1: dist/pirax-form-test.zip sha256 9a347d2b596558b027be0ca6dbb1b7951de71f3e79ba103eda60753522e71f7a, signed by public key c9iDxhJNtc/fjbSKHouO8rqM3N0wJWuJW03+130DUUI=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+v0.3.1: dist/pirax-form-test.zip sha256 968e46356b9a3bec0c2095bb0d52d69611f96f1056c0a965a0b19a3e46a5f7d4, signed by public key pmTl7Kyod6qIK6ky531ex3dNQ4Oli9UA8CeNA1gA2BA=
+HTTP 502: Bad Gateway
+release-plugin: gh release create failed (exit 1); tag v0.3.1 was claimed on CastrumS/pirax-castrum-maintenance at 44cd29b45c6b29f298efa30172be3c774239cf38; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly
+v0.3.1: dist/pirax-form-test.zip sha256 75e437815973fb710ff3b89e95345340b7222d7e0578527f2123130b2bee1b33, signed by public key IDQ4pjgubrOqrriujFtF9ePHNao6ftIfF+7DVQF6lrk=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+
+ 167 pass
+ 1 fail
+ 1038 expect() calls
+Ran 168 tests across 8 files. [99.81s]
+exit=1

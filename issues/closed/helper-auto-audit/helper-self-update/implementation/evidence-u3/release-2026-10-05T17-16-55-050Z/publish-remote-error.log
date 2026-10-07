@@ -1,0 +1,9 @@
+$ bun scripts/release-plugin.ts 
+exit 1
+--- stdout
+--- stderr
+release-plugin: could not confirm that v0.3.0 is absent from CastrumS/pirax-castrum-maintenance: tag lookup HTTP 401
+--- gh calls
+[["api","--include","repos/CastrumS/pirax-castrum-maintenance/git/ref/tags/v0.3.0"]]
+--- dist
+

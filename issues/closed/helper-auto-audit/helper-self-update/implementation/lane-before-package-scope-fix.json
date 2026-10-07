@@ -1,0 +1,8 @@
+{
+  "start": "2026-10-05T19:05:49.039Z",
+  "end": "2026-10-05T19:49:29.650Z",
+  "code": 0,
+  "base": "2689aaa3bd69a9a46cc77788fdc5219354cc923a",
+  "headBeforeFinalCopyCommit": "7475dfc",
+  "command": "bun run typecheck && : \"${AKROGON_BASE:?AKROGON_BASE is required}\" && bun test"
+}

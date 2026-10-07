@@ -1,0 +1,4 @@
+Digests computed from the cached public fluentform.6.2.14.zip (fluentform/fluentform.php), no content retained:
+original e8554a302c9ed602280be285fe200eee377e30ed05f984ee8c65d866d8238852  (red-regression.log "Expected")
+altered  aeb18589fef4c9ad48ea66c1aa94b3f688a15031573e50f1ac738d951c0e6f6c  (define FLUENTFORM_VERSION 6.2.14 -> 6.2.15; red-regression.log "Received")
+B's lane failure (fluent-smtp/boot.php 2.4.1 -> 2.4.2): expected a6966aa3… original, received 1494637c… altered; same shape.

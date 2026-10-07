@@ -1,0 +1,11 @@
+$ bun scripts/release-plugin.ts --dry-run
+exit 1
+leaked true
+--- stdout
+[withheld: contained generated private material]
+--- stderr
+[withheld]
+--- gh calls
+[]
+--- dist
+

@@ -1,0 +1,10 @@
+$ bun scripts/release-plugin.ts --dry-run
+exit 1
+leaked false
+--- stdout
+--- stderr
+release-plugin: includes/compatibility.php: AUDITED_VERSIONS is missing fluent_smtp
+--- gh calls
+[]
+--- dist
+

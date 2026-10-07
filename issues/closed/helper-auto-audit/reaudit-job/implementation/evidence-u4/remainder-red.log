@@ -1,0 +1,186 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-operations.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+SyntaxError: Export named 'GIT_AUTH' not found in module '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/scripts/reaudit/heartbeat.ts'.
+-------------------------------
+
+
+tests/reaudit-decide.test.ts:
+409 |     ] as const;
+410 |     for (const [given, kept] of cases) {
+411 |       const { root, out } = await fixture();
+412 |       const deps: RunDeps = { ...doubles().deps, acquire: async () => { throw Object.assign(new ReauditError("cleanup", "deactivate", "unconfirmed"), { lifecycle: given }); } };
+413 |       expect((await runAudit({ root, out, runId: RUN, env: ENV, deps })).outcome).toBe("failed");
+414 |       expect(JSON.parse(await readFile(join(out, "evidence/lifecycle.json"), "utf8"))).toEqual(kept);
+                                    ^
+ENOENT: no such file or directory, open '/tmp/reaudit-decide-hTvhfb/run-6/out/evidence/lifecycle.json'
+    path: "/tmp/reaudit-decide-hTvhfb/run-6/out/evidence/lifecycle.json",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-decide.test.ts:414:31)
+(fail) runAudit wiring (synthetic doubles) > lifecycle evidence survives a failure: strict flags, unknown counts stay null, only a loopback site is kept and reaches the cleanup notice [16.91ms]
+420 | 
+421 |   test("confirmed cleanup keeps lifecycle evidence but no throwaway-site guidance; a missing site is null, never invented", async () => {
+422 |     const { root, out } = await fixture();
+423 |     const { deps } = doubles({ nativeCode: 1 });
+424 |     await runAudit({ root, out, runId: RUN, env: ENV, deps });
+425 |     expect(JSON.parse(await readFile(join(out, "evidence/lifecycle.json"), "utf8"))).toMatchObject({ deactivationConfirmed: true, remainingBefore: 139, remainingAfter: 139, site: null });
+                                  ^
+ENOENT: no such file or directory, open '/tmp/reaudit-decide-hTvhfb/run-7/out/evidence/lifecycle.json'
+    path: "/tmp/reaudit-decide-hTvhfb/run-7/out/evidence/lifecycle.json",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-decide.test.ts:425:29)
+(fail) runAudit wiring (synthetic doubles) > confirmed cleanup keeps lifecycle evidence but no throwaway-site guidance; a missing site is null, never invented [13.88ms]
+
+tests/reaudit-privacy.test.ts:
+121 |     import { scanEvidence, secretValues } from ${JSON.stringify(join(import.meta.dir, "../scripts/reaudit/privacy.ts"))};
+122 |     console.log((await scanEvidence(${JSON.stringify(join(dir, "evidence"))}, secretValues(process.env))).length);`;
+123 |   const proc = Bun.spawn(bunCommand("-e", child), { cwd: dir, env: { ...ENV, PATH: `${bin}:${process.env.PATH}` }, stdout: "pipe", stderr: "inherit" });
+124 |   expect(await proc.exited).toBe(0);
+125 |   expect((await new Response(proc.stdout).text()).trim()).toBe("0");
+126 |   expect((await readFile(record, "utf8")).trim().split("\n")).toEqual(["checked"]);
+                                                                    ^
+error: expect(received).toEqual(expected)
+
+@@ -1,2 +1,10 @@
+  [
++   "GPLVAULT_LICENSE_KEY",
++   "GPLVAULT_PRODUCT_ID",
++   "GPLVAULT_UPDATER_PASSPHRASE",
++   "IMAP_USER",
++   "IMAP_PASSWORD",
++   "FORM_TEST_TOKEN",
++   "GH_TOKEN",
++   "UNRELATED",
+    "checked",
+
+- Expected  - 0
++ Received  + 8
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-privacy.test.ts:126:63)
+(fail) scanEvidence's unzip child inherits no credential, even when the scan finds nothing [20.33ms]
+
+tests/reaudit-fetch.test.ts:
+123 |     expect(result!.status).toBe("unchanged");
+124 |     expect(result!.versions).toEqual(PINS);
+125 |     expect(result!.packages).toBeNull();
+126 |     expect(downloads(fetched)).toEqual([]);
+127 |     expect(calls).toEqual(["status", "activate", "selfUpdate", "catalog 3.1.2 6.2.15", "deactivate", "status", "close"]);
+128 |     expect(result!.lifecycle).toEqual({
+                                    ^
+error: expect(received).toEqual(expected)
+
+@@ -7,3 +7,2 @@
+    "remainingBefore": 139,
+-   "site": null,
+    "updater": {
+
+- Expected  - 1
++ Received  + 0
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-fetch.test.ts:128:31)
+(fail) acquirePackages > no change: complete lifecycle, no form package downloaded [2.92ms]
+570 |     currentRelease: async () => "verified",
+571 |   };
+572 |   const env = { ...SECRETS, GPLVAULT_UPDATER_PASSPHRASE: passphrase, PATH: process.env.PATH, HOME: process.env.HOME, RUNNER_TEMP: temp };
+573 |   const out = join(dir, "out");
+574 |   const decision = await runAudit({ root, out, runId: "1234567890", env, deps });
+575 |   expect(decision).toEqual({ outcome: "unchanged", versions: readAuditedVersions(join(root, "plugin/pirax-form-test")) });
+                         ^
+error: expect(received).toEqual(expected)
+
+@@ -1,9 +1,15 @@
+  {
+-   "outcome": "unchanged",
+-   "versions": {
+-     "cleantalk": "6.88",
+-     "ff": "6.2.14",
+-     "ff_pro": "6.2.15",
+-     "fluent_smtp": "2.4.1",
+-     "gf": "3.1.2",
++   "outcome": "failed",
++   "summary": {
++     "cleanup": "not-applicable",
++     "oldVersions": {
++       "cleantalk": "6.88",
++       "ff": "6.2.14",
++       "ff_pro": "6.2.15",
++       "fluent_smtp": "2.4.1",
++       "gf": "3.1.2",
++     },
++     "publication": "not-attempted",
++     "reason": "playground-boot-failed",
++     "stage": "setup",
+    },
+
+- Expected  - 7
++ Received  + 13
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-fetch.test.ts:575:20)
+(fail) runAudit's private directory reaches the real official driver; lifecycle evidence keeps flags, counts, updater versions and the loopback site [392.38ms]
+
+tests/reaudit-workflow.test.ts:
+86 |   for (const s of job.steps.filter((x) => x.uses?.startsWith("actions/upload-artifact@"))) expect(String(s.with?.path)).not.toMatch(/\.cache|private|\.zip/);
+87 | });
+88 | 
+89 | test("plan D5: no checkout persists credentials; publish and heartbeat push with the run token on their own step only", () => {
+90 |   for (const wf of [audit, watchdog])
+91 |     for (const [name, job] of Object.entries(wf.jobs)) expect(step(job, (s) => !!s.uses?.startsWith("actions/checkout@")).with?.["persist-credentials"], name).toBe(false);
+                                                                                                                                                                    ^
+error: publish
+
+Expected: false
+Received: undefined
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-workflow.test.ts:91:160)
+(fail) plan D5: no checkout persists credentials; publish and heartbeat push with the run token on their own step only [0.23ms]
+
+tests/reaudit-publish.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+SyntaxError: Export named 'GIT_AUTH' not found in module '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/scripts/reaudit/heartbeat.ts'.
+-------------------------------
+
+
+test/plugin/artifacts.test.ts:
+42 |       stderr: "inherit",
+43 |     });
+44 |     // Assertions see only counts and presence booleans, never the seed.
+45 |     expect(await proc.exited).toBe(0);
+46 |     expect(JSON.parse(await new Response(proc.stdout).text())).toEqual({ before: 1, scrubbed: 1, after: 0, parentKept: true });
+47 |     expect((await Bun.file(log).text()).trim().split("\n")).toEqual(["unzip none", "unzip none", "zip none", "unzip none"]);
+                                                                 ^
+error: expect(received).toEqual(expected)
+
+  [
+-   "unzip none",
+-   "unzip none",
+-   "zip none",
+-   "unzip none",
++   "unzip GPLVAULT_LICENSE_KEY GPLVAULT_UPDATER_PASSPHRASE IMAP_PASSWORD GH_TOKEN GITHUB_TOKEN FORM_TEST_TOKEN",
++   "unzip GPLVAULT_LICENSE_KEY GPLVAULT_UPDATER_PASSPHRASE IMAP_PASSWORD GH_TOKEN GITHUB_TOKEN FORM_TEST_TOKEN",
++   "zip GPLVAULT_LICENSE_KEY GPLVAULT_UPDATER_PASSPHRASE IMAP_PASSWORD GH_TOKEN GITHUB_TOKEN FORM_TEST_TOKEN",
++   "unzip GPLVAULT_LICENSE_KEY GPLVAULT_UPDATER_PASSPHRASE IMAP_PASSWORD GH_TOKEN GITHUB_TOKEN FORM_TEST_TOKEN",
+  ]
+
+- Expected  - 4
++ Received  + 4
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/test/plugin/artifacts.test.ts:47:61)
+(fail) findSecret and sanitizeZip keep the signing seed for scanning but give their zip/unzip children no credential [26.33ms]
+
+ 102 pass
+ 9 fail
+ 2 errors
+ 555 expect() calls
+Ran 111 tests across 7 files. [68.22s]
+exit=1

@@ -1,0 +1,26 @@
+The full configured `bun test` passes on the corrected code: **262 pass, 0 fail, 25 files, 2235 s, exit 0**, on committed `1fc1583`. I started it only after B's lane-after-u2 suite exited with 0, so no native suites overlapped. The report at `implementation/worker-3.md` now has the actual results.
+
+**New commit `1fc1583`** (on top of `ce34761` and `524f590`, both kept as they were) applies B's corrections:
+- **Root README:**
+  - The existing paragraph that said client/native server validation refusals are `rejected` now names the awaiting-audit exception.
+  - Stale, other-form and outside-instance messages are now described as ignored. They can't set this attempt's result, and without another fresh result the attempt times out as `failed`. The README no longer says they always force `failed`.
+  - Skipped, duplicate and other-page rows keep the clock only alongside a current awaiting-audit result; a pass where every form is skipped clears it.
+  - Bad or unreadable stored state is described as an attempted replacement, not a guaranteed one.
+  - A failed clear is noted in the detail of the site's first form row when one exists; otherwise it appears only in the command log.
+- **Forms test guide:** its `failed` bullet now says those messages are ignored and the result is a timeout.
+- **`test/forms/awaiting-audit-commands.test.ts`:**
+  - The fixture server, mailbox listener, mail-client observer, environment changes and browser launch now all start inside the test's `try`.
+  - The `finally` first restores the mail client and environment, then stops the server and listener, then closes the browser. The storage cleanup and the "zero objects remain" check run in a nested `finally` after that.
+  - A filtered-out run now starts nothing (it finishes in 228 ms).
+  - The real listener, the positive control and every assertion are unchanged.
+
+**Evidence:**
+- **Logs:** the full-suite log is `implementation/worker-3-evidence/worker-3-changed-tests.log`. It was sanitized inside Bun and the raw log deleted. Only two variables were masked, `PWD` and `NVD_BACKEND`; they are ordinary shell variables that matched path text, not secrets. The secret scan over the evidence folder found nothing.
+- **Command scenario:** `runs/forms-awaiting-commands-4d508227-…/summary.json` in the u3 worktree. Its test storage was fully deleted (90 objects removed, 0 left) and the privacy scan was clean. As before, only the confirmed-but-undelivered submission connected to the test mailbox. The one unrelated local probe in this run was correctly counted as foreign.
+- **No env files** were opened and no lifecycle commands were run.
+
+The known limitations are unchanged and recorded in the report:
+- The first-seen time is when the checker saw the refusal, not when the plugin was updated.
+- Overlapping runs can race on R2, and a storage outage or a failed clear can delay escalation.
+- A renamed site's old clock is left behind.
+- The local test pages are not proof of a released helper or live mail.

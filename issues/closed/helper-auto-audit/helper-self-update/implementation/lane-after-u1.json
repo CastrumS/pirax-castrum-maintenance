@@ -1,0 +1,7 @@
+{
+  "start": "2026-10-05T16:52:19.892Z",
+  "end": "2026-10-05T17:07:07.864Z",
+  "code": 130,
+  "base": "2689aaa3bd69a9a46cc77788fdc5219354cc923a",
+  "command": ": AKROGON_BASE required && bun test"
+}

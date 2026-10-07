@@ -1,0 +1,102 @@
+bun test v1.4.2 (744846f84)
+
+tests/report.test.ts:
+4 | import { pageKey, type Site } from "../sites.ts";
+5 | import { isRunId } from "../store.ts";
+6 | import type { FormsManifest, Manifest, PageResult, PublishedManifest, ViewportResult } from "./model.ts";
+7 | 
+8 | export class ReportError extends Error {}
+9 | const fail = (detail: string): never => { throw new ReportError(detail); };
+                                                                          ^
+error: invalid check manifest; run a new check before approval
+      at fail (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/src/report/manifest.ts:9:71)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/tests/report.test.ts:91:12)
+(fail) private report > awaiting-audit is a warning with escaped versions, accepted by check manifests and approval; visual failures still fail [0.21ms]
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/runs/2026-10-02T13-32-22.557Z/index.html
+
+ 10 pass
+ 1 fail
+ 72 expect() calls
+Ran 11 tests across 1 file. [464.00ms]
+bun test v1.4.2 (744846f84)
+
+test/forms/report.test.ts:
+4 | import { pageKey, type Site } from "../sites.ts";
+5 | import { isRunId } from "../store.ts";
+6 | import type { FormsManifest, Manifest, PageResult, PublishedManifest, ViewportResult } from "./model.ts";
+7 | 
+8 | export class ReportError extends Error {}
+9 | const fail = (detail: string): never => { throw new ReportError(detail); };
+                                                                          ^
+error: invalid forms manifest; run forms again
+      at fail (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/src/report/manifest.ts:9:71)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/test/forms/report.test.ts:87:12)
+(fail) forms-only manifest > both manifest modes accept skipped and awaiting-audit; unknown outcomes still reject [0.15ms]
+149 |     const report = formsReport([form("awaiting-audit", "Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16, <i>X</i> 2")]);
+150 |     const html = renderHtml(report, new Map());
+151 |     expect(html).toContain("acme — warning");
+152 |     expect(html).toContain('<td class="warning"><strong>awaiting-audit</strong></td>');
+153 |     expect(html).toContain("awaiting audit of Fluent Forms Pro 6.2.16, &lt;i&gt;X&lt;/i&gt; 2");
+154 |     expect(html).toMatch(/spam, not-verified, unsupported and awaiting-audit are warnings/);
+                       ^
+error: expect(received).toMatch(expected)
+
+Expected substring or pattern: /spam, not-verified, unsupported and awaiting-audit are warnings/
+Received: "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\"><title>Form check 2026-09-25T13-00-00.000Z</title><style>\nbody{font:16px/1.5 system-ui,sans-serif;margin:24px;color:#172033;background:#f5f7fb}h1,h2,h3{line-height:1.2}table{width:100%;border-collapse:collapse;background:white;margin-bottom:32px}th,td{border:1px solid #cbd2dd;padding:12px;text-align:left;vertical-align:top}th{background:#e8edf6}figure{margin:0;min-width:0}figcaption{font-weight:bold}img{max-width:100%;height:auto;border:1px solid #abb7c9}.panels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.failure,.blocked{color:#a01326}.warning{color:#795100}.pass{color:#116034}p,li{overflow-wrap:anywhere}ul{padding-left:20px}.details{min-width:230px}small{color:#46516a}@media(max-width:800px){body{margin:10px}.panels{grid-template-columns:1fr}table{display:block;overflow-x:auto}}\n</style></head><body><h1>Form check</h1><p>Run 2026-09-25T13-00-00.000Z · <strong class=\"warning\">warning</strong></p><section><h2>acme — warning</h2><p>https://example.test</p><h3>/ — warning</h3><table><thead><tr><th>Outcome</th><th>Plugin</th><th>Form</th><th>Detail</th></tr></thead><tbody><tr><td class=\"warning\"><strong>awaiting-audit</strong></td><td>gravity</td><td>#gform_1</td><td>Plugin refused submission: Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16, &lt;i&gt;X&lt;/i&gt; 2</td></tr></tbody></table><h3>/about/ — pass</h3><p>No forms found.</p></section><p><small>Desktop 1440 × 900 form pass only; no screenshots or visual comparison. Failed/rejected forms fail the run; spam, not-verified and unsupported are warnings. Skipped forms were intentionally not filled or submitted: neutral for status, not delivery evidence.</small></p></body></html>"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/test/forms/report.test.ts:154:18)
+(fail) form outcome gating > forms-only HTML renders awaiting-audit as a warning with escaped versions and explains it [0.18ms]
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/runs/forms-report-tests-cdd3de69-02d5-4559-91b4-6eee00ffbc3c/summary.json
+
+ 9 pass
+ 1 filtered out
+ 2 fail
+ 90 expect() calls
+Ran 11 tests across 1 file. [12.77s]
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+Awaiting-audit fixture /gf-awaiting: rejected
+273 |       policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+274 |       expect(prepared.state).toBe("prepared"); if (prepared.state !== "prepared") return;
+275 |       const before = writes;
+276 |       const result = await submitForm(page, prepared, policy, { timeoutMs: 1_000, redact });
+277 |       console.log(`Awaiting-audit fixture ${path}: ${result.state}`);
+278 |       expect(`${path}: ${result.state}`).toBe(`${path}: ${expected}`);
+                                               ^
+error: expect(received).toBe(expected)
+
+Expected: "/gf-awaiting: awaiting-audit"
+Received: "/gf-awaiting: rejected"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/test/forms/browser.test.ts:278:42)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/test/forms/browser.test.ts:159:158)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/test/forms/browser.test.ts:272:11)
+(fail) exact awaiting-audit refusals are classified per message; near matches, extra refusals, stale and foreign messages are not [888.69ms]
+294 |       expect(shape(confirmed)).toEqual(["gravity:failed"]);
+295 |       expect(connections).toBeGreaterThan(0);
+296 |       for (const [path, plugin, id] of [["/gf-awaiting", "gravity", 1], ["/ff-awaiting", "fluent", 2]] as const) {
+297 |         const before = { connections, writes, traps };
+298 |         const results = await scanPageForms(local([path], true, { page: path, plugin, id }), { path, mask: [] }, { runDir, deliveryTimeoutMs: 2_000 });
+299 |         expect(shape(results)).toEqual([`${plugin}:awaiting-audit`]);
+                                     ^
+error: expect(received).toEqual(expected)
+
+  [
+-   "gravity:awaiting-audit",
++   "gravity:rejected",
+  ]
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/test/forms/browser.test.ts:299:32)
+      at async withEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/test/forms/browser.test.ts:137:22)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u1/test/forms/browser.test.ts:291:11)
+(fail) scanner forwards awaiting-audit without polling the mailbox [1605.50ms]
+
+ 0 pass
+ 20 filtered out
+ 2 fail
+ 5 expect() calls
+Ran 2 tests across 1 file. [2.76s]

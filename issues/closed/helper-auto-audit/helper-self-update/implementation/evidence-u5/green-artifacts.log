@@ -1,0 +1,12 @@
+# GREEN: fixed working tree on db2cba17bed1ecccab0f433a055ff8d4b7d5a405
+$ env -u PIRAX_HELPER_SIGNING_KEY bun --no-env-file test test/plugin/artifacts.test.ts
+bun test v1.4.2 (744846f84)
+
+ 1 pass
+ 0 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [53.00ms]
+EXIT=0
+$ bun run typecheck
+$ tsc --noEmit
+EXIT=0

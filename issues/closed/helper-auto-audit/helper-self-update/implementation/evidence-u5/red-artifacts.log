@@ -1,0 +1,36 @@
+# RED: git db2cba17bed1ecccab0f433a055ff8d4b7d5a405 + new test/plugin/artifacts.test.ts only (artifacts.ts unchanged)
+$ env -u PIRAX_HELPER_SIGNING_KEY bun --no-env-file test test/plugin/artifacts.test.ts
+bun test v1.4.2 (744846f84)
+
+test/plugin/artifacts.test.ts:
+39 |       stderr: "inherit",
+40 |     });
+41 |     // Assertions see only counts and presence booleans, never the seed.
+42 |     expect(await proc.exited).toBe(0);
+43 |     expect(JSON.parse(await new Response(proc.stdout).text())).toEqual({ before: 1, scrubbed: 1, after: 0, parentKept: true });
+44 |     expect((await Bun.file(log).text()).trim().split("\n")).toEqual(["unzip false", "unzip false", "zip false", "unzip false"]);
+                                                                 ^
+error: expect(received).toEqual(expected)
+
+  [
+-   "unzip false",
+-   "unzip false",
+-   "zip false",
+-   "unzip false",
++   "unzip true",
++   "unzip true",
++   "zip true",
++   "unzip true",
+  ]
+
+- Expected  - 4
++ Received  + 4
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u5/test/plugin/artifacts.test.ts:44:61)
+(fail) findSecret and sanitizeZip keep the signing seed for scanning but not for their zip/unzip children [15.26ms]
+
+ 0 pass
+ 1 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [20.00ms]
+EXIT=1

@@ -1,0 +1,9 @@
+$ bun scripts/release-plugin.ts 
+exit 1
+--- stdout
+--- stderr
+release-plugin: tag v0.3.0 already exists locally
+--- gh calls
+[]
+--- dist
+

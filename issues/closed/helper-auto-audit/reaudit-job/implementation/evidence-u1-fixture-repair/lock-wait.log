@@ -1,0 +1,7 @@
+queued 2026-10-06T09:13:06Z diff-sha256 2a416ed2df04ee6c75cacc8bff638903331f299518402127fb0d2b97ac5eafae head b120086a19950d1865df9c4cb5b47b3421b203fe
+lock acquired 2026-10-06T09:37:53Z
+broad queued 2026-10-06T10:33:33Z diff-sha256 2a416ed2df04ee6c75cacc8bff638903331f299518402127fb0d2b97ac5eafae head b120086a19950d1865df9c4cb5b47b3421b203fe gh /home/rudi/.local/share/mise/installs/gh/latest/gh_2.101.0_linux_amd64/bin/gh
+broad lock acquired 2026-10-06T10:33:33Z
+host reboot 2026-10-06T10:34:54Z interrupted the 10:33:33Z broad run (log kept as changed-tests-interrupted-by-reboot.log, no exit)
+native-gh broad queued 2026-10-06T10:39:03Z diff-sha256 2a416ed2df04ee6c75cacc8bff638903331f299518402127fb0d2b97ac5eafae head b120086 gh /home/rudi/.local/share/mise/installs/gh/latest/gh_2.101.0_linux_amd64/bin/gh
+native-gh broad lock acquired 2026-10-06T10:39:03Z, released 2026-10-06T11:33:01Z exit 0 (changed-tests-native-gh.log)

@@ -1,0 +1,10 @@
+{
+  "start": "2026-10-05T22:48:57.953Z",
+  "end": "2026-10-05T23:33:50.155Z",
+  "code": 0,
+  "base": "2689aaa3bd69a9a46cc77788fdc5219354cc923a",
+  "head": "938bf9c029708984f4e14002d576923f7649fed4",
+  "pureRebaseHead": "db2cba17bed1ecccab0f433a055ff8d4b7d5a405",
+  "command": "bun run typecheck && : \"${AKROGON_BASE:?AKROGON_BASE is required}\" && bun test",
+  "environment": "registered env loaded explicitly by Bun; signing variable empty in test parent to prevent automatic reload; owned non-signing children omit it"
+}

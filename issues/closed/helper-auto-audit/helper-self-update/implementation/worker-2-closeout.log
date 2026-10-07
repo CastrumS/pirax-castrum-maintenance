@@ -1,0 +1,45 @@
+Unit 2 is committed as **`6d6ce16`** (detached HEAD on top of `2689aaa`, in `issues/worktrees/helper-self-update-u2`), and `implementation/worker-2.md` is written. Everything in unit 2's scope passes in real WordPress, but the full configured run did not: 237 passed and 13 failed. All 13 failures are in `tests/capture.test.ts`, which this change doesn't touch.
+
+The test run had finished on the same code that's now committed: it started at 18:07:34, after the last edit at 18:05:00. It found no new bugs in unit 2's code, so I made no code changes and didn't repeat the targeted runs.
+
+**Changed files and reasons:**
+- `includes/compatibility.php`:
+  - Each blocking callback is traced to the file that defines it, which is then checked against the exact plugin folders. Plugin and class names are never used.
+  - The normal checks and the early Gravity Forms check now share one set of facts.
+  - The "awaiting audit" message is used only when nothing besides version mismatches blocks the submission.
+  - There's a new check of whether CleanTalk's general AJAX check can be removed, and it doesn't remove anything.
+  - The callback details shown publicly keep their hook/priority/id shape.
+  - A new private writer saves the last-block record, and it also covers the early Gravity Forms refusal.
+- `includes/marker.php`: adds the fixed `Pirax test blocked: awaiting audit of ` prefix next to the existing generic message.
+- `includes/gravity-forms.php`: normal Gravity Forms submissions and the early AJAX check now use the new messages. When Gravity Forms is at an unaudited version, the early check doesn't read stored forms. Marker and configuration errors still win over everything else.
+- `includes/fluent-forms.php`: Fluent Forms' block now uses the new messages.
+- `test/plugin/compatibility.test.ts`: covers a version change for each audited plugin, Inventory staying generic, mixed causes, two plugins named in one message, ownership by file location, the GF 3.1.3 plus wrapped/moved CleanTalk case, and privacy of the early refusal's record.
+- `test/plugin/safety.test.ts`: checks that the last-block record stays private, loads only on demand (autoload off) and keeps its shape with the new messages.
+- `test/plugin/adapters.test.ts`: one added check that the record keeps the generic message.
+
+**Tests run** (all loaded with `bun --env-file`, signing key removed from child processes):
+- **Before the fix:** the two GF 3.1.3 cases with CleanTalk's check wrapped or moved both failed. They wrongly said `awaiting audit of Gravity Forms 3.1.3`.
+- **After the fix:** 6 passed, 1 failed. The failure was a mistake in the test: it checked that the stored record didn't contain the word "Pirax", which is part of the block message itself. The check now looks for the submitted marker value instead, and that test then passed 1/1.
+- **Full configured run** (`AKROGON_BASE=2689aaa…`): 237 passed, 13 failed, 250 tests, about 49 minutes. All 13 failures are `capture.test.ts` "browser has been closed" errors. Every `test/plugin/*` suite passed inside this run.
+- **`capture.test.ts` alone on the committed code:** 22 passed, 0 failed.
+- `git diff --check` is clean.
+
+What the passing tests show:
+- With Fluent Forms Pro changed to 6.2.16, a test submission returns HTTP 423 with exactly `Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16`, and creates no entry, mail or feed. Two mismatched plugins are listed in report order.
+- With audited Pro and Inventory on, the message stays exactly the generic `integrations could not be suppressed`.
+- GF 3.1.3 with CleanTalk's check wrapped or moved now gets the generic message, and the record lists both reasons.
+
+**Evidence:** copies of the test outputs are in `implementation/evidence-u2/`. That covers the before/after Gravity Forms runs, every plugin suite from the full run (notes in `compatibility-…16-39-12-814Z/compatibility-notes.jsonl`), and the capture output from the run where it failed. A secret scan of that folder, including inside the browser trace ZIPs, found nothing; no values were printed. No `.env`, vendor or cache files were copied. The run logs are in `implementation/`, starting with `worker-2-u2-`, including the new `worker-2-u2-capture-isolated.log`.
+
+**Known limitations:**
+- The 13 `capture.test.ts` failures are outside unit 2's scope and I didn't change those tests. Three things point to the test environment rather than this change:
+  - the file passes on its own;
+  - your baseline run that includes it passes 114/114 after the reboot;
+  - unit 1's run, which overlapped in time, hit the same error in 8 capture tests.
+- The existing limit on the early Gravity Forms check, for requests handled before it is in place, is unchanged.
+- The commit is on a detached HEAD, so you still need to integrate it.
+
+**Unverified criteria:**
+- A fully green configured run is not proven, because of the capture failures above.
+- I didn't rerun your unit test subset myself; I'm relying on your `baseline-unit-after-reboot.log` (114/114).
+- All other unit 2 criteria are verified in real WordPress.

@@ -1,0 +1,40 @@
+{
+  "tag": "v0.3.1",
+  "url": "https://github.com/CastrumS/pirax-castrum-maintenance/releases/tag/v0.3.1",
+  "publishedAt": "2026-10-07T14:19:09Z",
+  "published": true,
+  "latest": true,
+  "releaseAssets": [
+    "pirax-form-test-manifest.json",
+    "pirax-form-test-manifest.json.sig",
+    "pirax-form-test.zip"
+  ],
+  "exactlyThreeAssets": true,
+  "tagCommit": "b27a958830a3fe232d7ee856101d998cd88d8a47",
+  "tagIsMainHead": true,
+  "tagParentIsReviewedHead": true,
+  "bumpFiles": [
+    "plugin/pirax-form-test/README.md",
+    "plugin/pirax-form-test/includes/compatibility.php",
+    "plugin/pirax-form-test/pirax-form-test.php"
+  ],
+  "signatureValid": true,
+  "zipSha256": "ba4daaa50e1a118f961bdf4bcc8f3bdd3e828a2883bab5e6fb3509fc475efd87",
+  "manifestShaMatches": true,
+  "manifestVersionMatches": true,
+  "manifestPackageMatches": true,
+  "manifestAudited": {
+    "gf": "3.1.3.1",
+    "ff": "6.2.15",
+    "ff_pro": "6.2.15",
+    "cleantalk": "6.89",
+    "fluent_smtp": "2.4.1"
+  },
+  "auditedMatchesTagCommit": true,
+  "zipEntriesExact": true,
+  "zipFilesIdenticalToTagCommit": true,
+  "zipMismatchedFiles": [],
+  "zipHelperVersion": "0.3.1",
+  "zipVersionMatches": true,
+  "zipPinsMatchManifest": true
+}

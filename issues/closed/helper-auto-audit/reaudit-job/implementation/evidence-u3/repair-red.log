@@ -1,0 +1,144 @@
+repair red at 2026-10-06T07:58:37Z, head c01afc39eea9af3fab3c75ebe01e73ff6521c569 + new tests only
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-operations.test.ts:
+71 |   });
+72 | 
+73 |   test("unknown keys are never echoed, even purely alphabetic ones", () => {
+74 |     for (const key of [ALPHA_SECRET, SECRET]) {
+75 |       try { parseFailureSummary({ ...full, [key]: 1 }); throw new Error("accepted"); }
+76 |       catch (e) { expect((e as Error).message).toBe("invalid failure summary: unknown keys"); }
+                                                    ^
+error: expect(received).toBe(expected)
+
+Expected: "invalid failure summary: unknown keys"
+Received: "invalid failure summary: unknown SyntheticTokenQzXwVb"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/tests/reaudit-operations.test.ts:76:48)
+(fail) failure summary validation > unknown keys are never echoed, even purely alphabetic ones [0.92ms]
+55 | /** Strict: unknown keys or any unsafe value throw a NoticeError naming the field only. */
+56 | export function parseFailureSummary(value: unknown): FailureSummary {
+57 |   if (!isObject(value)) throw invalid("not an object");
+58 |   const allowed = ["stage", "reason", "oldVersions", "candidateVersions", "runUrl", "cleanup", "publication"];
+59 |   const extra = Object.keys(value).filter((k) => !allowed.includes(k));
+60 |   if (extra.length) throw invalid(extra.every((k) => /^[A-Za-z]{1,32}$/.test(k)) ? `unknown ${extra.join(", ")}` : "unknown keys");
+                                                                                                                                      ^
+error: invalid failure summary: unknown commit, tag
+      at parseFailureSummary (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/scripts/reaudit/notify.ts:60:130)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/tests/reaudit-operations.test.ts:82:15)
+(fail) failure summary validation > intended commit and tag for partial publication are validated and rendered [0.15ms]
+150 | 
+151 |   test("only allowlisted public codes and built-in error names are reported", async () => {
+152 |     for (const thrown of [Object.assign(new Error("x"), { code: ALPHA_SECRET }), Object.assign(new Error("x"), { code: "E_SYNTHETIC_TOKEN_9f8e" }), Object.assign(new Error("x"), { name: ALPHA_SECRET })]) {
+153 |       const t = fakeTransport(async () => { throw thrown; });
+154 |       const error = (await sendFailure(summary, creds, { createTransport: t.create }).catch((e: Error) => e)) as Error;
+155 |       expect(error.message).toBe("notice: SMTP send failed: Error");
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: "notice: SMTP send failed: Error"
+Received: "notice: SMTP send failed: Error (SyntheticTokenQzXwVb)"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/tests/reaudit-operations.test.ts:155:29)
+(fail) sendFailure > only allowlisted public codes and built-in error names are reported [0.23ms]
+199 |     expect(parseInstant("2026-10-06T01:41:26+02:00")).toBe(Date.UTC(2026, 9, 5, 23, 41, 26));
+200 |     expect(parseInstant("2026-10-06T12:00:00Z")).toBe(now);
+201 |     expect(parseInstant("2026-10-06T12:00:00.000Z")).toBe(now);
+202 |     expect(parseInstant("2026-10-06T12:00:00+23:59")).toBe(now - (23 * 60 + 59) * 60_000);
+203 |     expect(parseInstant("2026-10-06T12:00:00-23:59")).toBe(now + (23 * 60 + 59) * 60_000);
+204 |     for (const bad of ["2026-10-06T12:00:00+99:99", "2026-10-06T12:00:00+00:99", "2026-10-06T12:00:00+24:00", "2026-10-06T12:00:00-00:60"]) expect(() => parseInstant(bad)).toThrow();
+                                                                                                                                                                                  ^
+error: expect(received).toThrow()
+
+Received function did not throw
+Received value: 1790925660000
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/tests/reaudit-operations.test.ts:204:173)
+(fail) time parsing > strict ISO instants with offsets [0.39ms]
+217 |     expect(heartbeatDue(iso(now + 60_000), now)).toBe(false);
+218 |     expect(() => heartbeatDue(iso(now + HOUR), now)).toThrow();
+219 |     expect(() => heartbeatDue("not a date", now)).toThrow();
+220 |   });
+221 |   test("a nonfinite injected clock throws rather than answering not due", () => {
+222 |     for (const clock of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) expect(() => heartbeatDue(iso(now - 400 * DAY), clock)).toThrow();
+                                                                                                                                                        ^
+error: expect(received).toThrow()
+
+Received function did not throw
+Received value: false
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/tests/reaudit-operations.test.ts:222:147)
+(fail) heartbeat due predicate > a nonfinite injected clock throws rather than answering not due [0.09ms]
+70 | 
+71 |   const file = join(cwd, HEARTBEAT_PATH);
+72 |   mkdirSync(dirname(file), { recursive: true });
+73 |   writeFileSync(file, `${new Date(now).toISOString()}\n`);
+74 |   const changed = status().split("\n").map((line) => line.slice(3));
+75 |   if (changed.length !== 1 || changed[0] !== HEARTBEAT_PATH) throw new HeartbeatError("heartbeat: refusing changes outside the heartbeat file");
+                                                                                                                                                   ^
+error: heartbeat: refusing changes outside the heartbeat file
+      at runHeartbeat (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/scripts/reaudit/heartbeat.ts:75:143)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/tests/reaudit-operations.test.ts:279:22)
+(fail) heartbeat operation against a local temp remote > due with an already tracked heartbeat: updates only that file and pushes without tags [26.20ms]
+288 |   });
+289 | 
+290 |   test("a nonfinite clock is refused before any commit", () => {
+291 |     const f = fixture(now - 31 * DAY, true);
+292 |     try {
+293 |       expect(() => runHeartbeat({ cwd: f.work, now: Number.NaN, remoteUrl: f.url, env: offlineEnv })).toThrow(/clock/);
+                                                                                                            ^
+error: expect(received).toThrow(expected)
+
+Expected pattern: /clock/
+
+Received function did not throw
+Received value: {
+  outcome: "not-due",
+  base: "db289e89bea1ee95e35dfb8dbbee8679d21f15a1",
+}
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/tests/reaudit-operations.test.ts:293:103)
+(fail) heartbeat operation against a local temp remote > a nonfinite clock is refused before any commit [26.50ms]
+383 |       [workflow({ created_at: "soon" }), runs()], [workflow(), { workflow_runs: null }], [workflow(), {}], [workflow(), runs({ event: "schedule" })],
+384 |       [workflow(), runs({ ...run("schedule", now), run_started_at: "2026-02-30T00:00:00Z" })], [workflow(), runs(run("schedule", now + DAY))],
+385 |       [workflow(), runs({ ...run("schedule", now), event: 5 })],
+386 |       [workflow({ created_at: "2026-10-06T12:00:00+99:99" }), runs()], [workflow(), runs({ ...run("schedule", now), run_started_at: "2026-10-06T11:00:00+00:99" })],
+387 |     ];
+388 |     for (const [w, r] of bad) expect(() => normalizeWatchdogFacts(w, r, now)).toThrow();
+                                                                                    ^
+error: expect(received).toThrow()
+
+Received function did not throw
+Received value: {
+  state: "active",
+  createdAt: 1790925660000,
+  lastStartedAt: null,
+}
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/tests/reaudit-operations.test.ts:388:79)
+(fail) watchdog > malformed, unknown or future facts are not healthy [1.30ms]
+388 |     for (const [w, r] of bad) expect(() => normalizeWatchdogFacts(w, r, now)).toThrow();
+389 |   });
+390 | 
+391 |   test("a nonfinite injected clock is never healthy", () => {
+392 |     for (const clock of [Number.NaN, Number.POSITIVE_INFINITY]) {
+393 |       expect(() => normalizeWatchdogFacts(workflow(), runs(run("schedule", now - HOUR)), clock)).toThrow();
+                                                                                                       ^
+error: expect(received).toThrow()
+
+Received function did not throw
+Received value: {
+  state: "active",
+  createdAt: 1790424000000,
+  lastStartedAt: 1791284400000,
+}
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/tests/reaudit-operations.test.ts:393:98)
+(fail) watchdog > a nonfinite injected clock is never healthy [0.18ms]
+watchdog: notice not sent: Error
+
+ 29 pass
+ 9 fail
+ 170 expect() calls
+Ran 38 tests across 1 file. [719.00ms]
+exit=1

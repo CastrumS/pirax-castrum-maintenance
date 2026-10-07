@@ -1,0 +1,22 @@
+I fixed all four of B's findings and amended the unit commit. It is now `b827770bf1d3806388720dd6a95b50278c527f5b`, still a single commit on `4e929fc`, and its tree is exactly the one the full test suite ran against. The full configured check passed: exit 0, 324 pass / 0 fail.
+
+**What was fixed:**
+1. **Already-tracked heartbeat file:** in `heartbeat.ts`, the git output was trimmed at both ends, which removed the leading space of the status line ` M .github/audit/heartbeat.txt` and then cut the first character off the path. Now only the end is trimmed, so the normal monthly heartbeat goes through. A new test seeds the file in a 31-day-old commit, pushes to a local bare remote, and checks that only that file changed and no tag was created.
+2. **Invalid time zones and clocks:** offsets like `+99:99`, `+00:99` and `+24:00` are now rejected, and `±23:59` still parses. A non-finite clock (NaN or Infinity) now throws in the heartbeat and watchdog checks. Before, it gave a false "not due" or "healthy". The 30-day, 48-hour and clock-skew boundaries are unchanged.
+3. **Secrets leaking into error messages:** an unknown summary key now always gives the fixed message `invalid failure summary: unknown keys`. `safeError` only reports error names and codes from fixed lists of built-in names and public SMTP/network codes. The tests use purely alphabetic, secret-shaped values, which the old rule echoed.
+4. **Commit and tag in failure notices:** `FailureSummary` has two new optional fields. `commit` must be exactly 40 lowercase hex characters. `tag` must be `v` plus the same stable version format `release-plugin.ts` uses. When present they appear as "Intended commit" / "Intended tag" lines in the email. When absent the email is unchanged, so existing callers are unaffected. Twenty malformed values are rejected by name.
+
+**Test results:**
+- **Before the fix:** the new tests gave 29 pass / 9 fail, all for the expected reasons. The tracked-heartbeat test failed with B's exact `refusing changes outside the heartbeat file` message.
+- **After the fix:** 38 pass / 0 fail, and the typecheck passed.
+- **Configured suite:** it waited behind the native-check lock for B's lane check, then ran from 08:45:59Z to 09:37:53Z. The Playground failure in `test/plugin/updates.test.ts` from the first run did not come back.
+
+Logs are in `implementation/evidence-u3/` (`repair-red.log`, `repair-green.log`, `repair-changed-tests.log` and `.exit`). The original selftest and arrival evidence is untouched. I sent no new email, did no real heartbeat push or main/tag change, and did not open any env file.
+
+**Still open:**
+- I didn't repeat the earlier scan of evidence for real secret values on the new logs.
+- An SMTP code missing from the list shows up as plain `Error`.
+- The integration unit has to fill in `commit` and `tag`.
+- A real heartbeat push and a live healthy watchdog check both need `reaudit.yml` on main, so they can only be checked after merge.
+
+The report is `implementation/report-u3.md`, with the section 8 summary filled in at the end.

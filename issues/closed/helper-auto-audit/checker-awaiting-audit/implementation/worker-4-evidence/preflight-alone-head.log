@@ -1,0 +1,31 @@
+bun test v1.4.2 (744846f84)
+killed 2 dangling processes
+
+test/forms/browser.test.ts:
+(fail) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [60000.22ms]
+  ^ this test timed out after 60000ms.
+
+# Unhandled error between tests
+-------------------------------
+373 |     names.forEach(name => delete process.env[name]);
+374 |     expect((await scanPageForms(site('/upload'), { path: '/upload', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+375 |     expect((await scanPageForms(site('/ambiguous-ff', 'fluent', 2), { path: '/ambiguous-ff', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+376 |     process.env.FORM_TEST_TOKEN = config.token; process.env.FORM_TEST_ADDRESS = config.address;
+377 |     expect((await scanPageForms(site('/constrained'), { path: '/constrained', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+378 |     await expect(scanPageForms(site('/plain'), { path: '/plain', mask: [] }, { runDir })).rejects.toThrow('IMAP_HOST');
+                                                                                                        ^
+error: expect(received).rejects.toThrow(expected)
+
+Expected promise that rejects
+Received promise that resolved: Promise { <resolved> }
+
+      at <anonymous> (/tmp/u4-head-5250748/test/forms/browser.test.ts:378:99)
+-------------------------------
+
+
+ 0 pass
+ 21 filtered out
+ 1 fail
+ 1 error
+ 4 expect() calls
+Ran 1 test across 1 file. [60.25s]

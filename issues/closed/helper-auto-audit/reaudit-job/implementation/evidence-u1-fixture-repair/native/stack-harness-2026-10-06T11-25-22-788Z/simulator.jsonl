@@ -1,0 +1,4 @@
+{"id":1,"to":["owner@client.test"],"from":"wordpress@127.0.0.1","subject":"ff-3 notification A","headers":["content-type: text/html"],"provider":"Simulator","status":"sent","created":"2026-10-06 11:26:36"}
+{"id":2,"to":["owner-2@client.test"],"from":"wordpress@127.0.0.1","subject":"ff-3 notification B","headers":["content-type: text/html"],"provider":"Simulator","status":"sent","created":"2026-10-06 11:26:36"}
+{"id":3,"to":["owner@client.test"],"from":"wordpress@site.test","subject":"gf-1 notification A","headers":["content-type: text/html"],"provider":"Simulator","status":"sent","created":"2026-10-06 11:26:41"}
+{"id":4,"to":["owner-2@client.test"],"from":"wordpress@site.test","subject":"gf-1 notification B","headers":["content-type: text/html"],"provider":"Simulator","status":"sent","created":"2026-10-06 11:26:41"}

@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "repository": "CastrumS/pirax-castrum-maintenance",
+  "runId": "37631030674",
+  "runAttempt": "1",
+  "base": "87143c78cce61bbdc4cd99b578d36aea89dc6a50",
+  "oldPins": {
+    "gf": "3.1.2",
+    "ff": "6.2.14",
+    "ff_pro": "6.2.15",
+    "cleantalk": "6.88",
+    "fluent_smtp": "2.4.1"
+  },
+  "newPins": {
+    "gf": "3.1.3.1",
+    "ff": "6.2.15",
+    "ff_pro": "6.2.15",
+    "cleantalk": "6.89",
+    "fluent_smtp": "2.4.1"
+  },
+  "packages": {
+    "gf": {
+      "version": "3.1.3.1",
+      "sha256": "2bb1058a45eaa2d91d5986280bd50cc3ddf135058674cd536e906aa53978ae5d"
+    },
+    "ff": {
+      "version": "6.2.15",
+      "sha256": "fb689be752ba7d3b18b7cd7ae6d6c6f9d180621c64ef52937501ad19ddae9b80"
+    },
+    "ff_pro": {
+      "version": "6.2.15",
+      "sha256": "875e57f36962280f943bda8889899bce41daa378f9d815d837a3d4cdafe56caf"
+    },
+    "cleantalk": {
+      "version": "6.89",
+      "sha256": "f5eec4b3db8085618dd5d2081bf51dae53e9b43d7c29c4cf1ad432b62b3890db"
+    },
+    "fluent_smtp": {
+      "version": "2.4.1",
+      "sha256": "4932248e0fae299842ca0bd6b8dc71de7efef9b0302ffd7f29df39028673553f"
+    }
+  },
+  "helper": {
+    "from": "0.3.0",
+    "to": "0.3.1"
+  },
+  "changes": {
+    "digest": "1e50e546c19d1c474a0f1c9a38355550d7afec3141a7b5c80753aa0f6cbdb5d4"
+  },
+  "gates": {
+    "cleanup": "confirmed",
+    "native": "passed",
+    "manifests": "verified",
+    "final": "passed",
+    "privacy": "passed"
+  }
+}

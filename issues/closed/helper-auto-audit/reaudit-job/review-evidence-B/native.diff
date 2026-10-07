@@ -1,0 +1,574 @@
+diff --git a/test/plugin/compatibility.test.ts b/test/plugin/compatibility.test.ts
+index 6f33b15..0294bdd 100644
+--- a/test/plugin/compatibility.test.ts
++++ b/test/plugin/compatibility.test.ts
+@@ -1,5 +1,5 @@
+-// Production plugin on the opt-in compatibility stack (helper-compat plan D1–D7; AC1–AC7): GF 3.1.2,
+-// FF 6.2.14 + FF Pro 6.2.15, CleanTalk 6.88 and FluentSMTP 2.4.1 active together, with HTTP contained,
++// Production plugin on the opt-in compatibility stack (helper-compat plan D1–D7; AC1–AC7): GF, FF + FF Pro,
++// CleanTalk and FluentSMTP at their AUDITED_VERSIONS pins, active together, with HTTP contained,
+ // CleanTalk moderation and the Pro webhook answered at the Requests transport and FluentSMTP's
+ // Simulator as the mail transport. Forms are submitted in headless Chromium; queues run natively.
+ // bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/compatibility.test.ts
+@@ -9,6 +9,7 @@ import { join, resolve } from "node:path";
+ import type { BrowserContext, Page } from "playwright";
+ import { findSecret } from "./artifacts";
+ import { startHarness, type EnvelopeRecord, type Harness, type HttpRecord } from "./harness";
++import { nextPatch, PINS, withAlteredFile as alteredFile } from "./version-fixtures";
+ 
+ // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
+ setDefaultTimeout(180_000);
+@@ -23,6 +24,8 @@ const INVALID_MARKER = "Pirax test blocked: invalid test marker";
+ const INVALID_CONFIG = "Pirax test blocked: test configuration is invalid";
+ const SETTINGS = "/wp-admin/options-general.php?page=pirax-form-test";
+ const EMAIL_PRECHECK = "/wp-json/cleantalk-antispam/v1/check_email_before_post";
++/** A genuinely different GF version than the pin, for wrong-version cases. */
++const GF_NEXT = nextPatch(PINS.gf);
+ 
+ /** A PHP expression decoding a JSON value (single-quoted literal, so `$` and `\` stay literal). */
+ const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}', true)`;
+@@ -262,34 +265,12 @@ async function panel(plugin: "gf" | "ff") {
+   return { rows, verdict: await section.locator(".pirax-form-test-verdict").innerText(), hooks };
+ }
+ 
+-/**
+- * Replace `search` (exactly once) in an installed vendor file, run `body` with fresh requests, then
+- * restore it. Hashes of the original and altered file are kept in the evidence notes.
+- */
+-async function withAlteredFile(file: string, search: string, replace: string, body: () => Promise<void>) {
+-  const hashes = await h.php<{ original: string; altered: string }>(`
+-    $file = WP_PLUGIN_DIR . '/' . ${lit(file)};
+-    $source = file_get_contents($file);
+-    if (1 !== substr_count($source, ${lit(search)})) throw new RuntimeException('fixture search string not found exactly once');
+-    $altered = str_replace(${lit(search)}, ${lit(replace)}, $source);
+-    copy($file, "$file.pirax-original");
+-    file_put_contents($file, $altered);
+-    if (function_exists('opcache_invalidate')) opcache_invalidate($file, true);
+-    return ['original' => hash('sha256', $source), 'altered' => hash('sha256', $altered)];
+-  `);
+-  await note("altered vendor fixture", { file, search, replace, ...hashes });
+-  try {
++/** withAlteredFile() on this stack; the original and altered hashes are kept in the evidence notes. */
++const withAlteredFile = (file: string, search: string, replace: string, body: () => Promise<void>) =>
++  alteredFile(h, file, search, replace, async (hashes) => {
++    await note("altered vendor fixture", { file, search, replace, ...hashes });
+     await body();
+-  } finally {
+-    const restored = await h.php<string>(`
+-      $file = WP_PLUGIN_DIR . '/' . ${lit(file)};
+-      rename("$file.pirax-original", $file);
+-      if (function_exists('opcache_invalidate')) opcache_invalidate($file, true);
+-      return hash_file('sha256', $file);
+-    `);
+-    expect(restored).toBe(hashes.original);
+-  }
+-}
++  });
+ 
+ // ---------------------------------------------------------------------------------------------
+ // AC1/AC2 — marked success between ordinary controls
+@@ -441,19 +422,19 @@ for (const mode of ["wrap", "early"] as const) {
+       expect(done.env.filter((e) => e.subject.startsWith("[pirax-test"))).toEqual([]);
+ 
+       // Another GF version too: the audited CleanTalk's rebound check is an independent cause, so not version-only.
+-      await setOptions({ pirax_harness_gf_ajax_version: "3.1.3" });
++      await setOptions({ pirax_harness_gf_ajax_version: GF_NEXT });
+       await clearLastBlock();
+       const m2 = await mark();
+       const compound = await gfAjaxSubmit(`Pirax rebound GF version ${marker}`);
+       const compoundBlock = await lastBlock();
+       await h.drainQueues();
+       const done2 = await since(m2);
+-      await note(`GF modern AJAX generic check ${mode}, GF 3.1.3`, { marked: compound.ok, http: done2.http, added: done2.added, last: compoundBlock && { message: compoundBlock.message, reasons: compoundBlock.reasons } });
++      await note(`GF modern AJAX generic check ${mode}, GF ${GF_NEXT}`, { marked: compound.ok, http: done2.http, added: done2.added, last: compoundBlock && { message: compoundBlock.message, reasons: compoundBlock.reasons } });
+       expect(compound.ok).toBe(false);
+       expect(compound.text).toContain(BLOCKED);
+       expect(compound.text).not.toContain(AWAITING);
+       expect(compoundBlock).toMatchObject({ plugin: "gf", form: h.fixtures.gf, message: BLOCKED });
+-      expect(compoundBlock.reasons).toEqual(["Gravity Forms 3.1.3 is not the audited 3.1.2", "CleanTalk's generic AJAX check could not be removed"]);
++      expect(compoundBlock.reasons).toEqual([`Gravity Forms ${GF_NEXT} is not the audited ${PINS.gf}`, "CleanTalk's generic AJAX check could not be removed"]);
+       expect([done2.added, done2.env, genericCheck(done2.http), tokenBearing(done2.http)]).toEqual([[], [], [], []]);
+     } finally {
+       await setOptions({ pirax_harness_gf_ajax: null, pirax_harness_ct_ajax_rebind: null, pirax_harness_gf_ajax_version: null });
+@@ -522,7 +503,7 @@ test("GF modern AJAX before GF initializes: ordinary requests read no stored for
+     expectRedirected(done.env.filter((e) => e.subject.startsWith("[pirax-test")));
+     expectOriginal(done.env.filter((e) => e.subject === `gf-${h.fixtures.gf} notification A`), "owner@client.test");
+ 
+-    await setOptions({ pirax_harness_gf_ajax_version: "3.1.3" });
++    await setOptions({ pirax_harness_gf_ajax_version: GF_NEXT });
+     try {
+       await clearLastBlock();
+       m = await mark();
+@@ -531,13 +512,13 @@ test("GF modern AJAX before GF initializes: ordinary requests read no stored for
+       const wrongOrdinary = await gfAjaxCounted("gf ordinary with another GF version");
+       await h.drainQueues();
+       done = await since(m);
+-      await note("GF modern AJAX early reads: GF 3.1.3", { marked: [wrongMarked.ok, wrongMarked.reads], ordinary: [wrongOrdinary.ok, wrongOrdinary.reads], http: done.http, added: done.added });
++      await note(`GF modern AJAX early reads: GF ${GF_NEXT}`, { marked: [wrongMarked.ok, wrongMarked.reads], ordinary: [wrongOrdinary.ok, wrongOrdinary.reads], http: done.http, added: done.added });
+       expect(wrongMarked).toMatchObject({ ok: false, reads: 0 });
+       // Version-only: the known GF version is the whole observable cause, found without reading the form.
+-      expect(wrongMarked.text).toContain(`${AWAITING}Gravity Forms 3.1.3`);
++      expect(wrongMarked.text).toContain(`${AWAITING}Gravity Forms ${GF_NEXT}`);
+       expect(wrongMarked.text).not.toContain(BLOCKED);
+-      expect(wrongBlock).toMatchObject({ plugin: "gf", form: h.fixtures.gf, message: `${AWAITING}Gravity Forms 3.1.3` });
+-      expect(wrongBlock.reasons).toContain("Gravity Forms 3.1.3 is not the audited 3.1.2");
++      expect(wrongBlock).toMatchObject({ plugin: "gf", form: h.fixtures.gf, message: `${AWAITING}Gravity Forms ${GF_NEXT}` });
++      expect(wrongBlock.reasons).toContain(`Gravity Forms ${GF_NEXT} is not the audited ${PINS.gf}`);
+       expect(wrongOrdinary).toMatchObject({ ok: true, text: "Pirax GF thanks", reads: 0 });
+       expect(genericCheck(done.http).length).toBe(1); // the ordinary one only
+       expect(tokenBearing(done.http)).toEqual([]);
+@@ -835,34 +816,38 @@ test("CleanTalk re-registered during a marked submission's own dispatch is remov
+ test("admin panel on the full stack: exact versions audited per form plugin and both ready", async () => {
+   const [gf, ff] = [await panel("gf"), await panel("ff")];
+   expect(gf.rows).toEqual([
+-    ["Gravity Forms", "3.1.2", "audited"],
+-    ["Anti-Spam by CleanTalk", "6.88", "audited"],
+-    ["FluentSMTP", "2.4.1", "audited"],
++    ["Gravity Forms", PINS.gf, "audited"],
++    ["Anti-Spam by CleanTalk", PINS.cleantalk, "audited"],
++    ["FluentSMTP", PINS.fluent_smtp, "audited"],
+   ]);
+   expect(ff.rows).toEqual([
+-    ["Fluent Forms", "6.2.14", "audited"],
+-    ["Fluent Forms Pro", "6.2.15", "audited"],
+-    ["Anti-Spam by CleanTalk", "6.88", "audited"],
+-    ["FluentSMTP", "2.4.1", "audited"],
++    ["Fluent Forms", PINS.ff, "audited"],
++    ["Fluent Forms Pro", PINS.ff_pro, "audited"],
++    ["Anti-Spam by CleanTalk", PINS.cleantalk, "audited"],
++    ["FluentSMTP", PINS.fluent_smtp, "audited"],
+   ]);
+   expect([gf.verdict, ff.verdict]).toEqual(["ready", "ready"]);
+   expect([gf.hooks, ff.hooks]).toEqual([{}, {}]);
+ });
+ 
++/**
++ * One version declaration per plugin, rewritten from its pin to a genuinely different version (CleanTalk: a longer
++ * form, the others: the next patch). withAlteredFile() requires the declaration to occur exactly once.
++ */
+ const VERSIONS = [
+-  { name: "CleanTalk", file: "cleantalk-spam-protect/cleantalk.php", search: "Version: 6.88\n", replace: "Version: 6.88.1\n", label: "Anti-Spam by CleanTalk 6.88.1 is not the audited 6.88", awaiting: `${AWAITING}Anti-Spam by CleanTalk 6.88.1`, gf: true },
+-  { name: "Fluent Forms Pro", file: "fluentformpro/fluentformpro.php", search: "define('FLUENTFORMPRO_VERSION', '6.2.15');", replace: "define('FLUENTFORMPRO_VERSION', '6.2.16');", label: "Fluent Forms Pro 6.2.16 is not the audited 6.2.15", awaiting: `${AWAITING}Fluent Forms Pro 6.2.16`, gf: false },
+-  { name: "FluentSMTP", file: "fluent-smtp/boot.php", search: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.1');", replace: "define('FLUENTMAIL_PLUGIN_VERSION', '2.4.2');", label: "FluentSMTP 2.4.2 is not the audited 2.4.1", awaiting: `${AWAITING}FluentSMTP 2.4.2`, gf: true },
+-];
++  { name: "CleanTalk", label: "Anti-Spam by CleanTalk", file: "cleantalk-spam-protect/cleantalk.php", declare: (v: string) => `Version: ${v}\n`, pin: PINS.cleantalk, wrong: `${PINS.cleantalk}.1`, gf: true },
++  { name: "Fluent Forms Pro", label: "Fluent Forms Pro", file: "fluentformpro/fluentformpro.php", declare: (v: string) => `define('FLUENTFORMPRO_VERSION', '${v}');`, pin: PINS.ff_pro, wrong: nextPatch(PINS.ff_pro), gf: false },
++  { name: "FluentSMTP", label: "FluentSMTP", file: "fluent-smtp/boot.php", declare: (v: string) => `define('FLUENTMAIL_PLUGIN_VERSION', '${v}');`, pin: PINS.fluent_smtp, wrong: nextPatch(PINS.fluent_smtp), gf: true },
++].map((v) => ({ ...v, search: v.declare(v.pin), replace: v.declare(v.wrong), reason: `${v.label} ${v.wrong} is not the audited ${v.pin}`, awaiting: `${AWAITING}${v.label} ${v.wrong}` }));
+ 
+ for (const v of VERSIONS) {
+   test(`${v.name} at another version blocks marked ${v.gf ? "FF and GF" : "FF (not GF)"} at the native gates with the version-only message; the panel shows the version and still lists callbacks`, async () => {
+     await withAlteredFile(v.file, v.search, v.replace, async () => {
+       const [gf, ff] = [await panel("gf"), await panel("ff")];
+-      expect(ff.verdict).toContain(v.label);
+-      expect(gf.verdict.includes(v.label)).toBe(v.gf);
++      expect(ff.verdict).toContain(v.reason);
++      expect(gf.verdict.includes(v.reason)).toBe(v.gf);
+       if (v.name === "CleanTalk") {
+-        // Its bindings are only audited for 6.88: now they are unaudited callbacks, still listed.
++        // Its bindings are only audited for the pinned version: now they are unaudited callbacks, still listed.
+         expect(ff.hooks["fluentform/before_insert_submission"]).toEqual(["closure:cleantalk-spam-protect/lib/Cleantalk/Antispam/Integrations.php"]);
+       }
+ 
+@@ -877,7 +862,7 @@ for (const v of VERSIONS) {
+       expect(ff1.status).toBe(423);
+       expect(ffRejection(ff1.body)).toBe(v.awaiting);
+       expect(last).toMatchObject({ plugin: v.gf ? "gf" : "ff", message: v.awaiting });
+-      expect(last.reasons).toContain(v.label);
++      expect(last.reasons).toContain(v.reason);
+       expect(done.feeds).toEqual([]);
+       expect(done.http.filter((r) => r.purpose === "webhook-capture")).toEqual([]);
+       if (v.gf) {
+@@ -963,7 +948,7 @@ test("an unaudited optional Pro module (Inventory) keeps blocking marked FF with
+   expect((await panel("ff")).verdict).toBe("ready");
+ }, 300_000);
+ 
+-test("Pro 6.2.16: its own Inventory callbacks keep the version-only message, a second mismatch is listed in report order, and a callback outside every mismatched plugin (a rebound CleanTalk wrapper) makes it generic; all stay blocked", async () => {
++test("Pro at the next patch: its own Inventory callbacks keep the version-only message, a second mismatch is listed in report order, and a callback outside every mismatched plugin (a rebound CleanTalk wrapper) makes it generic; all stay blocked", async () => {
+   const [pro, smtp] = [VERSIONS.find((v) => v.name === "Fluent Forms Pro")!, VERSIONS.find((v) => v.name === "FluentSMTP")!];
+   /** One marked FF submission: rejected before insert, mail, feeds and CleanTalk; returns its message. */
+   const blocked = async (label: string) => {
+@@ -985,7 +970,7 @@ test("Pro 6.2.16: its own Inventory callbacks keep the version-only message, a s
+       await inventoryModule(false);
+     }
+     await withAlteredFile(smtp.file, smtp.search, smtp.replace, async () => {
+-      expect(await blocked("pro and smtp")).toBe(`${AWAITING}Fluent Forms Pro 6.2.16, FluentSMTP 2.4.2`);
++      expect(await blocked("pro and smtp")).toBe(`${AWAITING}Fluent Forms Pro ${pro.wrong}, FluentSMTP ${smtp.wrong}`);
+     });
+     await setOptions({ pirax_harness_ct_rebind: true });
+     try {
+@@ -1008,7 +993,7 @@ test("retained evidence names every version and ZIP hash and contains no token o
+   const evidence = await h.saveEvidence();
+   expect(evidence.files).toEqual(expect.arrayContaining(["http.jsonl", "envelopes.jsonl", "simulator.jsonl", "manifest.json"]));
+   const manifest = await Bun.file(`${h.artifactDir}/manifest.json`).json();
+-  expect(manifest.versions).toMatchObject({ gf: "3.1.2", ff: "6.2.14", ffPro: "6.2.15", cleantalk: "6.88", fluentSmtp: "2.4.1" });
++  expect(manifest.versions).toMatchObject({ gf: PINS.gf, ff: PINS.ff, ffPro: PINS.ff_pro, cleantalk: PINS.cleantalk, fluentSmtp: PINS.fluent_smtp });
+   expect(Object.keys(manifest.zips).sort()).toEqual(["cleantalk", "fluentSmtp", "fluentform", "fluentformpro", "gravityforms"]);
+   expect(await findSecret(h.artifactDir, [h.token, process.env.GRAVITY_FORMS_ZIP!, process.env.FLUENT_FORMS_PRO_ZIP!])).toEqual([]);
+ }, 120_000);
+diff --git a/test/plugin/core.test.ts b/test/plugin/core.test.ts
+index c4f6423..14471c0 100644
+--- a/test/plugin/core.test.ts
++++ b/test/plugin/core.test.ts
+@@ -9,7 +9,8 @@ import { join, resolve } from "node:path";
+ import type { BrowserContext, Page } from "playwright";
+ import { withoutSigningKey } from "../../scripts/build-plugin";
+ import { findSecret } from "./artifacts";
+-import { startHarness, type Harness } from "./harness";
++import { FF_VERSION, GF_VERSION, startHarness, type Harness } from "./harness";
++import { HELPER_VERSION } from "./version-fixtures";
+ 
+ // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
+ setDefaultTimeout(180_000);
+@@ -88,8 +89,9 @@ test("build:plugin produces only the allowlisted uploadable ZIP with no tests, s
+   const source = (await Bun.$`unzip -p ${ZIP} ${"*.php"}`.env(withoutSigningKey()).text()).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+   expect(source).not.toMatch(/register_rest_route|rest_api_init|\bwp_mail\s*\(|PHPMailer|PIRAX_FORM_TEST_HARNESS/);
+   const main = await Bun.$`unzip -p ${ZIP} pirax-form-test/pirax-form-test.php`.env(withoutSigningKey()).text();
+-  expect(main).toMatch(/^ \* Version:\s+0\.3\.0$/m);
+-  expect(main).toMatch(/^const VERSION = '0\.3\.0';$/m);
++  // The shipping helper's own version (header and constant agree, read by scripts/plugin-source.ts), whatever it is now.
++  expect(main.match(/^ \* Version:\s+(\S+)$/m)?.[1]).toBe(HELPER_VERSION);
++  expect(main).toContain(`\nconst VERSION = '${HELPER_VERSION}';\n`);
+   // A repository-specific Update URI keeps WordPress from matching a same-named wordpress.org plugin.
+   expect(main).toMatch(/^ \* Update URI:\s+https:\/\/github\.com\/CastrumS\/pirax-castrum-maintenance$/m);
+   const updates = await Bun.$`unzip -p ${ZIP} pirax-form-test/includes/updates.php`.env(withoutSigningKey()).text();
+@@ -266,8 +268,8 @@ test("compatibility panel: admins only, read-only, every unaudited callback by h
+   const { page } = admin;
+   await page.goto(`${h.url}${SETTINGS}`);
+   // Default stack: exact core versions, no optional plugins (not listed as version 0), both ready.
+-  expect(await panel(page, "gf")).toEqual({ rows: [["Gravity Forms", "3.1.2", "audited"]], verdict: "ready", hooks: {} });
+-  expect(await panel(page, "ff")).toEqual({ rows: [["Fluent Forms", "6.2.14", "audited"]], verdict: "ready", hooks: {} });
++  expect(await panel(page, "gf")).toEqual({ rows: [["Gravity Forms", GF_VERSION, "audited"]], verdict: "ready", hooks: {} });
++  expect(await panel(page, "ff")).toEqual({ rows: [["Fluent Forms", FF_VERSION, "audited"]], verdict: "ready", hooks: {} });
+   expect(await page.locator("#pirax-form-test-compatibility").innerText()).toContain('"Ready" covers only the plugins, versions and hooked callbacks loaded for this admin page');
+ 
+   // A real mu-plugin whose file name carries markup: closures and named callbacks on GF and FF hooks and a GF form-specific hook.
+@@ -292,12 +294,12 @@ test("compatibility panel: admins only, read-only, every unaudited callback by h
+     const gf = await panel(page, "gf");
+     const ff = await panel(page, "ff");
+     expect(gf).toEqual({
+-      rows: [["Gravity Forms", "3.1.2", "audited"]],
++      rows: [["Gravity Forms", GF_VERSION, "audited"]],
+       verdict: "blocked: 2 unaudited callback(s) on submission hooks",
+       hooks: { gform_entry_created: [`closure:${file}`], [`gform_after_submission_${h.fixtures.gf}`]: ["pirax_hostile_numeric"] },
+     });
+     expect(ff).toEqual({
+-      rows: [["Fluent Forms", "6.2.14", "audited"]],
++      rows: [["Fluent Forms", FF_VERSION, "audited"]],
+       verdict: "blocked: 2 unaudited callback(s) on submission hooks",
+       hooks: { "fluentform/before_form_actions_processing": ["pirax_hostile_named"], "fluentform/submission_inserted": [`closure:${file}`] },
+     });
+diff --git a/test/plugin/release.test.ts b/test/plugin/release.test.ts
+index b4d9730..85f3ee8 100644
+--- a/test/plugin/release.test.ts
++++ b/test/plugin/release.test.ts
+@@ -1,5 +1,5 @@
+ // Release CLI (plan D7; AC4): the real `bun scripts/release-plugin.ts` runs inside disposable git
+-// checkouts holding copies of the scripts and helper source, so this repository's dist/ and tags are
++// checkouts holding copies of the scripts (plugin-source.ts included) and helper source, so this repository's dist/ and tags are
+ // never touched. Seeds are generated per run and reach only the CLI's environment. A gh wrapper on
+ // PATH records every call, forwards only the CLI's two exact read-only `gh api` lookups to the real gh
+ // and answers everything else itself, so no tag, ref or release is ever written. Logs, manifests and a
+@@ -14,6 +14,7 @@ import { dirname, join, resolve } from "node:path";
+ import { FILES, withoutSigningKey } from "../../scripts/build-plugin";
+ import { findSecret } from "./artifacts";
+ import { testKey } from "./update-fixture";
++import { HELPER_VERSION, nextPatch, pinLine, PINS, withHelperVersion } from "./version-fixtures";
+ 
+ setDefaultTimeout(120_000);
+ 
+@@ -52,7 +53,7 @@ const GIT = ["-c", "user.name=Release Test", "-c", "user.email=release@test.inva
+ /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
+ async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
+   const dir = join(scratch, name);
+-  for (const file of ["scripts/build-plugin.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
++  for (const file of ["scripts/build-plugin.ts", "scripts/plugin-source.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+     await mkdir(dirname(join(dir, file)), { recursive: true });
+     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
+   }
+@@ -89,8 +90,8 @@ echo '{"synthesized":true}'
+ }
+ 
+ const withKey = (publicKey: string) => ({ "includes/updates.php": (t: string) => t.replace(PRODUCTION_KEY, publicKey) });
+-const withVersion = (version: string) => (t: string) =>
+-  t.replace(/^( \* Version:\s+)0\.3\.0$/m, `$1${version}`).replace("const VERSION = '0.3.0';", `const VERSION = '${version}';`);
++/** Helper version edit from the shipping version, whatever it is; each declaration must match exactly once. */
++const withVersion = (version: string) => withHelperVersion(version);
+ 
+ /**
+  * Run the CLI exactly as documented; seed undefined leaves the variable unset. Output is retained, unless
+@@ -113,7 +114,8 @@ async function cli(dir: string, label: string, args: string[], seed?: string, ex
+ test("offline: dry run signs the exact manifest bytes from source-derived facts and never calls GitHub", async () => {
+   const k = key();
+   // A changed audited version must flow from the PHP source into the manifest: no second matrix.
+-  const dir = await checkout("dry-run", { "includes/compatibility.php": (t) => t.replace("'ff_pro'      => '6.2.15',", "'ff_pro'      => '6.2.16',") });
++  const changed = nextPatch(PINS.ff_pro);
++  const dir = await checkout("dry-run", { "includes/compatibility.php": (t) => t.replace(pinLine("ff_pro"), pinLine("ff_pro", changed)) });
+   const r = await cli(dir, "dry-run", ["--dry-run"], k.seed);
+   expect(r.code).toBe(0);
+   expect(r.calls).toEqual([]);
+@@ -142,7 +144,7 @@ test("offline: dry run signs the exact manifest bytes from source-derived facts
+     sha256: sha256(zip),
+     audited,
+   });
+-  expect(manifest.audited.ff_pro).toBe("6.2.16");
++  expect(manifest.audited.ff_pro).toBe(changed);
+   for (const file of FILES) {
+     const entry = await sh(dir, Bun.$`unzip -p dist/pirax-form-test.zip ${`pirax-form-test/${file}`}`);
+     expect(sha256(entry.stdout)).toBe(sha256(await Bun.file(join(dir, "plugin/pirax-form-test", file)).bytes()));
+@@ -211,10 +213,10 @@ test("offline: publishing refuses a seed whose public key is not the committed p
+ test("offline: publishing refuses an existing local tag before any GitHub call", async () => {
+   const k = key();
+   const dir = await checkout("local-tag", withKey(k.publicKey));
+-  await sh(dir, Bun.$`git ${GIT} tag v0.3.0`);
++  await sh(dir, Bun.$`git ${GIT} tag ${`v${HELPER_VERSION}`}`);
+   const r = await cli(dir, "publish-local-tag", [], k.seed);
+   expect(r.code).toBe(1);
+-  expect(r.stderr).toContain("tag v0.3.0 already exists locally");
++  expect(r.stderr).toContain(`tag v${HELPER_VERSION} already exists locally`);
+   expect(r.dist).toEqual([]);
+   expect(r.calls).toEqual([]);
+   summary.localTag = { exit: r.code, ghCalls: 0, dist: r.dist };
+@@ -227,7 +229,7 @@ test("publishing fails closed when the real GitHub lookup cannot answer", async
+   // A real request with an invalid token: GitHub answers 401, which is not proof that the tag is absent.
+   const r = await cli(dir, "publish-remote-error", [], k.seed, { GH_TOKEN: "invalid-pirax-release-test-token" });
+   expect(r.code).toBe(1);
+-  expect(r.stderr).toContain(`could not confirm that v0.3.0 is absent from ${REPO}`);
++  expect(r.stderr).toContain(`could not confirm that v${HELPER_VERSION} is absent from ${REPO}`);
+   expect(r.calls.length).toBeGreaterThan(0);
+   expect(r.calls.every((c) => c[0] === "api")).toBe(true);
+   expect(r.dist).toEqual([]);
+@@ -353,10 +355,13 @@ test("offline: a generated seed used as the source version never reaches CLI out
+ test("offline: malformed or ambiguous source facts are refused before anything is built", async () => {
+   const k = key();
+   const cases: Record<string, Record<string, (t: string) => string>> = {
+-    "header-differs-from-constant": { "pirax-form-test.php": (t) => t.replace("const VERSION = '0.3.0';", "const VERSION = '0.3.1';") },
+-    prerelease: { "pirax-form-test.php": withVersion("0.3.0-beta") },
+-    "duplicate-audited-key": { "includes/compatibility.php": (t) => t.replace("\t'gf'          => '3.1.2',\n", "\t'gf'          => '3.1.2',\n\t'gf'          => '3.1.3',\n") },
+-    "non-literal-audited-version": { "includes/compatibility.php": (t) => t.replace("'cleantalk'   => '6.88',", "'cleantalk'   => CLEANTALK_VERSION,") },
++    "header-differs-from-constant": { "pirax-form-test.php": (t) => t.replace(`const VERSION = '${HELPER_VERSION}';`, `const VERSION = '${nextPatch(HELPER_VERSION)}';`) },
++    prerelease: { "pirax-form-test.php": withVersion(`${HELPER_VERSION}-beta`) },
++    "duplicate-audited-key": { "includes/compatibility.php": (t) => t.replace(`${pinLine("gf")}\n`, `${pinLine("gf")}\n${pinLine("gf", nextPatch(PINS.gf))}\n`) },
++    "non-literal-audited-version": { "includes/compatibility.php": (t) => t.replace(pinLine("cleantalk"), "\t'cleantalk'   => CLEANTALK_VERSION,") },
++    "missing-audited-key": { "includes/compatibility.php": (t) => t.replace(`${pinLine("fluent_smtp")}\n`, "") },
++    "unknown-audited-key": { "includes/compatibility.php": (t) => t.replace(`${pinLine("gf")}\n`, `${pinLine("gf")}\n\t'gravity'      => '1.0',\n`) },
++    "prerelease-audited-version": { "includes/compatibility.php": (t) => t.replace(pinLine("ff"), pinLine("ff", `${PINS.ff}-beta`)) },
+   };
+   const outcomes: Record<string, string> = {};
+   for (const [name, edits] of Object.entries(cases)) {
+diff --git a/test/plugin/safety.test.ts b/test/plugin/safety.test.ts
+index 565c1f5..1b23ed2 100644
+--- a/test/plugin/safety.test.ts
++++ b/test/plugin/safety.test.ts
+@@ -8,6 +8,7 @@ import { join, resolve } from "node:path";
+ import type { BrowserContext, Page } from "playwright";
+ import { findSecret } from "./artifacts";
+ import { startHarness, type Harness, type MailRecord } from "./harness";
++import { exactMatrix, nextPatch, PINS } from "./version-fixtures";
+ 
+ // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
+ setDefaultTimeout(180_000);
+@@ -18,6 +19,10 @@ const REDIRECT = "form-tests+pirax@operator.test";
+ const ID = "abc123";
+ const BLOCKED = "Pirax test blocked: integrations could not be suppressed";
+ const DUMMY_CAPTCHA = "pirax-dummy-recaptcha-response";
++/** Genuinely different versions than the pins, for wrong-version cases. */
++const GF_NEXT = nextPatch(PINS.gf);
++const FF_NEXT = nextPatch(PINS.ff);
++const SMTP_NEXT = nextPatch(PINS.fluent_smtp);
+ 
+ /** A PHP expression decoding a JSON value (single-quoted literal, so `$` and `\` stay literal). */
+ const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}', true)`;
+@@ -360,7 +365,8 @@ test("GF sweep: an old token entry's queued notifications (entry snapshots inclu
+ // ---------------------------------------------------------------------------------------------
+ // Criterion 5 — exact audited versions
+ 
+-test("compatibility gate accepts exactly GF 3.1.2 and FF 6.2.14", async () => {
++test("compatibility gate accepts exactly the pinned GF and FF versions", async () => {
++  const [gf, ff] = [exactMatrix(PINS.gf), exactMatrix(PINS.ff)];
+   const result = await h.php<any>(`
+     $audited = fn($plugin, $versions) => array_combine($versions, array_map(fn($v) => Pirax\\FormTest\\version_is_audited($plugin, $v), $versions));
+     $form = GFAPI::get_form(${h.fixtures.gf});
+@@ -368,42 +374,43 @@ test("compatibility gate accepts exactly GF 3.1.2 and FF 6.2.14", async () => {
+     $real = GFForms::$version;
+     $out = [
+       'installed' => [$real, FLUENTFORM_VERSION],
+-      'gf' => $audited('gf', ['3.1.2', '3.1.3', '3.1.20', '3.1', '3.1.2.1', '3.1.2-beta', '3.2.0']),
+-      'ff' => $audited('ff', ['6.2.14', '6.2.15', '6.2.1', '6.2', '6.2.14.1', '6.3.0']),
++      'gf' => $audited('gf', ${lit(Object.keys(gf))}),
++      'ff' => $audited('ff', ${lit(Object.keys(ff))}),
+       'supported' => [Pirax\\FormTest\\gf_supported($form), Pirax\\FormTest\\ff_supported($ffForm)],
+     ];
+-    GFForms::$version = '3.1.3';
++    GFForms::$version = '${GF_NEXT}';
+     $out['nextPatch'] = Pirax\\FormTest\\gf_supported($form);
+     GFForms::$version = $real;
+     return $out;
+   `);
+   expect(result).toEqual({
+-    installed: ["3.1.2", "6.2.14"],
+-    gf: { "3.1.2": true, "3.1.3": false, "3.1.20": false, "3.1": false, "3.1.2.1": false, "3.1.2-beta": false, "3.2.0": false },
+-    ff: { "6.2.14": true, "6.2.15": false, "6.2.1": false, "6.2": false, "6.2.14.1": false, "6.3.0": false },
++    installed: [PINS.gf, PINS.ff],
++    gf,
++    ff,
+     supported: [true, true],
+     nextPatch: false,
+   });
+ }, 60_000);
+ 
+ test("optional plugin pins are exact strings, and on this stack (none of them active) both reports are ready with core versions only", async () => {
++  const [ffPro, cleantalk, fluentSmtp] = [exactMatrix(PINS.ff_pro, [""]), exactMatrix(PINS.cleantalk, [""]), exactMatrix(PINS.fluent_smtp, [""])];
+   const result = await h.php<any>(`
+     $audited = fn($plugin, $versions) => array_combine($versions, array_map(fn($v) => Pirax\\FormTest\\version_is_audited($plugin, $v), $versions));
+     $report = fn($plugin) => array_intersect_key(Pirax\\FormTest\\compatibility_report($plugin), array_flip(['versions', 'unaudited', 'reasons', 'ready']));
+     return [
+-      'ff_pro' => $audited('ff_pro', ['6.2.15', '6.2.16', '6.2.1', '6.2', '6.2.15.1', '6.2.15-beta', '']),
+-      'cleantalk' => $audited('cleantalk', ['6.88', '6.88.1', '6.89', '6.8', '6.880', '6.88-rc1', '']),
+-      'fluent_smtp' => $audited('fluent_smtp', ['2.4.1', '2.4.2', '2.4', '2.4.10', '2.4.1-beta', '']),
++      'ff_pro' => $audited('ff_pro', ${lit(Object.keys(ffPro))}),
++      'cleantalk' => $audited('cleantalk', ${lit(Object.keys(cleantalk))}),
++      'fluent_smtp' => $audited('fluent_smtp', ${lit(Object.keys(fluentSmtp))}),
+       'gf' => $report('gf'),
+       'ff' => $report('ff'),
+     ];
+   `);
+   expect(result).toEqual({
+-    ff_pro: { "6.2.15": true, "6.2.16": false, "6.2.1": false, "6.2": false, "6.2.15.1": false, "6.2.15-beta": false, "": false },
+-    cleantalk: { "6.88": true, "6.88.1": false, "6.89": false, "6.8": false, "6.880": false, "6.88-rc1": false, "": false },
+-    fluent_smtp: { "2.4.1": true, "2.4.2": false, "2.4": false, "2.4.10": false, "2.4.1-beta": false, "": false },
+-    gf: { versions: { gf: { version: "3.1.2", audited: true } }, unaudited: [], reasons: [], ready: true },
+-    ff: { versions: { ff: { version: "6.2.14", audited: true } }, unaudited: [], reasons: [], ready: true },
++    ff_pro: ffPro,
++    cleantalk,
++    fluent_smtp: fluentSmtp,
++    gf: { versions: { gf: { version: PINS.gf, audited: true } }, unaudited: [], reasons: [], ready: true },
++    ff: { versions: { ff: { version: PINS.ff, audited: true } }, unaudited: [], reasons: [], ready: true },
+   });
+ }, 60_000);
+ 
+@@ -446,19 +453,19 @@ test("version-only diagnosis: reflected source directories decide callback owner
+       ];
+ 
+       $out['audited GF'] = $message();
+-      GFForms::$version = '3.1.3';
+-      $out['GF 3.1.3'] = $message();
++      GFForms::$version = '${GF_NEXT}';
++      $out['GF next patch'] = $message();
+       add_filter('gform_pre_submission', [new Pirax_Probe_GF(), 'm']);
+       add_filter('gform_entry_created', pirax_probe_gf_closure());
+-      $out['GF 3.1.3 with its own callbacks'] = $message();
++      $out['GF next patch with its own callbacks'] = $message();
+       $out['public callback records'] = array_map('array_keys', ($F . 'compatibility_report')('gf')['unaudited']);
+-      $out['GF 3.1.3 with an independent cause'] = $message(['the form has post-creation fields']);
++      $out['GF next patch with an independent cause'] = $message(['the form has post-creation fields']);
+       foreach (['mu-plugin' => 'gravityforms_pirax_probe', 'lookalike directory' => 'Gravity_Forms\\Pirax_Probe\\lookalike', 'eval' => $eval] as $name => $callback) {
+         add_filter('gform_pre_submission', $callback, 11);
+-        $out["GF 3.1.3 plus $name callback"] = $message();
++        $out["GF next patch plus $name callback"] = $message();
+         remove_filter('gform_pre_submission', $callback, 11);
+       }
+-      foreach (['', '3.1.3<b>'] as $version) {
++      foreach (['', '${GF_NEXT}<b>'] as $version) {
+         GFForms::$version = $version;
+         $out["GF version '$version'"] = $message();
+       }
+@@ -467,18 +474,18 @@ test("version-only diagnosis: reflected source directories decide callback owner
+       remove_all_filters('gform_pre_submission');
+       remove_all_filters('gform_entry_created');
+ 
+-      $out['report order, each owner once'] = $synthetic(['ff' => $v('6.2.15', false), 'ff_pro' => $v('6.2.15', true), 'cleantalk' => $v('6.88', true), 'fluent_smtp' => $v('2.4.2', false)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => 'fluent_smtp'], ['hook' => 'b', 'priority' => 10, 'id' => 'y', 'owner' => 'fluent_smtp'], ['hook' => 'c', 'priority' => 10, 'id' => 'z', 'owner' => 'ff']]);
+-      $out['callback of an audited plugin'] = $synthetic(['ff' => $v('6.2.15', false), 'ff_pro' => $v('6.2.15', true)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => 'ff_pro']]);
+-      $out['unowned callback'] = $synthetic(['ff' => $v('6.2.15', false)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => null]]);
+-      $out['missing core'] = $synthetic(['gf' => $v(null, false), 'cleantalk' => $v('6.88.1', false)]);
+-      $out['unreadable optional version'] = $synthetic(['gf' => $v('3.1.3', false), 'cleantalk' => $v('', false)]);
+-      $out['unrecognized audited binding'] = $synthetic(['ff' => $v('6.2.15', false), 'cleantalk' => $v('6.88', true)], [], ['fluentform/before_insert_submission']);
+-      $out['nothing mismatched'] = $synthetic(['ff' => $v('6.2.14', true)]);
++      $out['report order, each owner once'] = $synthetic(['ff' => $v('${FF_NEXT}', false), 'ff_pro' => $v('${PINS.ff_pro}', true), 'cleantalk' => $v('${PINS.cleantalk}', true), 'fluent_smtp' => $v('${SMTP_NEXT}', false)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => 'fluent_smtp'], ['hook' => 'b', 'priority' => 10, 'id' => 'y', 'owner' => 'fluent_smtp'], ['hook' => 'c', 'priority' => 10, 'id' => 'z', 'owner' => 'ff']]);
++      $out['callback of an audited plugin'] = $synthetic(['ff' => $v('${FF_NEXT}', false), 'ff_pro' => $v('${PINS.ff_pro}', true)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => 'ff_pro']]);
++      $out['unowned callback'] = $synthetic(['ff' => $v('${FF_NEXT}', false)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => null]]);
++      $out['missing core'] = $synthetic(['gf' => $v(null, false), 'cleantalk' => $v('${PINS.cleantalk}.1', false)]);
++      $out['unreadable optional version'] = $synthetic(['gf' => $v('${GF_NEXT}', false), 'cleantalk' => $v('', false)]);
++      $out['unrecognized audited binding'] = $synthetic(['ff' => $v('${FF_NEXT}', false), 'cleantalk' => $v('${PINS.cleantalk}', true)], [], ['fluentform/before_insert_submission']);
++      $out['nothing mismatched'] = $synthetic(['ff' => $v('${PINS.ff}', true)]);
+ 
+       // The submission boundary: still rejected, with the message and last-block record chosen together.
+       global $wpdb;
+       $form = GFAPI::get_form(${h.fixtures.gf});
+-      GFForms::$version = '3.1.3';
++      GFForms::$version = '${GF_NEXT}';
+       delete_option('pirax_form_test_last_block');
+       $out['prepare'] = [($F . 'prepare_marked_submission')('gf', $form), ($F . 'blocked_message')()];
+       $record = get_option('pirax_form_test_last_block');
+@@ -522,26 +529,26 @@ test("version-only diagnosis: reflected source directories decide callback owner
+   });
+   expect(result).toMatchObject({
+     "audited GF": BLOCKED,
+-    "GF 3.1.3": `${AWAITING}Gravity Forms 3.1.3`,
+-    "GF 3.1.3 with its own callbacks": `${AWAITING}Gravity Forms 3.1.3`,
++    "GF next patch": `${AWAITING}Gravity Forms ${GF_NEXT}`,
++    "GF next patch with its own callbacks": `${AWAITING}Gravity Forms ${GF_NEXT}`,
+     "public callback records": [["hook", "priority", "id"], ["hook", "priority", "id"]],
+-    "GF 3.1.3 with an independent cause": BLOCKED,
+-    "GF 3.1.3 plus mu-plugin callback": BLOCKED,
+-    "GF 3.1.3 plus lookalike directory callback": BLOCKED,
+-    "GF 3.1.3 plus eval callback": BLOCKED,
++    "GF next patch with an independent cause": BLOCKED,
++    "GF next patch plus mu-plugin callback": BLOCKED,
++    "GF next patch plus lookalike directory callback": BLOCKED,
++    "GF next patch plus eval callback": BLOCKED,
+     "GF version ''": BLOCKED,
+-    "GF version '3.1.3<b>'": BLOCKED,
++    [`GF version '${GF_NEXT}<b>'`]: BLOCKED,
+     "audited GF with GF-directory callbacks": BLOCKED,
+-    "report order, each owner once": `${AWAITING}Fluent Forms 6.2.15, FluentSMTP 2.4.2`,
++    "report order, each owner once": `${AWAITING}Fluent Forms ${FF_NEXT}, FluentSMTP ${SMTP_NEXT}`,
+     "callback of an audited plugin": BLOCKED,
+     "unowned callback": BLOCKED,
+     "missing core": BLOCKED,
+     "unreadable optional version": BLOCKED,
+     "unrecognized audited binding": BLOCKED,
+     "nothing mismatched": BLOCKED,
+-    prepare: [false, `${AWAITING}Gravity Forms 3.1.3`],
+-    record: { message: `${AWAITING}Gravity Forms 3.1.3`, reasons: ["Gravity Forms 3.1.3 is not the audited 3.1.2"], form: h.fixtures.gf, paths: false },
+-    "prepare with a post field": [false, BLOCKED, ["Gravity Forms 3.1.3 is not the audited 3.1.2", "the form has post-creation fields"]],
++    prepare: [false, `${AWAITING}Gravity Forms ${GF_NEXT}`],
++    record: { message: `${AWAITING}Gravity Forms ${GF_NEXT}`, reasons: [`Gravity Forms ${GF_NEXT} is not the audited ${PINS.gf}`], form: h.fixtures.gf, paths: false },
++    "prepare with a post field": [false, BLOCKED, [`Gravity Forms ${GF_NEXT} is not the audited ${PINS.gf}`, "the form has post-creation fields"]],
+     "prepare audited": [true, BLOCKED],
+   });
+   expect(["no", "off"]).toContain(result.autoload);
+diff --git a/test/plugin/updates.test.ts b/test/plugin/updates.test.ts
+index 0bee8a6..2ae9b6d 100644
+--- a/test/plugin/updates.test.ts
++++ b/test/plugin/updates.test.ts
+@@ -12,7 +12,7 @@ import { join, resolve } from "node:path";
+ import type { BrowserContext, Page } from "playwright";
+ import { withoutSigningKey } from "../../scripts/build-plugin";
+ import { findSecret } from "./artifacts";
+-import { startHarness, type Harness } from "./harness";
++import { FF_VERSION, startHarness, type Harness } from "./harness";
+ import {
+   MANIFEST,
+   SIGNATURE,
+@@ -37,6 +37,8 @@ const B = "pirax-form-test/pirax-form-test.php";
+ const F = "\\Pirax\\FormTest\\";
+ const PRODUCTION_ROOT = "https://github.com/CastrumS/pirax-castrum-maintenance/releases";
+ const PRODUCTION_KEY = "D8BfOn8TZC3jD+Hv5Q+p7SGPNGIYISVcMCqQWU0Dh9w=";
++/** Another plugin's real wordpress.org package URL, which the helper's download filter must leave alone. */
++const UNRELATED = `https://downloads.wordpress.org/plugin/fluentform.${FF_VERSION}.zip`;
+ const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}', true)`;
+ const sourceDigest = async () =>
+   createHash("sha256")
+@@ -355,9 +357,9 @@ test("the download boundary refuses unverified helper packages and leaves the in
+       'helperPackageForOtherPlugin' => $code($u->download_package($canonical, false, ['plugin' => 'fluentform/fluentform.php'])),
+       'prepopulatedForHelper' => $code(apply_filters('upgrader_pre_download', '/tmp/elsewhere.zip', $canonical, $u, ['plugin' => '${B}'])),
+       'errorKept' => apply_filters('upgrader_pre_download', $existing, $canonical, $u, ['plugin' => '${B}']) === $existing,
+-      'unrelatedFalse' => apply_filters('upgrader_pre_download', false, 'https://downloads.wordpress.org/plugin/fluentform.6.2.15.zip', $u, ['plugin' => 'fluentform/fluentform.php']),
++      'unrelatedFalse' => apply_filters('upgrader_pre_download', false, ${lit(UNRELATED)}, $u, ['plugin' => 'fluentform/fluentform.php']),
+       'unrelatedReply' => apply_filters('upgrader_pre_download', '/tmp/other.zip', '${fixture.root}/download/v1.0/another-plugin.zip', $u, ['plugin' => 'fluentform/fluentform.php']),
+-      'unrelatedNoContext' => apply_filters('upgrader_pre_download', false, 'https://downloads.wordpress.org/plugin/fluentform.6.2.15.zip', $u, []),
++      'unrelatedNoContext' => apply_filters('upgrader_pre_download', false, ${lit(UNRELATED)}, $u, []),
+       'temps' => array_values(array_map('basename', glob(get_temp_dir() . 'pirax-form-test-*.tmp') ?: [])),
+     ];
+   `);

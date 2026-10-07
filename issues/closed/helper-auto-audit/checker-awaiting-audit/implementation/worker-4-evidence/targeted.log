@@ -1,0 +1,63 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: rejected
+Awaiting-audit fixture /gf-summary-only: rejected
+Awaiting-audit fixture /gf-awaiting-only-container: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-second-helper: rejected
+Awaiting-audit fixture /ff-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-invalid: rejected
+Awaiting-audit fixture /ff-awaiting-invalid: rejected
+Awaiting-audit fixture /gf-generic: rejected
+Awaiting-audit fixture /ff-generic: rejected
+Awaiting-audit fixture /gf-lowercase: rejected
+Awaiting-audit fixture /gf-blank: rejected
+Awaiting-audit fixture /ff-blank: rejected
+Awaiting-audit fixture /gf-no-version: rejected
+Awaiting-audit fixture /gf-bad-separator: rejected
+Awaiting-audit fixture /gf-mid-sentence: rejected
+Awaiting-audit fixture /gf-foreign-awaiting: failed
+Awaiting-audit fixture /ff-stale-awaiting: failed
+Awaiting-audit fixture /ff-foreign-awaiting: failed
+killed 2 dangling processes
+(fail) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [60000.19ms]
+  ^ this test timed out after 60000ms.
+163 | }
+164 | beforeAll(async () => { await mkdir(runDir, { recursive: true }); browser = await chromium.launch(); });
+165 | afterAll(async () => { await browser?.close(); server.stop(true); });
+166 | let sequence = 0;
+167 | async function visit(path: string, fn: (page: import("playwright").Page, policy: Awaited<ReturnType<typeof installFormPolicy>>) => Promise<void>, content?: string) {
+168 |   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: "block" });
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/forms/browser.test.ts:168:33)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/forms/browser.test.ts:540:9
+      at processTicksAndRejections (native:7:39)
+(fail) encoded URLs and browser exceptions are scrubbed from retained action traces [0.52ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-browser-e6b4e710-ffe9-45a3-9c34-c0eee0415197
+
+ 62 pass
+ 2 fail
+ 929 expect() calls
+Ran 64 tests across 3 files. [111.32s]
+exit=1

@@ -1,0 +1,9 @@
+$ bun scripts/release-plugin.ts 
+exit 1
+--- stdout
+--- stderr
+release-plugin: PIRAX_HELPER_SIGNING_KEY does not match UPDATE_PUBLIC_KEY in includes/updates.php
+--- gh calls
+[]
+--- dist
+

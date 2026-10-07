@@ -1,0 +1,9 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/awaiting-audit-commands.test.ts:
+Awaiting-audit command evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/runs/forms-awaiting-commands-aeb38eb5-1af7-4ea3-bfa2-0daaa3797492/summary.json
+
+ 1 pass
+ 0 fail
+ 179 expect() calls
+Ran 1 test across 1 file. [85.28s]

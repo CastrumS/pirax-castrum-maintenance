@@ -1,0 +1,55 @@
+{
+  "suite": "adapters",
+  "scenarios": [
+    "adapters-install",
+    "adapters-visitor"
+  ],
+  "url": "http://127.0.0.1:36221",
+  "versions": {
+    "gf": "3.1.2",
+    "ff": "6.2.14",
+    "wp": "7.1.2",
+    "php": "8.3"
+  },
+  "fixtures": {
+    "gf": 1,
+    "ff": 3,
+    "page": "http://127.0.0.1:36221/pirax-forms/",
+    "feeds": {
+      "gf": 1
+    },
+    "async": {
+      "gf": true
+    },
+    "captcha": {
+      "gf": 2,
+      "ff": 4,
+      "page": "http://127.0.0.1:36221/pirax-captcha-forms/"
+    },
+    "unsupported": {
+      "gf": 3,
+      "ff": 5,
+      "page": "http://127.0.0.1:36221/pirax-unsupported-forms/"
+    }
+  },
+  "zips": {
+    "gravityforms": "cf69559f9f7c14aa5fcf4d37e8cd23df7be557fcdedc5b2dbb105ff96dea336d",
+    "fluentform": "b397ab46fe64e7a35c3c893ca1491c2b28b1f815977a6eaeb4597c6a1db034b9"
+  },
+  "uploads": [
+    {
+      "file": "dist/pirax-form-test.zip",
+      "sha256": "d7e55d07b653def0e9dfbdd2e20d0d4ff957a1dd301d68c2c9666f362986d79a"
+    }
+  ],
+  "artifacts": {
+    "mail": "mail.jsonl",
+    "feeds": "feeds.jsonl",
+    "entries": "entries.json",
+    "network": "network.jsonl",
+    "traces": [
+      "adapters-install.trace.zip",
+      "adapters-visitor.trace.zip"
+    ]
+  }
+}

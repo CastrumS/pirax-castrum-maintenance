@@ -1,0 +1,9 @@
+{
+  "start": "2026-10-05T19:58:39.317Z",
+  "end": "2026-10-05T20:43:10.735Z",
+  "code": 0,
+  "base": "2689aaa3bd69a9a46cc77788fdc5219354cc923a",
+  "headBeforeFinalCommit": "7475dfc",
+  "command": "bun run typecheck && : \"${AKROGON_BASE:?AKROGON_BASE is required}\" && bun test",
+  "environment": "registered .env loaded by Bun; signing seed omitted from child"
+}

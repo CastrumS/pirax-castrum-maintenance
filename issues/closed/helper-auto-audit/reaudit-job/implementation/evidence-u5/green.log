@@ -1,0 +1,179 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-decide.test.ts:
+(pass) decideAudit > unchanged: a complete identical matrix with confirmed cleanup, verified current release and clean evidence [0.07ms]
+(pass) decideAudit > unchanged never hides an incomplete, missing or unverified current release [0.29ms]
+(pass) decideAudit > an 'unchanged' result whose versions differ from the pins is refused [0.03ms]
+(pass) decideAudit > detection, GPL Vault, download and cleanup failures map to safe stages and reasons [0.34ms]
+(pass) decideAudit > no gate may be missing or failed for a candidate, and never through a default [0.20ms]
+(pass) decideAudit > a suite failure reports the candidate versions it audited [0.04ms]
+(pass) decideAudit > incomplete package facts or a helper target other than the next patch are refused [0.34ms]
+(pass) decideAudit > all gates passed: a strict candidate with digests but no paths or URLs [0.22ms]
+(pass) parseCandidate > two attempts of one run: each attempt's candidate is accepted only by that attempt [0.15ms]
+(pass) parseCandidate > refuses null with a fixed field message [0.12ms]
+(pass) parseCandidate > refuses array with a fixed field message [0.07ms]
+(pass) parseCandidate > refuses string with a fixed field message [0.07ms]
+(pass) parseCandidate > refuses schema with a fixed field message [0.07ms]
+(pass) parseCandidate > refuses repository with a fixed field message [0.06ms]
+(pass) parseCandidate > refuses extra key with a fixed field message [0.05ms]
+(pass) parseCandidate > refuses nested extra key with a fixed field message [0.06ms]
+(pass) parseCandidate > refuses url with a fixed field message [0.05ms]
+(pass) parseCandidate > refuses other run with a fixed field message [0.03ms]
+(pass) parseCandidate > refuses earlier attempt of this run with a fixed field message [0.03ms]
+(pass) parseCandidate > refuses missing attempt with a fixed field message [0.04ms]
+(pass) parseCandidate > refuses attempt with leading zero with a fixed field message [0.03ms]
+(pass) parseCandidate > refuses numeric attempt with a fixed field message [0.04ms]
+(pass) parseCandidate > refuses short base with a fixed field message [0.03ms]
+(pass) parseCandidate > refuses uppercase base with a fixed field message [0.04ms]
+(pass) parseCandidate > refuses base with newline with a fixed field message [0.04ms]
+(pass) parseCandidate > refuses missing new pin with a fixed field message [0.07ms]
+(pass) parseCandidate > refuses prerelease pin with a fixed field message [0.06ms]
+(pass) parseCandidate > refuses unchanged pins with a fixed field message [0.07ms]
+(pass) parseCandidate > refuses downgrade with a fixed field message [0.07ms]
+(pass) parseCandidate > refuses package version with a fixed field message [0.05ms]
+(pass) parseCandidate > refuses package digest with a fixed field message [0.05ms]
+(pass) parseCandidate > refuses missing package with a fixed field message [0.04ms]
+(pass) parseCandidate > refuses helper skip with a fixed field message [0.04ms]
+(pass) parseCandidate > refuses digest with a fixed field message [0.05ms]
+(pass) parseCandidate > refuses failed gate with a fixed field message [0.05ms]
+(pass) parseCandidate > refuses truthy gate with a fixed field message [0.04ms]
+(pass) parseCandidate > refuses missing gate with a fixed field message [0.04ms]
+(pass) decidePublication > proceeds only when every guard holds [0.05ms]
+(pass) decidePublication > main advanced since the audit publishes nothing [0.03ms]
+(pass) decidePublication > remote main unreadable publishes nothing
+(pass) decidePublication > target tag or release exists publishes nothing
+(pass) decidePublication > tag lookup unanswered publishes nothing
+(pass) decidePublication > checkout is not the audited base publishes nothing
+(pass) decidePublication > source pins drifted publishes nothing
+(pass) decidePublication > helper version drifted publishes nothing
+(pass) decidePublication > reconstruction differs publishes nothing
+(pass) native evidence > every native manifest used the selected versions and digests, with at least one full stack [0.18ms]
+(pass) native evidence > test counts: no failure, skip or todo is acceptable [0.18ms]
+(pass) chooseNotice > one notice: the failed job's own valid summary, publication first [0.11ms]
+(pass) chooseNotice > missing or invalid summaries fall back to fixed safe text per failed job [0.12ms]
+(pass) chooseNotice > a rerun reads only its own attempt: attempt 1's confirmed-cleanup summary never describes attempt 2's missing one [0.63ms]
+(pass) runAudit wiring (synthetic doubles) > changed and every gate passed: candidate written, scratch removed, children get scoped random inputs [22.67ms]
+(pass) runAudit wiring (synthetic doubles) > a native suite failure writes a safe summary, no candidate, and never runs the helper bump checks [17.87ms]
+(pass) runAudit wiring (synthetic doubles) > acquisition failure: summary carries the stage and cleanup state; scratch removed; no suite runs [11.66ms]
+(pass) runAudit wiring (synthetic doubles) > unchanged: no suite, no candidate; a missing current release fails instead of passing silently [20.86ms]
+(pass) runAudit wiring (synthetic doubles) > lifecycle evidence survives a failure: strict flags, unknown counts stay null, only a loopback site is kept and reaches the cleanup notice [42.90ms]
+(pass) runAudit wiring (synthetic doubles) > confirmed cleanup keeps lifecycle evidence but no throwaway-site guidance; a missing site is null, never invented [11.26ms]
+(pass) runAudit wiring (synthetic doubles) > retained native evidence containing a known secret is withheld and fails the privacy gate [10.77ms]
+
+tests/reaudit-operations.test.ts:
+(pass) failure summary validation > accepts complete safe facts and renders every one [0.23ms]
+(pass) failure summary validation > a loopback throwaway site is rendered as recovery guidance; any other site is refused [0.12ms]
+(pass) failure summary validation > absent cleanup/publication are explicit unknowns, never 'nothing published' [0.08ms]
+(pass) failure summary validation > partial publication states carry inspection guidance [0.07ms]
+(pass) failure summary validation > rejects injection, private URLs, unknown keys and nonnumeric versions [0.22ms]
+(pass) failure summary validation > validation errors name fields, never the rejected value [0.05ms]
+(pass) failure summary validation > unknown keys are never echoed, even purely alphabetic ones [0.05ms]
+(pass) failure summary validation > intended commit and tag for partial publication are validated and rendered [0.34ms]
+(pass) failure summary validation > run URL comes only from the fixed official repository [0.08ms]
+(pass) sendFailure > missing credentials fail by name before any transport [0.37ms]
+(pass) sendFailure > fixed Gmail implicit TLS, bounded timeouts, no logging, fixed recipient, one attempt [0.30ms]
+(pass) sendFailure > transport errors become safe codes: no raw message, secret, URL or retry [0.22ms]
+(pass) sendFailure > unsafe error codes are dropped [0.11ms]
+(pass) sendFailure > only allowlisted public codes and built-in error names are reported [0.18ms]
+(pass) sendFailure > a hanging send is bounded and closed [50.28ms]
+(pass) sendFailure > a recipient not accepted is a failure [0.18ms]
+(pass) sendFailure > CLI: usage, invalid summary and missing credentials exit nonzero by name only [201.39ms]
+(pass) time parsing > strict ISO instants with offsets [0.33ms]
+(pass) heartbeat due predicate > due at exactly 30 days, not one millisecond before [0.07ms]
+(pass) heartbeat due predicate > small clock skew is not due; real future and malformed dates fail closed [0.04ms]
+(pass) heartbeat due predicate > a nonfinite injected clock throws rather than answering not due [0.04ms]
+(pass) safe child environment > only allowlisted names reach git/gh children, prompts disabled [0.08ms]
+(pass) git authentication without persisted credentials > git gets github.com credentials from gh and GH_TOKEN; other helpers are reset and nothing is stored [91.47ms]
+(pass) heartbeat operation against a local temp remote > due: commits only the heartbeat file and fast-forwards remote main without tags [60.49ms]
+(pass) heartbeat operation against a local temp remote > due: remote git commands carry GIT_AUTH and GH_TOKEN in their environment, never the token on argv [68.49ms]
+(pass) heartbeat operation against a local temp remote > due with an already tracked heartbeat: updates only that file and pushes without tags [53.42ms]
+(pass) heartbeat operation against a local temp remote > a nonfinite clock is refused before any commit [24.29ms]
+(pass) heartbeat operation against a local temp remote > not due: no commit, remote unchanged [40.18ms]
+(pass) heartbeat operation against a local temp remote > dirty checkout, other branch and stale HEAD are refused without pushing [59.67ms]
+(pass) heartbeat operation against a local temp remote > main advancing before push is refused; nothing force-pushed [59.66ms]
+(pass) heartbeat operation against a local temp remote > git failures report a fixed stage, not stderr or paths [28.05ms]
+(pass) watchdog > latest started schedule/manual run decides overdue at >48h exactly [0.51ms]
+(pass) watchdog > newest schedule or manual run counts; other events are ignored; a failed audit means the scheduler is alive [0.10ms]
+(pass) watchdog > disabled workflow alerts even with a recent run [0.13ms]
+(pass) watchdog > no history: initial installation grace for 48h, then alert [0.07ms]
+(pass) watchdog > malformed, unknown or future facts are not healthy [0.33ms]
+(pass) watchdog > a nonfinite injected clock is never healthy [0.12ms]
+(pass) watchdog > observe uses read-only GET lookups on the fixed repository [0.47ms]
+(pass) watchdog > recent skipped non-main dispatch cannot mask overdue main; requests main history [0.23ms]
+(pass) watchdog > missing workflow, API failure and unparsable output are unhealthy [0.15ms]
+watchdog: notice not sent: Error
+(pass) watchdog > healthy sends nothing; unhealthy sends one safe notice; notice failure is reported without retry [0.69ms]
+(pass) imports are inert > no output, network, mail or git on import [148.11ms]
+
+tests/reaudit-privacy.test.ts:
+(pass) secretValues names every credential class; the public recipient address is not a secret [0.20ms]
+(pass) scopedEnv passes only the base allowlist plus the named inputs [0.19ms]
+(pass) Bun children never load a local environment file [0.04ms]
+(pass) sanitizeLine redacts raw, URL-encoded and JSON-escaped secrets, private URL credentials and queries [0.35ms]
+(pass) runChild captures, sanitizes and rescans output before writing its log, with the scoped environment only [6.19ms]
+(pass) runChild bounds a hung child and reports the timeout [502.04ms]
+(pass) scanEvidence finds secrets in files and inside ZIP entries (traces) and withholds those files [4.37ms]
+(pass) scanEvidence's unzip child inherits no credential, even when the scan finds nothing [9.68ms]
+
+tests/reaudit-publish.test.ts:
+(pass) real read-only lookup: an absent release is reported missing, never healthy [462.31ms]
+v0.3.1: dist/pirax-form-test.zip sha256 2c4bbadfc239cd165741e1db5129c169297da45027bca279ebc9f7d237bbeca8, signed by public key 5tUOE5DJotPVW77L+j/f2qsiUFPia0k1+oyapn6EEVc=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+(pass) publishes this run's candidate: reconstructed allowlisted commit, normal push, existing release CLI, independent verification [1828.47ms]
+release-plugin: release asset privacy check failed; assets withheld, publication not attempted
+(pass) encoded signing seed in final ZIP is withheld before any tag or release mutation [1691.65ms]
+(pass) main advanced since the audit: nothing is committed, pushed, claimed or released [926.06ms]
+(pass) main advancing between the preflight and the push is refused by the normal push [926.03ms]
+(pass) an existing target tag (synthetic remote state) publishes nothing [69.74ms]
+(pass) a candidate from another run, a corrupt candidate or a changed source publishes nothing [878.61ms]
+(pass) a rerun attempt never publishes an earlier attempt's candidate of the same run [45.49ms]
+(pass) an unreadable new commit is refused before any push: no empty commit can disable the tag-commit check [904.74ms]
+v0.3.1: dist/pirax-form-test.zip sha256 d0bce1ab211081212b9cc769dc5c86122a1e62dce2c3cb75eba922bedb441a1e, signed by public key fu1R01uSMc3tupOUGp+syfXmILUqXkqf7Kb8s3t/mA8=
+HTTP 502: Bad Gateway
+release-plugin: gh release create failed (exit 1); tag v0.3.1 was claimed on CastrumS/pirax-castrum-maintenance at 2f5a8d693182beee3477715d9c6aa0dfb9481dc3; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly
+(pass) a release failure after the claim reports the pushed commit and claimed tag as uncertain, without retry or deletion [1840.65ms]
+v0.3.1: dist/pirax-form-test.zip sha256 3aa84f80a8a13c504f29e5aa2bdabd0f7df9770c9f9aaf7b37994133c471c9c7, signed by public key Vw/BSmJMuty3ui93bHNyzOLEeJlQRzk8SrAqE3d0Gt8=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+(pass) a published release whose manifest does not verify is reported incomplete [1793.75ms]
+(pass) a signed, hash-consistent release whose plugin Version header disagrees is refused; the matching control verifies [139.72ms]
+
+tests/reaudit-workflow.test.ts:
+(pass) triggers: daily off-the-hour UTC schedule and manual dispatch only; fixed repository-wide concurrency, never cancelled [0.10ms]
+(pass) every job is guarded to main of the fixed repository, bounded and explicitly permissioned [0.07ms]
+(pass) no expression is interpolated into shell; every action is pinned to a commit [0.20ms]
+(pass) audit: read-only, no persisted credentials, explicit Node 24/Bun 1.4.2/native tools/Chromium, frozen install, >=90 min budget, vendor secrets only on the audit step [0.20ms]
+(pass) plan D5: no checkout persists credentials; publish and heartbeat push with the run token on their own step only [0.08ms]
+(pass) publish: only after this run's successful audited candidate, write-capable, no install/vendor code, trusted checkout, signing key on one step [0.11ms]
+(pass) reruns keep run_id and earlier artifacts: every artifact upload/download is bound to this run attempt [0.07ms]
+(pass) heartbeat: independent final job, runs even after failures, fresh main and write token only [0.04ms]
+(pass) notice: one always() job observing every other job, with mail credentials only on its send step [0.06ms]
+(pass) watchdog: separate daily/manual workflow with actions:read, Gmail secrets only, its own concurrency [0.05ms]
+(pass) every referenced script exists; the initial heartbeat payload is a valid instant [0.26ms]
+(pass) the four guides document the workflows, the manual dispatch and only scripts that exist [0.46ms]
+(pass) documented CLIs refuse unknown arguments with usage (exit 2) and do nothing else [280.87ms]
+(pass) notify --jobs picks the failed job's summary and, without mail credentials, fails safely before any SMTP attempt [284.92ms]
+(pass) pinned download action's flat single-match/named extraction reaches the real summary loader and CLI [393.41ms]
+(pass) publish and heartbeat jobs install nothing: their scripts load without node_modules [23.59ms]
+
+test/plugin/release.test.ts:
+(pass) offline: dry run signs the exact manifest bytes from source-derived facts and never calls GitHub [64.08ms]
+(pass) offline: importing the release script has no side effects [24.56ms]
+(pass) offline: a missing or malformed seed is refused by name, in both modes, before anything is built [248.14ms]
+(pass) offline: publishing refuses a seed whose public key is not the committed production key [62.32ms]
+(pass) offline: publishing refuses an existing local tag before any GitHub call [27.54ms]
+(pass) publishing fails closed when the real GitHub lookup cannot answer [270.63ms]
+(pass) remote lookup tells a missing tag from an existing one [1532.89ms]
+(pass) the test gh wrapper forwards only the two exact read-only lookups and answers every write itself [472.64ms]
+(pass) publishing checks GitHub read-only, claims the tag at HEAD, then creates exactly one release from it with the three signed assets [865.99ms]
+(pass) a tag claimed concurrently or an unanswered claim stops publication before gh release create [1756.83ms]
+(pass) a release failure after the claim leaves the tag for deliberate recovery: no retry, overwrite or delete [878.87ms]
+(pass) offline: a generated seed used as the source version never reaches CLI output, in either mode [34.32ms]
+(pass) offline: malformed or ambiguous source facts are refused before anything is built [159.48ms]
+(pass) offline: the parent refuses to package a seed found in source, and no private material reaches outputs or logs [54.81ms]
+
+ 150 pass
+ 0 fail
+ 1051 expect() calls
+Ran 150 tests across 6 files. [20.78s]

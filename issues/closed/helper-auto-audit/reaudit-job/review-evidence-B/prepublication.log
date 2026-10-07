@@ -1,0 +1,31 @@
+bun test v1.4.2 (744846f84)
+
+../../open/helper-auto-audit/reaudit-job/review-evidence-B/prepublication.test.ts:
+v0.3.1: dist/pirax-form-test.zip sha256 fe756c82d5f2349d2b9b37578f6d0d4b7600d04c5c4f85b7c8f789dd41a1a1d3, signed by public key EilAlhtDTOzwIy6/THPhlAumR7WUfL7AIVj5IcPBPaU=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+{"control":"published","interceptedMutations":2}
+(pass) control: clean assets publish and independently verify at intercepted boundaries [1865.46ms]
+v0.3.1: dist/pirax-form-test.zip sha256 78b0cf509d9c44d8213c16d57addde84b834d4ca8208bd6182e93478b0f6de8e, signed by public key MxN/YX8gDfc+urJxgme0YUzdvL6s7hx6u8bhHYfNktY=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+{"reason":"release-asset-secret","publication":"release-incomplete","interceptedMutations":2,"uploadedZipContainsEncodedSeed":true}
+155 |   const f = await fixture(true);
+156 |   const s = await failure(publish({ root: f.dir, candidatePath: f.candidatePath, runId: RUN, runAttempt: ATTEMPT, env: f.env, remoteUrl: f.remote }));
+157 |   const calls = mutations(await f.calls());
+158 |   const p = Bun.spawnSync(["unzip", "-p", join(f.state, "assets/pirax-form-test.zip"), "pirax-form-test/README.md"], { env: { PATH: process.env.PATH }, stdout: "pipe", stderr: "pipe" });
+159 |   console.log(JSON.stringify({ reason: s.reason, publication: s.publication, interceptedMutations: calls.length, uploadedZipContainsEncodedSeed: p.stdout.toString().includes(encodeURIComponent(f.seed)) }));
+160 |   expect(calls.length).toBe(0);
+                             ^
+error: expect(received).toBe(expected)
+
+Expected: 0
+Received: 2
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/helper-auto-audit/reaudit-job/review-evidence-B/prepublication.test.ts:160:24)
+(fail) known encoded signing seed must be refused before tag/release mutation [1810.28ms]
+
+ 1 pass
+ 1 fail
+ 3 expect() calls
+Ran 2 tests across 1 file. [3.75s]

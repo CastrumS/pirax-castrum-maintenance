@@ -1,0 +1,10 @@
+2026-10-06T07:48:37Z
+$ bun --env-file=<registered .env> test test/plugin/updates.test.ts -t "download boundary refuses unverified helper packages"
+bun test v1.4.2 (744846f84)
+
+ 1 pass
+ 6 filtered out
+ 0 fail
+ 40 expect() calls
+Ran 1 test across 1 file. [118.66s]
+exit=0

@@ -1,0 +1,10 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-operations.test.ts:
+watchdog: notice not sent: Error
+
+ 31 pass
+ 0 fail
+ 173 expect() calls
+Ran 31 tests across 1 file. [644.00ms]
+exit=0

@@ -1,0 +1,10 @@
+$ bun scripts/release-plugin.ts --dry-run
+exit 1
+leaked false
+--- stdout
+--- stderr
+release-plugin: includes/compatibility.php: AUDITED_VERSIONS 'ff' is not a stable dotted numeric version
+--- gh calls
+[]
+--- dist
+

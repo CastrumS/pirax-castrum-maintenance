@@ -1,0 +1,438 @@
+{
+  "keys": {
+    "test": "1713992840ab6170c6206c8ba9e4c3546cc4b7091a3cb300f9e319f5625bfab4",
+    "other": "c3b6084b2d21c441448aad63f22a2c3851b5457d5c30cafd2566593cbf7e2738",
+    "format": "sha256 of the raw 32-byte Ed25519 public key"
+  },
+  "root": "http://127.0.0.1:44539/CastrumS/pirax-castrum-maintenance/releases",
+  "helpers": {
+    "installed": {
+      "version": "0.3.0",
+      "sha256": "e19f68b95a2ab33d26db0019a8208c27fad050d5e9a3c6d55c0aac520e5bf26d"
+    },
+    "target": {
+      "version": "0.3.1",
+      "sha256": "0c81e93c1627f5b049a6cdf95930954baad2cbe53532d6621db30713108169e1"
+    },
+    "newer": {
+      "version": "0.3.2",
+      "sha256": "a29b1f08819d1b184a67460e1cc8e910d90d82826bd79fd9d7050ad66b8c2ae7"
+    },
+    "hostile": {
+      "version": "0.3.1",
+      "sha256": "3e9713a7357662bb04f4a12b499cce1340051608c645cfd341d4783ec17d48e0"
+    }
+  },
+  "manifest": {
+    "version": "0.3.1",
+    "package": "http://127.0.0.1:44539/CastrumS/pirax-castrum-maintenance/releases/download/v0.3.1/pirax-form-test.zip",
+    "sha256": "0c81e93c1627f5b049a6cdf95930954baad2cbe53532d6621db30713108169e1",
+    "audited": {
+      "gf": "3.1.2",
+      "ff": "6.2.14",
+      "ff_pro": "6.2.15",
+      "cleantalk": "6.88",
+      "fluent_smtp": "2.4.1"
+    }
+  },
+  "cases": [
+    {
+      "name": "refresh: unsigned (no .sig)",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "404 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: signature not base64",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: signature of 63 bytes",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: corrupted signature byte",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: signed by another key",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: manifest bytes changed after signing",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: equal version",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: older version",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: signed non-JSON",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: signed JSON list",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: missing sha256",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: extra field",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: uppercase sha256",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: short sha256",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: prerelease version",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: v-prefixed version",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: numeric version",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: audited as a list",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: audited with a non-string version",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: package on another host",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: package on another port",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: package at the production origin",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: package with userinfo",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: package with a query",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: package with a fragment",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: package path traversal",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: package encoded traversal",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: package in a lookalike repository",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: package for another version",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: package with another asset name",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: manifest HTTP 500",
+      "offered": false,
+      "requests": [
+        "500 latest/download/pirax-form-test-manifest.json"
+      ]
+    },
+    {
+      "name": "refresh: manifest connection reset",
+      "offered": false,
+      "requests": [
+        "reset latest/download/pirax-form-test-manifest.json"
+      ]
+    },
+    {
+      "name": "refresh: signature connection reset",
+      "offered": false,
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "reset latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "refresh: release missing (404)",
+      "offered": false,
+      "requests": [
+        "404 latest/download/pirax-form-test-manifest.json"
+      ]
+    },
+    {
+      "name": "browser update: hash mismatch",
+      "offered": true,
+      "installed": "0.3.0",
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig",
+        "302 download/v0.3.1/pirax-form-test.zip",
+        "200 /assets/download%2Fv0.3.1%2Fpirax-form-test.zip"
+      ]
+    },
+    {
+      "name": "install: hash mismatch",
+      "offered": true,
+      "installed": "0.3.0",
+      "error": [
+        "pirax_form_test_update"
+      ],
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig",
+        "302 download/v0.3.1/pirax-form-test.zip",
+        "200 /assets/download%2Fv0.3.1%2Fpirax-form-test.zip"
+      ]
+    },
+    {
+      "name": "install: feed moved to a newer release",
+      "offered": true,
+      "installed": "0.3.0",
+      "error": [
+        "pirax_form_test_update"
+      ],
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "install: same version re-signed for other bytes",
+      "offered": true,
+      "installed": "0.3.0",
+      "error": [
+        "pirax_form_test_update"
+      ],
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "install: feed unreachable at install time",
+      "offered": true,
+      "installed": "0.3.0",
+      "error": [
+        "pirax_form_test_update"
+      ],
+      "requests": [
+        "500 latest/download/pirax-form-test-manifest.json"
+      ]
+    },
+    {
+      "name": "install: feed no longer signed",
+      "offered": true,
+      "installed": "0.3.0",
+      "error": [
+        "pirax_form_test_update"
+      ],
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "install: package download fails",
+      "offered": true,
+      "installed": "0.3.0",
+      "error": [
+        "pirax_form_test_update"
+      ],
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig",
+        "reset download/v0.3.1/pirax-form-test.zip"
+      ]
+    },
+    {
+      "name": "install: offer edited to a hostile package",
+      "offered": true,
+      "installed": "0.3.0",
+      "error": [
+        "pirax_form_test_update"
+      ],
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "install: offer edited to another version",
+      "offered": true,
+      "installed": "0.3.0",
+      "error": [
+        "pirax_form_test_update"
+      ],
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig"
+      ]
+    },
+    {
+      "name": "browser update: signed 0.3.1",
+      "offered": true,
+      "installed": "0.3.1",
+      "requests": [
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig",
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig",
+        "200 latest/download/pirax-form-test-manifest.json",
+        "200 latest/download/pirax-form-test-manifest.json.sig",
+        "302 download/v0.3.1/pirax-form-test.zip",
+        "200 /assets/download%2Fv0.3.1%2Fpirax-form-test.zip"
+      ]
+    }
+  ],
+  "traces": [
+    "updates-hash-mismatch.trace.zip",
+    "updates-details.trace.zip",
+    "updates-listing-install.trace.zip"
+  ]
+}

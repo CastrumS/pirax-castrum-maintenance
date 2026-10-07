@@ -1,0 +1,128 @@
+2026-10-06T06:55:13Z
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/runs/capture-test-2026-10-06T06-55-13.973Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/runs/capture-test-2026-10-06T06-55-13.973Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/runs/capture-test-2026-10-06T06-55-13.973Z
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/runs/2026-10-06T06-55-58.362Z/index.html
+
+tests/reaudit-operations.test.ts:
+watchdog: notice not sent: Error
+
+test/forms/awaiting-audit-commands.test.ts:
+Awaiting-audit command evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/runs/forms-awaiting-commands-ecbf6cae-b64a-445d-88fd-e08d99ffc0c8/summary.json
+
+test/forms/awaiting-audit.test.ts:
+Awaiting-audit state evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/runs/forms-awaiting-4c7eebcd-5e12-44bc-9b90-80903d41687a/summary.json
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: rejected
+Awaiting-audit fixture /gf-summary-only: rejected
+Awaiting-audit fixture /gf-awaiting-only-container: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-second-helper: rejected
+Awaiting-audit fixture /ff-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-invalid: rejected
+Awaiting-audit fixture /ff-awaiting-invalid: rejected
+Awaiting-audit fixture /gf-generic: rejected
+Awaiting-audit fixture /ff-generic: rejected
+Awaiting-audit fixture /gf-lowercase: rejected
+Awaiting-audit fixture /gf-blank: rejected
+Awaiting-audit fixture /ff-blank: rejected
+Awaiting-audit fixture /gf-no-version: rejected
+Awaiting-audit fixture /gf-bad-separator: rejected
+Awaiting-audit fixture /gf-mid-sentence: rejected
+Awaiting-audit fixture /gf-foreign-awaiting: failed
+Awaiting-audit fixture /ff-stale-awaiting: failed
+Awaiting-audit fixture /ff-foreign-awaiting: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/runs/forms-browser-4e341bd2-b1d7-46d2-8fb2-a2a5401ca177
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/runs/forms-playground-7d71aaee-f86c-47a3-9e60-c708ee6ca73c/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/runs/forms-collision-5a5c1e4b-6619-403d-990d-3ed04dbbd0be/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/runs/forms-report-tests-22288181-7bab-4652-b96a-7017667f5f4d/summary.json
+
+test/plugin/updates.test.ts:
+274 |       `catch (Throwable $e) { echo "\\n${RESULT}" . wp_json_encode(['ok' => false, 'error' => get_class($e) . ': ' . $e->getMessage()]); }`;
+275 |     const answer = new Promise<any>((r) => pending.set(id, r));
+276 |     child.stdin.write(JSON.stringify({ id, code: wrapped }) + "\n");
+277 |     child.stdin.flush();
+278 |     const message = await Promise.race([answer, timeout(timeoutMs, () => new Error(`PHP execution timed out after ${timeoutMs}ms`))]);
+279 |     if (message.error) throw new Error(clean(message.error));
+                                       ^
+error: PHP.run() failed with exit code 255. 
+
+=== Stdout ===
+ <br />
+<b>Warning</b>:  require(/wordpress/.maintenance): Failed to open stream: No such file or directory in <b>/wordpress/wp-includes/load.php</b> on line <b>444</b><br />
+<br />
+<b>Fatal error</b>:  Uncaught Error: Failed opening required '/wordpress/.maintenance' (include_path='.:') in /wordpress/wp-includes/load.php:444
+Stack trace:
+#0 /wordpress/wp-includes/load.php(402): wp_is_maintenance_mode()
+#1 /wordpress/wp-settings.php(79): wp_maintenance()
+#2 /wordpress/wp-config.php(102): require_once('/wordpress/wp-s...')
+#3 /wordpress/wp-load.php(50): require_once('/wordpress/wp-c...')
+#4 /internal/eval.php(1): require('/wordpress/wp-l...')
+#5 {main}
+  thrown in <b>/wordpress/wp-includes/load.php</b> on line <b>444</b><br />
+<br />
+<b>Warning</b>:  require(/wordpress/.maintenance): Failed to open stream: No such file or directory in <b>/wordpress/wp-includes/load.php</b> on line <b>444</b><br />
+<br />
+<b>Fatal error</b>:  Uncaught Error: Failed opening required '/wordpress/.maintenance' (include_path='.:') in /wordpress/wp-includes/load.php:444
+Stack trace:
+#0 /wordpress/wp-includes/class-wp-fatal-error-handler.php(37): wp_is_maintenance_mode()
+#1 [internal function]: WP_Fatal_Error_Handler-&gt;handle()
+#2 {main}
+  thrown in <b>/wordpress/wp-includes/load.php</b> on line <b>444</b><br />
+
+
+=== Stderr ===
+ PHP Warning:  require(/wordpress/.maintenance): Failed to open stream: No such file or directory in /wordpress/wp-includes/load.php on line 444
+PHP Fatal error:  Uncaught Error: Failed opening required '/wordpress/.maintenance' (include_path='.:') in /wordpress/wp-includes/load.php:444
+Stack trace:
+#0 /wordpress/wp-includes/load.php(402): wp_is_maintenance_mode()
+#1 /wordpress/wp-settings.php(79): wp_maintenance()
+#2 /wordpress/wp-config.php(102): require_once('/wordpress/wp-s...')
+#3 /wordpress/wp-load.php(50): require_once('/wordpress/wp-c...')
+#4 /internal/eval.php(1): require('/wordpress/wp-l...')
+#5 {main}
+  thrown in /wordpress/wp-includes/load.php on line 444
+PHP Warning:  require(/wordpress/.maintenance): Failed to open stream: No such file or directory in /wordpress/wp-includes/load.php on line 444
+PHP Fatal error:  Uncaught Error: Failed opening required '/wordpress/.maintenance' (include_path='.:') in /wordpress/wp-includes/load.php:444
+Stack trace:
+#0 /wordpress/wp-includes/class-wp-fatal-error-handler.php(37): wp_is_maintenance_mode()
+#1 [internal function]: WP_Fatal_Error_Handler->handle()
+#2 {main}
+  thrown in /wordpress/wp-includes/load.php on line 444
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u3/test/plugin/harness.ts:279:34)
+(fail) the download boundary refuses unverified helper packages and leaves the installed bytes unchanged [54306.49ms]
+
+ 316 pass
+ 1 fail
+ 4491 expect() calls
+Ran 317 tests across 29 files. [3195.24s]
+exit=1
+2026-10-06T07:48:29Z

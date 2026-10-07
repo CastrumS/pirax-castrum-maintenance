@@ -1,0 +1,71 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/release.test.ts:
+291 | 
+292 | test("publishing checks GitHub read-only, claims the tag at HEAD, then creates exactly one release from it with the three signed assets", async () => {
+293 |   const { r, k, dir, commit, claim, lookups, writes } = await publish("publish");
+294 |   expect(r.code).toBe(0);
+295 |   expect(r.dist).toEqual(ASSETS);
+296 |   expect(writes.length).toBe(2);
+                              ^
+error: expect(received).toBe(expected)
+
+Expected: 2
+Received: 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u4/test/plugin/release.test.ts:296:25)
+(fail) publishing checks GitHub read-only, claims the tag at HEAD, then creates exactly one release from it with the three signed assets [989.70ms]
+310 | 
+311 | test("a tag claimed concurrently or an unanswered claim stops publication before gh release create", async () => {
+312 |   const outcomes: Record<string, unknown> = {};
+313 |   for (const [fail, reason] of [["ref-exists", "HTTP 422"], ["ref-error", "exit 1"]] as const) {
+314 |     const { r, claim, writes } = await publish(`publish-${fail}`, fail);
+315 |     expect(r.code).toBe(1);
+                         ^
+error: expect(received).toBe(expected)
+
+Expected: 1
+Received: 0
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u4/test/plugin/release.test.ts:315:20)
+(fail) a tag claimed concurrently or an unanswered claim stops publication before gh release create [975.97ms]
+322 | });
+323 | 
+324 | test("a release failure after the claim leaves the tag for deliberate recovery: no retry, overwrite or delete", async () => {
+325 |   const { r, commit, claim, writes } = await publish("publish-release-failure", "release");
+326 |   expect(r.code).toBe(1);
+327 |   expect(writes.length).toBe(2);
+                              ^
+error: expect(received).toBe(expected)
+
+Expected: 2
+Received: 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u4/test/plugin/release.test.ts:327:25)
+(fail) a release failure after the claim leaves the tag for deliberate recovery: no retry, overwrite or delete [948.05ms]
+344 |     outcomes[`source-privacy-${args.length ? "dry-run" : "publish"}`] = { exit: r.code, leaked: r.leaked, ghCalls: r.calls.length, dist: r.dist };
+345 |     messages.push(r.stderr.trim());
+346 |   }
+347 |   await writeFile(join(artifactDir, "source-privacy.json"), `${JSON.stringify(outcomes, null, 2)}\n`);
+348 |   summary.sourcePrivacy = outcomes;
+349 |   for (const outcome of Object.values(outcomes)) expect(outcome).toEqual({ exit: 1, leaked: false, ghCalls: 0, dist: [] });
+                                                                       ^
+error: expect(received).toEqual(expected)
+
+@@ -4,3 +4,3 @@
+    "ghCalls": 0,
+-   "leaked": false,
++   "leaked": true,
+  }
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u4/test/plugin/release.test.ts:349:66)
+(fail) offline: a generated seed used as the source version never reaches CLI output, in either mode [43.03ms]
+
+ 10 pass
+ 4 fail
+ 171 expect() calls
+Ran 14 tests across 1 file. [6.13s]
+exit=1

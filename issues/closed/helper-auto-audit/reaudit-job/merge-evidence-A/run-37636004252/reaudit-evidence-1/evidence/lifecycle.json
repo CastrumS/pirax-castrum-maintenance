@@ -1,0 +1,13 @@
+{
+  "activationAttempted": true,
+  "activationConfirmed": true,
+  "deactivationAttempted": true,
+  "deactivationConfirmed": true,
+  "remainingBefore": 139,
+  "remainingAfter": 139,
+  "updater": {
+    "before": "5.3.9",
+    "after": "5.3.9"
+  },
+  "site": "http://127.0.0.1:41987"
+}

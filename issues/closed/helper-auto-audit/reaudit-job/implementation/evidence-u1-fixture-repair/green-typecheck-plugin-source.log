@@ -1,0 +1,9 @@
+$ tsc --noEmit
+typecheck exit 0
+bun test v1.4.2 (744846f84)
+
+ 9 pass
+ 0 fail
+ 158 expect() calls
+Ran 9 tests across 1 file. [52.00ms]
+plugin-source exit 0

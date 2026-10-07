@@ -1,0 +1,30 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-detect.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../scripts/reaudit/detect' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u2/tests/reaudit-detect.test.ts'
+-------------------------------
+
+
+tests/reaudit-fetch.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../scripts/reaudit/detect' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u2/tests/reaudit-fetch.test.ts'
+-------------------------------
+
+
+tests/reaudit-setup.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../scripts/reaudit/fetch' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u2/tests/reaudit-setup.test.ts'
+-------------------------------
+
+
+ 0 pass
+ 3 fail
+ 3 errors
+Ran 3 tests across 3 files. [14.00ms]

@@ -1,0 +1,240 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/capture-test-2026-10-02T18-20-29.174Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/capture-test-2026-10-02T18-20-29.174Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/capture-test-2026-10-02T18-20-29.174Z
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/2026-10-02T18-21-15.574Z/index.html
+
+test/forms/awaiting-audit-commands.test.ts:
+Awaiting-audit command evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-awaiting-commands-2d148919-88b8-4e4f-a85d-ad85e2eac55c/summary.json
+
+test/forms/awaiting-audit.test.ts:
+Awaiting-audit state evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-awaiting-e6ccd54b-d743-4b3a-a936-4397bb525552/summary.json
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-playground-e069b899-f853-4d37-ac13-66777a31f69c/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-collision-5ab9122a-00cd-43cd-bb73-014806f3b82b/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-report-tests-33af25f1-ce3a-48b3-9225-bb5dfb53a01a/summary.json
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: failed
+289 |       policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+290 |       expect(prepared.state).toBe("prepared"); if (prepared.state !== "prepared") return;
+291 |       const before = writes;
+292 |       const result = await submitForm(page, prepared, policy, { timeoutMs: 1_000, redact });
+293 |       console.log(`Awaiting-audit fixture ${path}: ${result.state}`);
+294 |       expect(`${path}: ${result.state}`).toBe(`${path}: ${expected}`);
+                                               ^
+error: expect(received).toBe(expected)
+
+Expected: "/gf-awaiting-extra-in-container: rejected"
+Received: "/gf-awaiting-extra-in-container: failed"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/forms/browser.test.ts:294:42)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/forms/browser.test.ts:171:158)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/forms/browser.test.ts:288:11)
+(fail) exact awaiting-audit refusals are classified per message; near matches, extra refusals, stale and foreign messages are not [3239.91ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-browser-e4686f90-bde9-45a9-b304-6b6ae7103ae5
+
+test/plugin/adapters.test.ts:
+445 |       closedTraces.push(path);
+446 |       return (lastTrace = path);
+447 |     },
+448 |     async uploadPlugin(page, zip) {
+449 |       uploads.push({ file: zip.startsWith(ROOT) ? relative(ROOT, zip) : basename(zip), sha256: await sha256(zip) });
+450 |       await page.goto(`${url}/wp-admin/plugin-install.php?tab=upload`);
+                       ^
+error: goto: net::ERR_NETWORK_IO_SUSPENDED at http://127.0.0.1:37287/wp-admin/plugin-install.php?tab=upload
+Call log:
+[2m  - navigating to "http://127.0.0.1:37287/wp-admin/plugin-install.php?tab=upload", waiting until "load"[22m
+
+  log: [ "  - navigating to \"http://127.0.0.1:37287/wp-admin/plugin-install.php?tab=upload\", waiting until \"load\"" ],
+
+      at uploadPlugin (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/harness.ts:450:18)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/adapters.test.ts:43:11
+      at processTicksAndRejections (native:7:39)
+(fail) (unnamed) [39805.08ms]
+
+test/plugin/compatibility.test.ts:
+166 |     for (const [name, value] of Object.entries(gfValues(message))) await form.locator(`[name='${name}']`).fill(value);
+167 |     await form.evaluate((f, fields) => {
+168 |       for (const [name, value] of Object.entries(fields)) f.appendChild(Object.assign(document.createElement("input"), { type: "hidden", name, value }));
+169 |     }, hidden);
+170 |     if (query) await page.evaluate((q) => ((window as any).gform_theme_config.common.form.ajax.ajaxurl += q), query);
+171 |     const response = page.waitForResponse((r) => r.url().includes("admin-ajax.php") && r.request().method() === "POST" && (r.request().postData() ?? "").includes("gform_submit_form"));
+                                ^
+TimeoutError: waitForResponse: Timeout 30000ms exceeded while waiting for event "response"
+  log: [],
+
+      at gfAjaxSubmit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/compatibility.test.ts:171:27)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/compatibility.test.ts:348:28
+      at processTicksAndRejections (native:7:39)
+(fail) GF modern AJAX (admin-ajax gform_submit_form): marked confirms with one redirected Simulator mail and no CleanTalk request or token-bearing HTTP; ordinary keeps CleanTalk's generic check, its entry, ledger feed and original mail [55482.35ms]
+158 | ) {
+159 |   const { page, context } = session;
+160 |   const id = h.fixtures.gf;
+161 |   if (cookie) await context.addCookies([{ name: "pirax_probe", value: cookie, url: h.url }]);
+162 |   try {
+163 |     if (!keepPage) await page.goto(h.fixtures.page);
+                                    ^
+error: goto: net::ERR_NETWORK_IO_SUSPENDED at http://127.0.0.1:43313/pirax-forms/
+Call log:
+[2m  - navigating to "http://127.0.0.1:43313/pirax-forms/", waiting until "load"[22m
+
+  log: [ "  - navigating to \"http://127.0.0.1:43313/pirax-forms/\", waiting until \"load\"" ],
+
+      at gfAjaxSubmit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/compatibility.test.ts:163:31)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/compatibility.test.ts:392:27
+      at processTicksAndRejections (native:7:39)
+(fail) GF modern AJAX early boundary: malformed markers, invalid configuration and the token in a field input the stored form lacks are refused without CleanTalk; the token outside field inputs (query, cookie, other POST names) stays ordinary and keeps CleanTalk [30909.89ms]
+119 | const gfValues = (message: string) => ({ input_1: "Stack Visitor", input_2: "visitor@example.test", input_3: message });
+120 | 
+121 | /** Submit the rendered FF contact form; `hidden` adds hidden fields (e.g. Pro's saved-state hash). */
+122 | async function ffSubmit(message: string, hidden: Record<string, string> = {}) {
+123 |   const { page } = visitor;
+124 |   await page.goto(h.fixtures.page);
+                   ^
+error: goto: net::ERR_NETWORK_IO_SUSPENDED at http://127.0.0.1:43313/pirax-forms/
+Call log:
+[2m  - navigating to "http://127.0.0.1:43313/pirax-forms/", waiting until "load"[22m
+
+  log: [ "  - navigating to \"http://127.0.0.1:43313/pirax-forms/\", waiting until \"load\"" ],
+
+      at ffSubmit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/compatibility.test.ts:124:14)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/compatibility.test.ts:629:28
+      at processTicksAndRejections (native:7:39)
+(fail) Pro auto-delete and drafts: a marked entry outlives a failed queued mail until FF's retry and its draft survives; Pro deletes ordinary ones [12643.76ms]
+135 | }
+136 | 
+137 | async function gfSubmit(message: string) {
+138 |   const { page } = visitor;
+139 |   const id = h.fixtures.gf;
+140 |   await page.goto(h.fixtures.page);
+                   ^
+error: goto: net::ERR_NETWORK_IO_SUSPENDED at http://127.0.0.1:43313/pirax-forms/
+Call log:
+[2m  - navigating to "http://127.0.0.1:43313/pirax-forms/", waiting until "load"[22m
+
+  log: [ "  - navigating to \"http://127.0.0.1:43313/pirax-forms/\", waiting until \"load\"" ],
+
+      at gfSubmit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/compatibility.test.ts:140:14)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/compatibility.test.ts:767:22
+      at processTicksAndRejections (native:7:39)
+(fail) CleanTalk re-registered during a marked submission's own dispatch is removed again; ordinary submissions keep it [11187.60ms]
+119 | const gfValues = (message: string) => ({ input_1: "Stack Visitor", input_2: "visitor@example.test", input_3: message });
+120 | 
+121 | /** Submit the rendered FF contact form; `hidden` adds hidden fields (e.g. Pro's saved-state hash). */
+122 | async function ffSubmit(message: string, hidden: Record<string, string> = {}) {
+123 |   const { page } = visitor;
+124 |   await page.goto(h.fixtures.page);
+                   ^
+error: goto: net::ERR_NETWORK_IO_SUSPENDED at http://127.0.0.1:43313/pirax-forms/
+Call log:
+[2m  - navigating to "http://127.0.0.1:43313/pirax-forms/", waiting until "load"[22m
+
+  log: [ "  - navigating to \"http://127.0.0.1:43313/pirax-forms/\", waiting until \"load\"" ],
+
+      at ffSubmit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/compatibility.test.ts:124:14)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/compatibility.test.ts:887:26
+      at processTicksAndRejections (native:7:39)
+(fail) an unaudited optional Pro module (Inventory) keeps blocking marked FF; the panel names its callbacks [11085.30ms]
+
+test/plugin/harness.test.ts:
+100 |   try {
+101 |     await page.goto(`${h.url}/wp-login.php`);
+102 |     await page.fill("#user_login", h.users.admin.login);
+103 |     await page.fill("#user_pass", h.users.admin.password);
+104 |     await page.click("#wp-submit");
+105 |     await page.waitForURL(/\/wp-admin\/?/);
+                     ^
+TimeoutError: waitForURL: Timeout 30000ms exceeded.
+=========================== logs ===========================
+waiting for navigation until "load"
+  navigated to "chrome-error://chromewebdata/"
+============================================================
+  log: [],
+
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/harness.test.ts:105:16
+      at processTicksAndRejections (native:7:39)
+(fail) browser logs in to real wp-admin and submits unmarked forms for both plugins [31938.16ms]
+
+test/plugin/review-regressions.test.ts:
+452 |       await page.click("#install-plugin-submit");
+453 |       const activate = page.locator("#wpbody-content a.button-primary", { hasText: "Activate Plugin" });
+454 |       try {
+455 |         await activate.waitFor({ timeout: 60_000 });
+456 |       } catch {
+457 |         throw new Error(clean(`Plugin upload did not offer activation: ${(await page.locator("#wpbody-content").innerText()).slice(0, 1000)}`));
+                                                                                                                      ^
+TimeoutError: innerText: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('#wpbody-content')[22m
+
+  log: [ "  - waiting for locator('#wpbody-content')" ],
+
+      at uploadPlugin (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/harness.ts:457:113)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/review-regressions.test.ts:33:11
+      at processTicksAndRejections (native:7:39)
+(fail) (unnamed) [120338.02ms]
+
+test/plugin/safety.test.ts:
+452 |       await page.click("#install-plugin-submit");
+453 |       const activate = page.locator("#wpbody-content a.button-primary", { hasText: "Activate Plugin" });
+454 |       try {
+455 |         await activate.waitFor({ timeout: 60_000 });
+456 |       } catch {
+457 |         throw new Error(clean(`Plugin upload did not offer activation: ${(await page.locator("#wpbody-content").innerText()).slice(0, 1000)}`));
+                        ^
+error: Plugin upload did not offer activation: Installing plugin from uploaded file: pirax-form-test.zip
+
+Unpacking the package…
+
+Installing the plugin…
+      at uploadPlugin (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/harness.ts:457:19)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/safety.test.ts:41:11)
+(fail) (unnamed) [90772.26ms]
+
+test/plugin/stack-harness.test.ts:
+86 |     await ff.locator("input[name='email']").fill("visitor@example.test");
+87 |     await ff.locator("textarea[name='message']").fill("ff ordinary stack control");
+88 |     await ff.locator("button[type=submit]").click();
+89 |     await page.locator(".ff-message-success").waitFor();
+90 | 
+91 |     await page.goto(h.fixtures.page);
+                    ^
+error: goto: net::ERR_NETWORK_IO_SUSPENDED at http://127.0.0.1:46743/pirax-forms/
+Call log:
+[2m  - navigating to "http://127.0.0.1:46743/pirax-forms/", waiting until "load"[22m
+
+  log: [ "  - navigating to \"http://127.0.0.1:46743/pirax-forms/\", waiting until \"load\"" ],
+
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/plugin/stack-harness.test.ts:91:16
+      at processTicksAndRejections (native:7:39)
+(fail) ordinary FF and GF controls reach CleanTalk moderation, the Pro webhook and FluentSMTP's Simulator [6217.12ms]
+
+ 227 pass
+ 11 fail
+ 3189 expect() calls
+Ran 238 tests across 25 files. [2223.63s]

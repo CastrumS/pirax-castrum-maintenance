@@ -1,0 +1,29 @@
+Worker 3 is finished: two commits on top of `ccd7747`, the worktree is clean, and the report is filled in at `implementation/worker-3.md`. One gap: I did not run the configured full `bun test`, because you asked me not to duplicate the native suites (`test/forms/playground.test.ts`, `test/plugin/*`) while B's lane run is going. B's run is the authority for criterion 6.
+
+**`ce34761`: criterion 7 fix.** The bug was real. A fresh awaiting-audit message next to a form that had just failed native validation was reported as a warning. I added two fixtures (one Gravity Forms, one Fluent Forms) that both failed first and returned `awaiting-audit`. The fix is one condition in `src/forms/submit.ts`: the warning is only returned when the form has no native validation failure, so this case is now `rejected` as before. The refusal detail and the no-retry behaviour are unchanged. All 22 browser tests pass.
+
+**`524f590`: integration test and docs.**
+- **New test** (`test/forms/awaiting-audit-commands.test.ts`): it runs the production `forms`, `baseline` and `check` commands against local refusal pages and real R2 storage under a fresh test prefix.
+  - **First sighting:** warning, exit 0, and the clock object is saved.
+  - **Clock kept:** the saved clock is unchanged after a fresh store, reversed page order, a switch to Fluent Forms with different versions, and a `check` run.
+  - **Escalation:** a clock seeded about 100 hours old makes both commands fail with exit 1. The detail keeps the version text and adds the elapsed time and the 72-hour threshold. Repeats don't reset it.
+  - **Healthy visuals:** every `check` had unchanged, healthy screenshots, so the forms result alone decided the exit.
+  - **Clearing:** a normal rejection, a confirmed but undelivered submission, helper off, no designated form, and a page with no forms each cleared only their own site. The next sighting started a new clock, and the second site's clock never changed.
+  - **Safety and cleanup:** each attempt made one POST. Only the confirmed submission connected to the test mailbox. Reports were rendered from their contents, never by opening the signed link. The privacy scan found nothing, and cleanup left 0 objects.
+- **Docs:** the root README has the new outcome row, exit codes, refusal and 72-hour rules, the `state/awaiting-audit/<slug>.json` location, storage fallback and limitations. I also fixed two nearby claims that were no longer true. The forms test guide has the new matrix, test descriptions, evidence paths and warning list.
+
+**Test results** (Node 24 first on PATH, environment loaded only through Bun):
+- Typecheck: clean.
+- All non-native suites, run with the configured `AKROGON_BASE` pattern: 185 pass, 0 fail across 17 files, 267 s.
+
+**Mailbox oracle:** a local desktop service occasionally probes listening ports, and during a long `check` it opened a connection to my test mailbox. I now count a connection as the checker's only when it comes from the mail client's own socket. Probes are still recorded, and one showed up in the final run, correctly marked as not ours.
+
+**Privacy scan scope:** the scan skips the visual screenshot traces, which keep screenshots by design; it covers every other retained file.
+
+**Evidence:** red, green and suite logs are in `implementation/worker-3-evidence/`, with no secrets found. Run outputs are under the u3 worktree's `runs/`; the main summary is `runs/forms-awaiting-commands-f2b5764c-…/summary.json`.
+
+**Limitations:** these are local test pages, not proof of a released helper or live mail. The other limitations are recorded in the report:
+- the first-seen time is when the checker saw the refusal, not when the plugin was updated;
+- overlapping runs can race on R2;
+- a storage outage or a failed clear can delay escalation;
+- a renamed site's old clock stays behind.

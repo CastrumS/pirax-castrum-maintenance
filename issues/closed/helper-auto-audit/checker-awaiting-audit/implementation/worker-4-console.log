@@ -1,0 +1,22 @@
+The repair is committed as `f1b75c1`, but the configured full suite exited 1 (227 pass / 11 fail), so criterion 6 is not met. The failures come from the host, not the repair: the machine has been suspending about every 30 seconds since 19:33, including 75 times during the 37-minute run.
+
+**What was fixed:**
+- **A F1 (docs):** `README.md` now says the checker recognizes the awaiting-audit message only from a helper that emits it. It states that the in-tree helper 0.2.4 still answers a version mismatch with `integrations could not be suppressed`, which stays `rejected` (exit 1). I checked this against the helper's version and message constants. The "old"/"older" wording is gone from both guides.
+- **B B1 / A N1 (mailbox test):** the scanner test in `test/forms/browser.test.ts` now counts a mailbox connection only when it comes from the installed ImapFlow client's own socket. The real `connect()` is called, not replaced. A deliberately unrelated real TCP connection is opened before the positive control and before each awaiting scan; it counts neither as the client connecting nor as polling. The one-POST, no-trap and outcome/version checks are unchanged, and everything is restored in `finally`.
+  - **Red first:** with the old counting and the in-test unrelated connection, the test failed (expected 1 connection, received 2).
+  - **Green after:** the same test passed, and so did B's external probe script, which opened 81 unrelated connections.
+- **A N2:** `src/sites.ts` exports its existing slug rule and `src/forms/awaiting-audit.ts` imports it instead of keeping a copy. Behavior is unchanged and the sites/state tests pass.
+- **A N3:** the README now says a completed pass whose page scan fails (navigation error, challenge page or browser launch failure) clears the clock and can postpone escalation, while each such run still exits 1.
+
+**Why the full suite failed:**
+- Every failure is a timeout or `net::ERR_NETWORK_IO_SUSPENDED`, which is Chromium's error when the OS suspends.
+- Seven of the eleven are in the native plugin suites; none is in code this repair changed.
+- One awaiting-classification case hit its 1-second timeout; it passed when I reran the files the repair touches (browser, sites and state tests).
+- That rerun also exited 1 (61 pass / 3 fail), with a different set failing:
+  - a 2-second checkbox timeout;
+  - the 60-second preflight test, which also times out on the unmodified reviewed head and has run close to its limit (41.7 s at the last verified run);
+  - a test that failed only because that timeout left the shared browser closed.
+
+I didn't raise any deadline or relax any assertion. I also didn't keep rerunning the 37-minute suite, because every run on a suspending host is equally invalid and fails a different set of tests. Someone needs to stop the suspend loop on the laptop (lid, wake source or idle settings). Then B's lane gates should give the clean configured run; I left the power settings alone.
+
+Everything is in `worker-4.md`, with logs in `implementation/worker-4-evidence/`.

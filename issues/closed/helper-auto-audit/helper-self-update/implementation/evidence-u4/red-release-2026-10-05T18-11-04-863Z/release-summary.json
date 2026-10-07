@@ -1,0 +1,123 @@
+{
+  "dryRun": {
+    "exit": 0,
+    "ghCalls": 0,
+    "dist": [
+      "pirax-form-test-manifest.json",
+      "pirax-form-test-manifest.json.sig",
+      "pirax-form-test.zip"
+    ],
+    "version": "0.3.0",
+    "sha256": "6e441f97830ce170065df2a50ec63312a5f3200cb5651cfaa455b431e8362885",
+    "audited": {
+      "gf": "3.1.2",
+      "ff": "6.2.14",
+      "ff_pro": "6.2.16",
+      "cleantalk": "6.88",
+      "fluent_smtp": "2.4.1"
+    },
+    "testKeyFingerprint": "1504bc4c49efacddef51a542050241db8859a51d0e475978e24327a3ea282213",
+    "verifiedWithTestKey": true,
+    "verifiedWithProductionKey": false
+  },
+  "import": {
+    "exit": 0,
+    "output": "",
+    "dist": "absent",
+    "ghCalls": 0
+  },
+  "seedRefusals": {
+    "seed-unset-dry-run": 1,
+    "seed-unset-publish": 1,
+    "seed-empty-dry-run": 1,
+    "seed-empty-publish": 1,
+    "seed-not-base64-dry-run": 1,
+    "seed-not-base64-publish": 1,
+    "seed-31-bytes-dry-run": 1,
+    "seed-31-bytes-publish": 1,
+    "seed-64-bytes-dry-run": 1,
+    "seed-64-bytes-publish": 1,
+    "seed-unpadded-dry-run": 1,
+    "seed-unpadded-publish": 1,
+    "seed-trailing-newline-dry-run": 1,
+    "seed-trailing-newline-publish": 1,
+    "seed-base64url-dry-run": 1,
+    "seed-base64url-publish": 1
+  },
+  "mismatch": {
+    "exit": 1,
+    "ghCalls": 0,
+    "dist": []
+  },
+  "localTag": {
+    "exit": 1,
+    "ghCalls": 0,
+    "dist": []
+  },
+  "remoteError": {
+    "exit": 1,
+    "ghCalls": [
+      "api --include"
+    ],
+    "dist": []
+  },
+  "remoteLookup": {
+    "absent": "CastrumS/pirax-castrum-maintenance@v0.0.0-pirax-never-released",
+    "present": "cli/cli@v2.0.0",
+    "invalidToken": "rejected (HTTP 401)"
+  },
+  "wrapper": {
+    "refLookup": {
+      "code": 1,
+      "synthesized": false
+    },
+    "releaseListing": {
+      "code": 1,
+      "synthesized": false
+    },
+    "refCreate": {
+      "code": 0,
+      "synthesized": true
+    },
+    "refDelete": {
+      "code": 0,
+      "synthesized": true
+    },
+    "fieldsImplyPost": {
+      "code": 0,
+      "synthesized": true
+    },
+    "otherGet": {
+      "code": 0,
+      "synthesized": true
+    },
+    "releaseCreate": {
+      "code": 0,
+      "synthesized": true
+    }
+  },
+  "sourcePrivacy": {
+    "source-privacy-dry-run": {
+      "exit": 1,
+      "leaked": true,
+      "ghCalls": 0,
+      "dist": []
+    },
+    "source-privacy-publish": {
+      "exit": 1,
+      "leaked": true,
+      "ghCalls": 0,
+      "dist": []
+    }
+  },
+  "sourceRefusals": {
+    "header-differs-from-constant": "release-plugin: pirax-form-test.php: Version header and VERSION constant differ",
+    "prerelease": "release-plugin: pirax-form-test.php: version 0.3.0-beta is not a stable dotted numeric version",
+    "duplicate-audited-key": "release-plugin: includes/compatibility.php: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal",
+    "non-literal-audited-version": "release-plugin: includes/compatibility.php: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal"
+  },
+  "seedInSource": {
+    "exit": 1,
+    "message": "release-plugin: README.md contains the value of PIRAX_HELPER_SIGNING_KEY"
+  }
+}

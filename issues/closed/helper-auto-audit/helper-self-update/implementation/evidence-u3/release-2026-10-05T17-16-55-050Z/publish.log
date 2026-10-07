@@ -1,0 +1,12 @@
+$ bun scripts/release-plugin.ts 
+exit 0
+--- stdout
+v0.0.1: dist/pirax-form-test.zip sha256 4e36221d5bc11a5fb0f601252aec10827c50b7e1dd3b4258b90cb814a5c04b0f, signed by public key ONf0f1msUwjUscu/033Cv7Y2jAT3fQNkDUGesPCeKN8=
+published v0.0.1 on CastrumS/pirax-castrum-maintenance
+--- stderr
+--- gh calls
+[["api","--include","repos/CastrumS/pirax-castrum-maintenance/git/ref/tags/v0.0.1"],["api","--paginate","repos/CastrumS/pirax-castrum-maintenance/releases?per_page=100","--jq",".[].tag_name"],["release","create","v0.0.1","--repo","CastrumS/pirax-castrum-maintenance","--latest","--target","6f3850fd0e28a706e1b414adb249289327066275","--title","v0.0.1","--notes","Pirax Form Test 0.0.1. Audited: gf 3.1.2, ff 6.2.14, ff_pro 6.2.15, cleantalk 6.88, fluent_smtp 2.4.1.","/tmp/pirax-release-test-EoE0LM/publish/dist/pirax-form-test.zip","/tmp/pirax-release-test-EoE0LM/publish/dist/pirax-form-test-manifest.json","/tmp/pirax-release-test-EoE0LM/publish/dist/pirax-form-test-manifest.json.sig"]]
+--- dist
+pirax-form-test-manifest.json
+pirax-form-test-manifest.json.sig
+pirax-form-test.zip

@@ -1,0 +1,25 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/harness.test.ts:
+81 |       $file = WP_PLUGIN_DIR . '/' . ${lit(file)};
+82 |       rename("$file.pirax-original", $file);
+83 |       if (function_exists('opcache_invalidate')) opcache_invalidate($file, true);
+84 |       return hash_file('sha256', $file);
+85 |     `);
+86 |     expect(restored).toBe(hashes.original);
+                          ^
+error: expect(received).toBe(expected)
+
+Expected: "e8554a302c9ed602280be285fe200eee377e30ed05f984ee8c65d866d8238852"
+Received: "aeb18589fef4c9ad48ea66c1aa94b3f688a15031573e50f1ac738d951c0e6f6c"
+
+      at withAlteredFile (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/test/plugin/version-fixtures.ts:86:22)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/test/plugin/harness.test.ts:240:11)
+(fail) withAlteredFile: repeated and nested plugin edits reach every Playground worker and restore the original bytes [10528.51ms]
+
+ 0 pass
+ 6 filtered out
+ 1 fail
+ 6 expect() calls
+Ran 1 test across 1 file. [40.56s]
+exit 1

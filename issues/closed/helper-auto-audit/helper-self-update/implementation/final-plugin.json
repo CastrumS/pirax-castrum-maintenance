@@ -1,0 +1,9 @@
+{
+  "start": "2026-10-05T20:43:10.735Z",
+  "end": "2026-10-05T21:16:09.791Z",
+  "code": 0,
+  "base": "2689aaa3bd69a9a46cc77788fdc5219354cc923a",
+  "headBeforeFinalCommit": "7475dfc",
+  "command": "bun --no-env-file test test/plugin",
+  "environment": "registered .env loaded by Bun; signing seed omitted from child"
+}

@@ -1,0 +1,107 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+123 |     for (const c of inspected.controls) {
+124 |       const value = c.kind === "email" ? config.address : c.value;
+125 |       if (filled.get(c.index) === `${c.kind}:${value}`) continue;
+126 |       // Elements collection matches externally checked indices; do not modify hidden nonces/honeypots.
+127 |       const control = form.locator('input,textarea,select,button,fieldset,object,output').nth(c.index);
+128 |       if (c.kind === "check") await control.check();
+                                                  ^
+TimeoutError: check: Timeout 2000ms exceeded.
+Call log:
+[2m  - waiting for locator('#gform_1').locator('input,textarea,select,button,fieldset,object,output').nth(5)[22m
+[2m    - locator resolved to <input type="checkbox" name="input_4.3"/>[22m
+[2m  - attempting click action[22m
+[2m    - waiting for element to be visible, enabled and stable[22m
+
+  log: [ "  - waiting for locator('#gform_1').locator('input,textarea,select,button,fieldset,object,output').nth(5)",
+  "    - locator resolved to <input type=\"checkbox\" name=\"input_4.3\"/>", "  - attempting click action",
+  "    - waiting for element to be visible, enabled and stable"
+],
+
+      at fillForm (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/src/forms/fill.ts:128:45)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/forms/browser.test.ts:208:21
+      at visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/forms/browser.test.ts:171:158)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/forms/browser.test.ts:206:11
+      at processTicksAndRejections (native:7:39)
+(fail) native required checkbox groups choose one usable option; individual required and optional choices are preserved [2079.59ms]
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: rejected
+Awaiting-audit fixture /gf-summary-only: rejected
+Awaiting-audit fixture /gf-awaiting-only-container: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-second-helper: rejected
+Awaiting-audit fixture /ff-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-invalid: rejected
+Awaiting-audit fixture /ff-awaiting-invalid: rejected
+Awaiting-audit fixture /gf-generic: rejected
+Awaiting-audit fixture /ff-generic: rejected
+Awaiting-audit fixture /gf-lowercase: rejected
+Awaiting-audit fixture /gf-blank: rejected
+Awaiting-audit fixture /ff-blank: rejected
+Awaiting-audit fixture /gf-no-version: rejected
+Awaiting-audit fixture /gf-bad-separator: rejected
+Awaiting-audit fixture /gf-mid-sentence: rejected
+Awaiting-audit fixture /gf-foreign-awaiting: failed
+Awaiting-audit fixture /ff-stale-awaiting: failed
+Awaiting-audit fixture /ff-foreign-awaiting: failed
+killed 2 dangling processes
+(fail) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [60332.37ms]
+  ^ this test timed out after 60000ms.
+
+# Unhandled error between tests
+-------------------------------
+399 |     names.forEach(name => delete process.env[name]);
+400 |     expect((await scanPageForms(site('/upload'), { path: '/upload', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+401 |     expect((await scanPageForms(site('/ambiguous-ff', 'fluent', 2), { path: '/ambiguous-ff', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+402 |     process.env.FORM_TEST_TOKEN = config.token; process.env.FORM_TEST_ADDRESS = config.address;
+403 |     expect((await scanPageForms(site('/constrained'), { path: '/constrained', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+404 |     await expect(scanPageForms(site('/plain'), { path: '/plain', mask: [] }, { runDir })).rejects.toThrow('IMAP_HOST');
+                                                                                                        ^
+error: expect(received).rejects.toThrow(expected)
+
+Expected promise that rejects
+Received promise that resolved: Promise { <resolved> }
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/forms/browser.test.ts:404:99)
+-------------------------------
+
+163 | }
+164 | beforeAll(async () => { await mkdir(runDir, { recursive: true }); browser = await chromium.launch(); });
+165 | afterAll(async () => { await browser?.close(); server.stop(true); });
+166 | let sequence = 0;
+167 | async function visit(path: string, fn: (page: import("playwright").Page, policy: Awaited<ReturnType<typeof installFormPolicy>>) => Promise<void>, content?: string) {
+168 |   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, serviceWorkers: "block" });
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/forms/browser.test.ts:168:33)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/test/forms/browser.test.ts:540:9
+      at processTicksAndRejections (native:7:39)
+(fail) encoded URLs and browser exceptions are scrubbed from retained action traces [0.51ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-browser-0ec9600e-c14e-4f2f-8001-c1927bb7dfe6
+
+ 61 pass
+ 3 fail
+ 1 error
+ 922 expect() calls
+Ran 64 tests across 3 files. [112.83s]
+exit=1

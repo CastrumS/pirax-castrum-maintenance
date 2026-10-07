@@ -1,0 +1,22 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/release.test.ts:
+(pass) offline: dry run signs the exact manifest bytes from source-derived facts and never calls GitHub [50.56ms]
+(pass) offline: importing the release script has no side effects [23.22ms]
+(pass) offline: a missing or malformed seed is refused by name, in both modes, before anything is built [174.88ms]
+(pass) offline: publishing refuses a seed whose public key is not the committed production key [23.62ms]
+(pass) offline: publishing refuses an existing local tag before any GitHub call [25.91ms]
+(pass) publishing fails closed when the real GitHub lookup cannot answer [590.31ms]
+(pass) remote lookup tells a missing tag from an existing one [1720.59ms]
+(pass) the test gh wrapper forwards only the two exact read-only lookups and answers every write itself [561.11ms]
+(pass) publishing checks GitHub read-only, claims the tag at HEAD, then creates exactly one release from it with the three signed assets [917.87ms]
+(pass) a tag claimed concurrently or an unanswered claim stops publication before gh release create [1882.53ms]
+(pass) a release failure after the claim leaves the tag for deliberate recovery: no retry, overwrite or delete [932.81ms]
+(pass) offline: a generated seed used as the source version never reaches CLI output, in either mode [48.82ms]
+(pass) offline: malformed or ambiguous source facts are refused before anything is built [76.39ms]
+(pass) offline: the parent refuses to package a seed found in source, and no private material reaches outputs or logs [54.52ms]
+
+ 14 pass
+ 0 fail
+ 200 expect() calls
+Ran 14 tests across 1 file. [7.11s]

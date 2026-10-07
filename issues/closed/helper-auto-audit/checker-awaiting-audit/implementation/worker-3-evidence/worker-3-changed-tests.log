@@ -1,0 +1,68 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: <redacted:PWD>/runs/capture-test-2026-10-02T15-55-09.084Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: <redacted:PWD>/runs/capture-test-2026-10-02T15-55-09.084Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: <redacted:PWD>/runs/capture-test-2026-10-02T15-55-09.084Z
+
+tests/report.test.ts:
+Report browser artifact: <redacted:PWD>/runs/2026-10-02T15-55-53.157Z/index.html
+
+test/forms/awaiting-audit.test.ts:
+Awaiting-audit state evidence: <redacted:PWD>/runs/forms-awaiting-cf4172ee-1254-48d7-8727-3f595d667cb4/summary.json
+
+test/forms/playground.test.ts:
+Native forms evidence: <redacted:PWD>/runs/forms-playground-0e4c3d95-1ebc-4e3c-ba90-9a12ad2fd999/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: <redacted:PWD>/runs/forms-collision-d82ae233-27d9-41fe-b31e-5362a55ac033/synthetic-folder-collision/summary.json
+Forms report evidence: <redacted:PWD>/runs/forms-report-tests-9db91cf4-df7b-45ce-a647-00ae4b8c0bd6/summary.json
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-re<redacted:NVD_BACKEND>: confirmed
+Submission fixture /ff-re<redacted:NVD_BACKEND>-no-entry: failed
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: rejected
+Awaiting-audit fixture /gf-summary-only: rejected
+Awaiting-audit fixture /gf-awaiting-only-container: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-second-helper: rejected
+Awaiting-audit fixture /ff-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-invalid: rejected
+Awaiting-audit fixture /ff-awaiting-invalid: rejected
+Awaiting-audit fixture /gf-generic: rejected
+Awaiting-audit fixture /ff-generic: rejected
+Awaiting-audit fixture /gf-lowercase: rejected
+Awaiting-audit fixture /gf-blank: rejected
+Awaiting-audit fixture /ff-blank: rejected
+Awaiting-audit fixture /gf-no-version: rejected
+Awaiting-audit fixture /gf-bad-separator: rejected
+Awaiting-audit fixture /gf-mid-sentence: rejected
+Awaiting-audit fixture /gf-foreign-awaiting: failed
+Awaiting-audit fixture /ff-stale-awaiting: failed
+Awaiting-audit fixture /ff-foreign-awaiting: failed
+Forms browser evidence: <redacted:PWD>/runs/forms-browser-0c1b2476-7ce6-4272-b40c-1e78245abbc0
+
+test/forms/awaiting-audit-commands.test.ts:
+Awaiting-audit command evidence: <redacted:PWD>/runs/forms-awaiting-commands-4d508227-323f-40f6-b4a2-6af9d54c5313/summary.json
+
+ 262 pass
+ 0 fail
+ 3905 expect() calls
+Ran 262 tests across 25 files. [2235.26s]
+
+changed-tests exit 0

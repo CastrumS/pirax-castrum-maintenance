@@ -1,0 +1,17 @@
+$ env -u PIRAX_HELPER_SIGNING_KEY bun --no-env-file <evidence-u5>/ac2-matcher-probe.ts
+{
+  "newLineFromUpdatesTest": true,
+  "old": {
+    "exit": 1,
+    "assertionFailed": true,
+    "canaryPrinted": true,
+    "received": "environment dump"
+  },
+  "new": {
+    "exit": 1,
+    "assertionFailed": true,
+    "canaryPrinted": false,
+    "received": "presence only"
+  }
+}
+EXIT=0

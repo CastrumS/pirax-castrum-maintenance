@@ -1,0 +1,10 @@
+$ bun scripts/release-plugin.ts 
+exit 1
+leaked false
+--- stdout
+--- stderr
+release-plugin: PIRAX_HELPER_SIGNING_KEY is not set
+--- gh calls
+[]
+--- dist
+

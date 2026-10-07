@@ -1,0 +1,35 @@
+The full changed-tests suite now passes: 297 pass, 0 fail, exit 0. The repair is committed as **`00c743c`**, a new commit on `b120086` (not an amendment), and `report-u1.md` has a new repair section.
+
+**The bug:** `withAlteredFile` always used the same backup file name and never checked whether its copy, write or rename worked. A probe showed that once one Playground worker had renamed the backup away, another worker's `copy()` to that name failed with "No such file or directory". `file_exists()` still reported the backup as present. The edit was written anyway and the restore then failed, which matches the 2.4.2 bytes B saw. Each edit now uses a backup name with a random UUID, and every step is read back. The restored-byte assertion is unchanged.
+
+Changed files and reasons:
+- `test/plugin/version-fixtures.ts`: the shared, checked `withAlteredFile` (unique backup name, hash readback of the backup, the edit and the restore; restored-byte assertion kept).
+- `test/plugin/compatibility.test.ts`: its local unchecked helper is replaced by a thin wrapper around the shared one that still writes the evidence note. All refusal assertions are unchanged.
+- `test/plugin/harness.test.ts`: a new regression covering 7 repeated edits and 2 nested rounds, checking what every worker sees each time.
+- No production code, pins or helper version changed. The temporary probe file is still deleted.
+
+Tests run:
+- **Before the fix (from the earlier worker):** the regression run against the old mechanism failed as intended: 0 pass / 1 fail, exit 1.
+- **After the fix (from the earlier worker):**
+  - The regression passed: 1 pass, exit 0.
+  - The focused compatibility tests passed, including `Pro at the next patch`: 4 pass / 0 fail, exit 0.
+  - Typecheck exited 0, and `tests/plugin-source.test.ts` passed 9 / 0.
+- **Full suite, attempt 1 (09:43Z):** aborted because `gh` resolved to the mise wrapper (gh calls exited 143 instead of 1). Log kept as `changed-tests-aborted-wrong-gh-path.log`; no exit or counts claimed.
+- **Full suite, attempt 2 (10:33Z):** cut off by the reboot. Log kept as `changed-tests-interrupted-by-reboot.log`; no exit or counts claimed.
+- **Full suite, attempt 3 (this run):**
+  - PATH started with node 24.21.0 and the native gh 2.101.0, and I checked `command -v gh` before starting.
+  - It ran under `flock native-check.lock`, after `build:plugin` (exit 0), on the same diff as the earlier attempts (sha256 `2a416ed2…`).
+  - **297 pass, 0 fail, 4535 expect() calls, 29 files, 3237s; exit 0** (taken from `$?`), 10:39:03Z–11:33:01Z, logged in `changed-tests-native-gh.log`.
+  - The 3 adapters failures from b120086's earlier run did not come back.
+
+Known limitations:
+- The idea that each worker caches file names comes from the behaviour the probe recorded, not from reading Playground's source.
+- The earlier logs record counts and exits, but not the exact `-t` filter strings used.
+- The full-suite green comes from a single run. The proof of the fix itself is the before/after regression plus the probe.
+- Native artifacts remain in the worktree for B to inspect.
+
+Unverified criteria: none for this repair. The earlier b120086 gap, where the configured command had never passed, is closed by attempt 3.
+
+Files are in `issues/open/helper-auto-audit/reaudit-job/implementation/`:
+- report-u1.md
+- evidence-u1-fixture-repair/

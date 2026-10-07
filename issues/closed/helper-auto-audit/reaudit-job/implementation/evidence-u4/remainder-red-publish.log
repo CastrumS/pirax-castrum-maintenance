@@ -1,0 +1,53 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-operations.test.ts:
+65 | /** Strict: unknown keys or any unsafe value throw a NoticeError naming the field only. */
+66 | export function parseFailureSummary(value: unknown): FailureSummary {
+67 |   if (!isObject(value)) throw invalid("not an object");
+68 |   const allowed = ["stage", "reason", "oldVersions", "candidateVersions", "runUrl", "cleanup", "publication", "commit", "tag"];
+69 |   // Fixed message: a key's name is caller data and may be secret-shaped however harmless its characters look.
+70 |   if (Object.keys(value).some((k) => !allowed.includes(k))) throw invalid("unknown keys");
+                                                                                             ^
+error: invalid failure summary: unknown keys
+      at parseFailureSummary (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/scripts/reaudit/notify.ts:70:89)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-operations.test.ts:40:36)
+(fail) failure summary validation > a loopback throwaway site is rendered as recovery guidance; any other site is refused [0.19ms]
+watchdog: notice not sent: Error
+
+tests/reaudit-publish.test.ts:
+v0.3.1: dist/pirax-form-test.zip sha256 d11638c0425ea095de4b73848103ae38dd34ba1f20a59629c05d08089938b686, signed by public key KrDDFsOH371V297SO0hab8YG2mxWw39aL5JYjNgWQvA=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+v0.3.1: dist/pirax-form-test.zip sha256 e317ed841d1e4ff2ac3e03fcf73a4c1caa98b836e30fd0eda7e82076c3e4ef95, signed by public key 9Uukc02Lc0buNgtgKAkSYhbXSWDgxC4a/9pqX9X84lQ=
+HTTP 502: Bad Gateway
+release-plugin: gh release create failed (exit 1); tag v0.3.1 was claimed on CastrumS/pirax-castrum-maintenance at b81bbad6f254505e204a7c8a8d2bf971e49af535; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly
+v0.3.1: dist/pirax-form-test.zip sha256 b8dce72be5a88c0df9be876d2eedb75b3897cfe9209bf214e0d6a65e4244955e, signed by public key 6Q0XZqqlkosRp8/sDlSarV1X/dKzsLZJjzdheFa5XUo=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+273 |     await writeFile(join(assets, "pirax-form-test-manifest.json.sig"), f.key.sign(manifest));
+274 |     await writeFile(join(f.state, "tag"), f.base);
+275 |     await writeFile(join(f.state, "release.json"), `{"tag_name":"${tag}","draft":false,"prerelease":false,"assets":[{"name":"pirax-form-test-manifest.json"},{"name":"pirax-form-test-manifest.json.sig"},{"name":"pirax-form-test.zip"}]}\n`);
+276 |     results[header] = await verifyRelease({ tag, version, pins: readAuditedVersions(source), publicKey: f.publicKey, commit: f.base, env: f.env });
+277 |   }
+278 |   expect(results).toEqual({ matching: { status: "verified" }, mismatched: { status: "incomplete", reason: "release-package" } });
+                        ^
+error: expect(received).toEqual(expected)
+
+@@ -5,4 +5,3 @@
+    "mismatched": {
+-     "reason": "release-package",
+-     "status": "incomplete",
++     "status": "verified",
+    },
+
+- Expected  - 2
++ Received  + 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-publish.test.ts:278:19)
+(fail) a signed, hash-consistent release whose plugin Version header disagrees is refused; the matching control verifies [205.48ms]
+
+ 48 pass
+ 2 fail
+ 291 expect() calls
+Ran 50 tests across 2 files. [10.67s]
+exit=1

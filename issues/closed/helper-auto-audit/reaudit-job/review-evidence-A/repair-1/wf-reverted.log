@@ -1,0 +1,47 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-workflow.test.ts:
+260 |       expect(Bun.spawnSync(["unzip", "-q", archive, "-d", destination], { env: { PATH: process.env.PATH } }).exitCode).toBe(0);
+261 |     }
+262 |     const dir = expand(step(audit.jobs.notify!, (s) => !!s.run?.includes("scripts/reaudit/notify.ts")).env!.SUMMARIES);
+263 |     const needs = { [job]: { result: "failure" } };
+264 |     const notice = chooseNotice(needs, readSummaries(dir, "1"));
+265 |     expect(notice).toEqual(summary); // Every stage/reason/version/cleanup/site/partial-publication fact survives.
+                         ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "candidateVersions": {
+-     "cleantalk": "6.88",
+-     "ff": "6.2.14.1",
+-     "ff_pro": "6.2.15",
+-     "fluent_smtp": "2.4.1",
+-     "gf": "3.1.2",
+-   },
+-   "cleanup": "confirmed",
+-   "oldVersions": {
+-     "cleantalk": "6.88",
+-     "ff": "6.2.14",
+-     "ff_pro": "6.2.15",
+-     "fluent_smtp": "2.4.1",
+-     "gf": "3.1.2",
+-   },
++   "cleanup": "unknown",
+    "publication": "not-attempted",
+-   "reason": "native-suite-failed",
+-   "stage": "audit",
++   "reason": "audit-job-failure",
++   "stage": "setup",
+  }
+
+- Expected  - 17
++ Received  + 3
+
+      at <anonymous> (/tmp/claude-1000/-home-rudi-Work-Privatni-Pirax-Castrum-Maintenance-issues-worktrees-reaudit-job/71ea3fb5-2a3a-4160-84a6-7687f08c8a27/scratchpad/a2/wf/tests/reaudit-workflow.test.ts:265:20)
+(fail) pinned download action's flat single-match/named extraction reaches the real summary loader and CLI [4.29ms]
+
+ 0 pass
+ 15 filtered out
+ 1 fail
+ 6 expect() calls
+Ran 1 test across 1 file. [68.00ms]

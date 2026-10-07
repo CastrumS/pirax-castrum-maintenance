@@ -1,0 +1,15 @@
+{
+  "state": "blocked",
+  "detail": "HTTP 403 Forbidden",
+  "image": null,
+  "health": {
+    "status": 403,
+    "finalUrl": "http://127.0.0.1:37849/forbidden",
+    "criticalError": false,
+    "consoleErrors": [],
+    "failedRequests": [],
+    "mixedContent": []
+  },
+  "warnings": [],
+  "tracePath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/runs/capture-test-2026-10-05T16-07-35.291Z/8-delayedtoforbidden-desktop.trace.zip"
+}

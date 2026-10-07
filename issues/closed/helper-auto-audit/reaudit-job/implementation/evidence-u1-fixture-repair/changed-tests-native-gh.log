@@ -1,0 +1,79 @@
+queued 2026-10-06T10:39:03Z head b120086a19950d1865df9c4cb5b47b3421b203fe diff-sha256 2a416ed2df04ee6c75cacc8bff638903331f299518402127fb0d2b97ac5eafae
+PATH head: /home/rudi/.local/share/mise/installs/node/24.21.0/bin:/home/rudi/.local/share/mise/installs/gh/latest/gh_2.101.0_linux_amd64/bin
+command -v gh: /home/rudi/.local/share/mise/installs/gh/latest/gh_2.101.0_linux_amd64/bin/gh
+command -v node: /home/rudi/.local/share/mise/installs/node/24.21.0/bin/node v24.21.0
+command -v bun: /home/rudi/.local/share/mise/installs/bun/latest/bin/bun 1.4.2
+gh version 2.101.0 (2026-09-15)
+lock acquired 2026-10-06T10:39:03Z
+$ bun scripts/build-plugin.ts
+dist/pirax-form-test.zip (11 files, sha256 9b37e848f45b206b37638d21e80c9d11a91593a1cabe909c3ef9734dfd497a13)
+build:plugin exit 0
+start 2026-10-06T10:39:03Z command: AKROGON_BASE=4e929fca0a8c793f2189454091fb5c0fcf74a1da bun --env-file=<registered>/.env -e 'Bun.spawn([bash,-c,: "${AKROGON_BASE:?AKROGON_BASE is required}" && bun test])'
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/runs/capture-test-2026-10-06T10-39-04.043Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/runs/capture-test-2026-10-06T10-39-04.043Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/runs/capture-test-2026-10-06T10-39-04.043Z
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/runs/2026-10-06T10-39-49.206Z/index.html
+
+test/forms/awaiting-audit-commands.test.ts:
+Awaiting-audit command evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/runs/forms-awaiting-commands-1d73dac7-f970-421d-be8d-66101c2019be/summary.json
+
+test/forms/awaiting-audit.test.ts:
+Awaiting-audit state evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/runs/forms-awaiting-df600a63-24a8-4e6b-81c8-032bd505acf1/summary.json
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: rejected
+Awaiting-audit fixture /gf-summary-only: rejected
+Awaiting-audit fixture /gf-awaiting-only-container: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-second-helper: rejected
+Awaiting-audit fixture /ff-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-invalid: rejected
+Awaiting-audit fixture /ff-awaiting-invalid: rejected
+Awaiting-audit fixture /gf-generic: rejected
+Awaiting-audit fixture /ff-generic: rejected
+Awaiting-audit fixture /gf-lowercase: rejected
+Awaiting-audit fixture /gf-blank: rejected
+Awaiting-audit fixture /ff-blank: rejected
+Awaiting-audit fixture /gf-no-version: rejected
+Awaiting-audit fixture /gf-bad-separator: rejected
+Awaiting-audit fixture /gf-mid-sentence: rejected
+Awaiting-audit fixture /gf-foreign-awaiting: failed
+Awaiting-audit fixture /ff-stale-awaiting: failed
+Awaiting-audit fixture /ff-foreign-awaiting: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/runs/forms-browser-c1a39a9e-2498-4397-8810-db700701428c
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/runs/forms-playground-f4dbe715-8d18-45a6-a1af-22a7f9209f11/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/runs/forms-collision-4864ab63-a961-41c6-a124-d3a8e082bc2d/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/runs/forms-report-tests-a5416bef-ccd2-4387-b94b-b4f5a59a6c90/summary.json
+
+ 297 pass
+ 0 fail
+ 4535 expect() calls
+Ran 297 tests across 29 files. [3237.22s]
+exit 0
+end 2026-10-06T11:33:01Z

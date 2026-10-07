@@ -1,0 +1,6 @@
+{
+  "case": "generated private seed accidentally in invalid source version",
+  "code": 1,
+  "outputContainsGeneratedSeed": true,
+  "privateValuesRetained": false
+}

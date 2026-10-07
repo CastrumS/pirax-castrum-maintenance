@@ -1,0 +1,10 @@
+$ bun scripts/release-plugin.ts --dry-run
+exit 1
+leaked false
+--- stdout
+--- stderr
+release-plugin: PIRAX_HELPER_SIGNING_KEY is not base64 of a 32-byte Ed25519 seed
+--- gh calls
+[]
+--- dist
+

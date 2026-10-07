@@ -1,0 +1,12 @@
+{
+  "version": "0.3.0",
+  "package": "https://github.com/CastrumS/pirax-castrum-maintenance/releases/download/v0.3.0/pirax-form-test.zip",
+  "sha256": "6c61b2217efb490f2fe8ba92b204cd1c9b1443f9030a619863670a18c8d79d9b",
+  "audited": {
+    "gf": "3.1.2",
+    "ff": "6.2.14",
+    "ff_pro": "6.2.16",
+    "cleantalk": "6.88",
+    "fluent_smtp": "2.4.1"
+  }
+}

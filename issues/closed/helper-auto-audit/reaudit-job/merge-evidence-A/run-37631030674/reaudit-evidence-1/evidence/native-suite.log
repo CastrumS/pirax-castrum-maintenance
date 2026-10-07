@@ -1,0 +1,141 @@
+bun test v1.4.2 (744846f84)
+
+::group::test/plugin/review-regressions.test.ts:
+(pass) marked wp_mail: control-prefixed Cc/Bcc header names never reach the native envelope; ordinary mail keeps them [3966.13ms]
+(pass) hourly sweep deletes old FF test entries whose marker field was later renamed or removed; controls stay [13298.35ms]
+
+::endgroup::
+
+::group::test/plugin/adapters.test.ts:
+(pass) GF marked browser submission: both notifications redirected synchronously, no feeds, entry deleted after mail [17240.42ms]
+(pass) GF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries [19812.42ms]
+(pass) FF marked browser submission: both notifications redirected, only the email feed runs, entry and related rows deleted at request end [12302.77ms]
+(pass) FF marked submission of an empty-type form (FF's activation demo form) is supported like type form; type post stays blocked [15379.55ms]
+(pass) FF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries [14507.20ms]
+(pass) GF reCAPTCHA v2 with failing siteverify: marked passes, unmarked fails; other errors and honeypot still apply [21948.28ms]
+(pass) FF reCAPTCHA with failing siteverify: marked passes, unmarked fails; other errors and honeypot still apply [22921.79ms]
+(pass) an integration outside the suppressible feed paths blocks marked submissions; ordinary ones still run it [20028.79ms]
+(pass) payment and post-creation paths are rejected for marked submissions [10505.87ms]
+(pass) malformed or ambiguous markers and an invalid redirect reject safely; nothing reaches original recipients [22025.16ms]
+(pass) FF queued email: marked entry kept until every job completes across requests; ordinary job in the same runner keeps its recipients [25669.80ms]
+(pass) FF queued email: a job still processing elsewhere blocks FF's pending-only completion signal [17498.16ms]
+(pass) FF queued email: rotating or clearing the token never turns queued test mail into client mail [24016.99ms]
+(pass) FF legacy batch runner: marked and ordinary jobs in one request keep their own recipients; marked entry removed [17970.39ms]
+(pass) hourly sweep: real cron deletes only old token entries across pages, with native cascade and queued-job removal, in a non-UTC site [19891.97ms]
+(pass) sweep: literal token with SQL wildcards, empty token no-op, and strict one-hour boundary [10686.63ms]
+(pass) retained evidence contains no token [4238.53ms]
+
+::endgroup::
+
+::group::test/plugin/artifacts.test.ts:
+(pass) findSecret and sanitizeZip keep the signing seed for scanning but give their zip/unzip children no credential [19.53ms]
+
+::endgroup::
+
+::group::test/plugin/updates.test.ts:
+(pass) staged fixture helpers replace only the test channel; the shipping source keeps the production trust root [716.03ms]
+(pass) a verified newer release is offered natively; every invalid feed offers nothing and drops a stale offer [40508.99ms]
+(pass) plugins_api answers only this helper's details, with inert escaped text, and never falls through to wordpress.org [1732.41ms]
+(pass) auto_update_plugin opts in this exact helper only and preserves every other decision [1970.39ms]
+(pass) the download boundary refuses unverified helper packages and leaves the installed bytes unchanged [46910.34ms]
+(pass) an authenticated admin lists, inspects and installs the signed release through native WordPress [13052.32ms]
+(pass) evidence: summary, request ledger and traces are retained without private key material [4507.52ms]
+
+::endgroup::
+
+::group::test/plugin/harness.test.ts:
+(pass) preflight names missing or invalid credentials without their values [0.41ms]
+(pass) compatibility preflight requires FLUENT_FORMS_PRO_ZIP by name only; the default stack does not [0.84ms]
+(pass) licensed and cached ZIPs must declare exactly their pinned version, and refusals name the variable, not the path [11.53ms]
+(pass) loopback WordPress runs licensed Gravity Forms and pinned Fluent Forms with real PHP and database [3109.16ms]
+(pass) browser logs in to real wp-admin and submits unmarked forms for both plugins [30061.63ms]
+(pass) withAlteredFile: repeated and nested plugin edits reach every Playground worker and restore the original bytes [63715.13ms]
+(pass) stop shuts the site down [406.83ms]
+
+::endgroup::
+
+::group::test/plugin/compatibility.test.ts:
+(pass) full stack before marked submissions: ordinary FF and GF keep CleanTalk moderation, the Pro webhook, the GF ledger and original mail [28043.84ms]
+(pass) full stack: marked FF and GF each confirm with one redirected Simulator mail, no CleanTalk moderation, no Pro webhook job or hit, and no entry left [25853.79ms]
+(pass) GF modern AJAX (admin-ajax gform_submit_form): marked confirms with one redirected Simulator mail and no CleanTalk request or token-bearing HTTP; ordinary keeps CleanTalk's generic check, its entry, ledger feed and original mail [32447.35ms]
+(pass) GF modern AJAX early boundary: malformed markers, invalid configuration and the token in a field input the stored form lacks are refused without CleanTalk; the token outside field inputs (query, cookie, other POST names) stays ordinary and keeps CleanTalk [42919.26ms]
+(pass) GF modern AJAX: CleanTalk's generic check wrapped (unrecognizable) refuses marked submissions before it runs; ordinary ones keep it [39766.96ms]
+(pass) GF modern AJAX: CleanTalk's generic check moved to plugins_loaded priority 1 refuses marked submissions before it runs; ordinary ones keep it [41989.76ms]
+(pass) GF modern AJAX: the marker only in a field a GF form filter adds is refused before CleanTalk's generic check; ordinary submissions with that field keep it [22005.52ms]
+(pass) GF modern AJAX before GF initializes: ordinary requests read no stored form; a marked one reads it only under the audited GF core, and another GF version refuses it before any form read or CleanTalk request [53262.31ms]
+(pass) GF modern AJAX from a logged-in admin: with CleanTalk's logged-in protection off it binds no generic check; on, marked submissions have it removed and ordinary ones keep it (it runs, and skips this admin) [51917.92ms]
+(pass) marked wp_mail through FluentSMTP: control-padded and folded recipient headers never reach the effective envelope or the Simulator log; ordinary mail keeps them [14471.53ms]
+(pass) full stack after marked submissions: ordinary controls are unchanged [29280.26ms]
+(pass) Pro double opt-in and admin approval: ordinary submissions take Pro's path; marked ones get only the redirected notification [69254.17ms]
+(pass) Pro auto-delete and drafts: a marked entry outlives a failed queued mail until FF's retry and its draft survives; Pro deletes ordinary ones [34986.02ms]
+(pass) one request: a marked entry's completion keeps Pro's auto-delete away, the next ordinary one gets it back, and the hook inventory ends identical [1930.67ms]
+(pass) CleanTalk switched off for contact forms needs no binding; a rebound (unrecognizable) FF check blocks marked FF and the panel names it [44755.85ms]
+(pass) CleanTalk re-registered during a marked submission's own dispatch is removed again; ordinary submissions keep it [44469.30ms]
+(pass) admin panel on the full stack: exact versions audited per form plugin and both ready [2818.84ms]
+(pass) CleanTalk at another version blocks marked FF and GF at the native gates with the version-only message; the panel shows the version and still lists callbacks [45853.24ms]
+(pass) Fluent Forms Pro at another version blocks marked FF (not GF) at the native gates with the version-only message; the panel shows the version and still lists callbacks [46251.41ms]
+(pass) FluentSMTP at another version blocks marked FF and GF at the native gates with the version-only message; the panel shows the version and still lists callbacks [47392.31ms]
+(pass) an unaudited optional Pro module (Inventory) keeps blocking marked FF with the generic message; the panel names its callbacks [23213.62ms]
+(pass) Pro at the next patch: its own Inventory callbacks keep the version-only message, a second mismatch is listed in report order, and a callback outside every mismatched plugin (a rebound CleanTalk wrapper) makes it generic; all stay blocked [59541.20ms]
+(pass) retained evidence names every version and ZIP hash and contains no token or licensed path [5573.09ms]
+
+::endgroup::
+
+::group::test/plugin/safety.test.ts:
+(pass) FF: a later PHP_INT_MAX feed-type filter registered after the plugin cannot resurrect the ledger feed on a marked submission [17572.18ms]
+(pass) FF queued: a marked notification that throws inside native mail processing does not redirect the next ordinary job in the same runner request [20397.90ms]
+(pass) FF queued cleanup race: a marked entry deleted natively after the runner loaded it, with the token rotated, still sends only redirected mail; ordinary jobs stay ordinary [15958.74ms]
+(pass) FF unsupported marked form with reCAPTCHA and failing siteverify is rejected with the blocked message before CAPTCHA [15766.21ms]
+(pass) GF sweep: an old token entry's queued notifications (entry snapshots included) and feeds are removed before deletion; ordinary queued work runs; active worker defers [21312.96ms]
+(pass) compatibility gate accepts exactly the pinned GF and FF versions [722.25ms]
+(pass) optional plugin pins are exact strings, and on this stack (none of them active) both reports are ready with core versions only [710.66ms]
+(pass) version-only diagnosis: reflected source directories decide callback ownership, never names; anything besides known mismatched versions and their own callbacks stays generic [738.15ms]
+(pass) retained evidence contains no token [4388.86ms]
+
+::endgroup::
+
+::group::test/plugin/stack-harness.test.ts:
+(pass) optional plugins are real, exact, active, and activated after the safeguards [1829.20ms]
+(pass) third-party WordPress HTTP is blocked and logged without the outgoing or incoming request's query strings or bodies [2789.61ms]
+(pass) Pro feature fixtures write native settings that Pro's own getters read [4509.47ms]
+(pass) ordinary FF and GF controls reach CleanTalk moderation, the Pro webhook and FluentSMTP's Simulator [19480.26ms]
+(pass) evidence names every version and ZIP hash and retains no token, licensed path or third-party response [5411.62ms]
+
+::endgroup::
+
+::group::test/plugin/core.test.ts:
+(pass) build:plugin produces only the allowlisted uploadable ZIP with no tests, secrets or licensed code [29.01ms]
+(pass) generated ZIP uploads and activates through wp-admin without Gravity Forms or Fluent Forms [15195.26ms]
+(pass) settings mutate only for manage_options with a valid nonce and valid values [40585.72ms]
+(pass) compatibility panel: admins only, read-only, every unaudited callback by hook with a real <script> closure file escaped [14976.62ms]
+(pass) marker parser classifies submitted values: ordinary, marked(id) or invalid-marker [1584.03ms]
+(pass) request marker and stacked worker context; nothing is inherited by another request [2210.93ms]
+(pass) wp_mail in marked context is redirected, stripped and tagged; ordinary mail is untouched [6668.72ms]
+(pass) a bad redirect fails before marking and marked mail is never delivered to original recipients [10334.29ms]
+(pass) the core never marks a request from query strings, cookies or arbitrary POST data [2274.73ms]
+(pass) deactivation unschedules, uninstall is guarded and removes options and owned events [7794.22ms]
+
+::endgroup::
+
+::group::test/plugin/release.test.ts:
+(pass) offline: dry run signs the exact manifest bytes from source-derived facts and never calls GitHub [55.42ms]
+(pass) offline: importing the release script has no side effects [25.12ms]
+(pass) offline: a missing or malformed seed is refused by name, in both modes, before anything is built [202.13ms]
+(pass) offline: publishing refuses a seed whose public key is not the committed production key [26.37ms]
+(pass) offline: publishing refuses an existing local tag before any GitHub call [31.61ms]
+(pass) publishing fails closed when the real GitHub lookup cannot answer [296.34ms]
+(pass) remote lookup tells a missing tag from an existing one [1025.61ms]
+(pass) the test gh wrapper forwards only the two exact read-only lookups and answers every write itself [240.80ms]
+(pass) publishing checks GitHub read-only, claims the tag at HEAD, then creates exactly one release from it with the three signed assets [570.95ms]
+(pass) a tag claimed concurrently or an unanswered claim stops publication before gh release create [1134.95ms]
+(pass) a release failure after the claim leaves the tag for deliberate recovery: no retry, overwrite or delete [600.03ms]
+(pass) offline: a generated seed used as the source version never reaches CLI output, in either mode [38.64ms]
+(pass) offline: malformed or ambiguous source facts are refused before anything is built [181.90ms]
+(pass) offline: the parent refuses to package a seed found in source, and no private material reaches outputs or logs [47.31ms]
+
+::endgroup::
+
+ 95 pass
+ 0 fail
+ 1635 expect() calls
+Ran 95 tests across 10 files. [1819.13s]

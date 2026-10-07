@@ -1,0 +1,40 @@
+Unit 4 is committed as `078b228` on the detached worktree HEAD, parent `a78d04c`, and the broad changed-test run on that commit passed: **271 pass, 0 fail** across 24 files (2744.64s). It ran under `setsid` and wrote its completion marker: `exit=0 commit=078b228 finished=2026-10-05T20:58:47+02:00`. Nothing was written to GitHub: no tag, ref, release or secret, and none is claimed. The full report is in `implementation/worker-4.md` and the evidence in `implementation/evidence-u4/`.
+
+**Changed files and reasons:**
+- **`test/plugin/release.test.ts`** (changed first, before any production code):
+  - **Fake `gh` limited to read-only calls.** The test's stand-in `gh` now passes only two exact read-only lookups to the real `gh`: the single tag lookup and the paginated release list. Every other call is recorded and answered locally with a success or a failure the test chooses. Authentication stays real.
+  - **New tests:**
+    - The fake `gh` itself, run with an invalid token: the two lookups reach GitHub and get 401. A tag-create POST, a DELETE, another GET and `release create` never leave the machine.
+    - The success order: lookups, then the tag claim, then `release create`.
+    - A tag that already exists (422) and a claim that gets no answer, both stopping before `release create`.
+    - A release failure that exits 1, names the tag it leaves behind and makes no further call.
+    - A generated seed placed in the plugin header and the `VERSION` constant, in both modes, keeping only a true/false "leaked" result.
+  - Cases that never reach GitHub are named with an `offline:` prefix so they can be run alone.
+- **`scripts/release-plugin.ts`:**
+  - **Version error:** an invalid version now gives a fixed message that names the field, with no value in it.
+  - **Tag claim:** after building and signing, the script creates the tag on GitHub (`POST repos/CastrumS/pirax-castrum-maintenance/git/refs`, ref `refs/tags/vVERSION`, sha = HEAD). If that fails, it stops with a cleaned-up error and nothing is published.
+  - **Release:** only then does it run `gh release create … --verify-tag --latest --target <HEAD sha>` with the same three files. `--target` gets the actual commit SHA, because GitHub would read the literal word `HEAD` as a branch name.
+  - **No undo:** there is no rollback or `--clobber`. If the release step fails, the error names the tag left on GitHub and how to recover.
+- **`plugin/pirax-form-test/README.md`:**
+  - Documents the exact two-step publish order and that the two steps are not one transaction, with the recovery steps.
+  - Removes the false claim that a tag created in the meantime makes `gh` fail.
+  - Describes the key as a GitHub secret given to the publishing job; the "operator's private local copy" line is gone.
+  - States that update protection only works while the helper is active.
+- **`test/plugin/README.md`:** adds the offline-only command (`-t '^offline:'`), describes exactly which calls reach GitHub, and lists the new cases.
+- The root README was left alone because its wording is still accurate.
+
+**Tests run:**
+- **Before the fix** (`bun --no-env-file test test/plugin/release.test.ts`): 10 pass, 4 fail, as expected. The leak shows up only as `leaked: true`, and logs that would have contained the seed say `[withheld]`.
+- **After the fix**, same command: 14 pass, 0 fail.
+- **Offline subset**, run with networking disabled (`unshare -rn bun --no-env-file test test/plugin/release.test.ts -t '^offline:'`): 8 pass, 0 fail, 6 filtered out.
+- `bun run typecheck` and `git diff --check` are clean, and `bun run build:plugin` succeeded before the broad run.
+- **Broad changed-test run** (base `2689aaa…`, signing key removed from its environment): 271 pass, 0 fail. B's `lane-after-u3` run was going on the same machine at the time.
+- A secret scan of `evidence-u4/`, checking 9 variables loaded from `.env`, found nothing.
+
+**Known limitations:**
+- Publishing is only checked as the exact commands the script would run. No real tag claim or release has been made, so that stays untested until reaudit-job's first release.
+- If the tag claim succeeds and the release step fails, the tag stays on GitHub with no release. A rerun refuses it, so someone has to either rerun `gh release create --verify-tag` with the same `dist/` files or delete the tag on purpose.
+- If the tag-create request times out after GitHub actually accepted it, the script can't tell, so the error says the tag "may already exist".
+- The full release test suite still needs network access and a logged-in `gh`; only the `offline:` subset doesn't.
+
+**Unverified criteria:** criteria 2 and 3 have no evidence from real GitHub, because this unit forbids real writes. Everything else in brief §2 is verified.

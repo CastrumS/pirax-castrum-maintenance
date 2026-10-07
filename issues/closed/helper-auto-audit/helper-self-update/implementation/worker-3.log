@@ -1,0 +1,32 @@
+Unit 3 is committed as `1729885`, and the configured changed-test command exited 0 on that commit: **267 passed, 0 failed** across 24 files in about 46 minutes. It ran in its own process group (`setsid`), the ZIP was built first, and an exit marker was written. The report is at `implementation/worker-3.md`, with evidence in `implementation/evidence-u3/`.
+
+**What landed:**
+- **`scripts/release-plugin.ts`:** a new release script that does nothing when imported, only when run directly.
+  - It reads the version and the audited-versions table from the plugin's PHP source and refuses anything malformed. It builds the ZIP with unit 1's existing build function and signs the exact manifest bytes with the 32-byte key in `PIRAX_HELPER_SIGNING_KEY`.
+  - `--dry-run` writes the ZIP, the manifest and its `.sig` to `dist/` and never calls GitHub.
+  - Publishing checks, in order: the key must match the public key built into the plugin, there must be no local tag, and there must be no remote tag or release (drafts included). Only a "not found" from GitHub counts as absent; any other error stops the release. It then runs one `gh release create v<version> --repo CastrumS/pirax-castrum-maintenance --latest --target <HEAD>` with exactly the three files and never overwrites an existing release.
+  - The key is never put in arguments, files, logs or child processes.
+- **`test/plugin/release.test.ts`:** runs the real CLI inside throwaway git copies with freshly generated keys. A stand-in `gh` on the PATH records every call, passes only read-only `gh api` lookups to the real `gh`, and never creates a release. It covers:
+  - the dry-run files, with the signature checked independently;
+  - eight bad key formats, in both modes;
+  - a key that doesn't match the plugin's;
+  - a real local tag;
+  - a real GitHub lookup failing with 401;
+  - the exact publish command;
+  - malformed source;
+  - a final scan finding no key material in any output or log.
+- **The three READMEs:**
+  - **Updates:** the one manual upload sites on 0.2.4 need first, the update channel and checks, limits, and key recovery (a new key pair plus a manual upload on every site).
+  - **Releasing and messages:** how to release, that the dry-run is for tests only, and the new "awaiting audit" message versus the generic one.
+  - **Not built yet:** the checker doesn't treat the new message differently, and the scheduled release job doesn't exist.
+  - **Test guide:** the Pro wrong-version example now says 6.2.16.
+
+**Evidence:** the tests failed 0/10 before the script existed and passed 10/10 after. Typecheck and `git diff --check` are clean. A real dry-run in the worktree with a generated key produced a signature that verified independently, and the ZIP hash and audited versions matched the source. A secret scan of `evidence-u3/` found nothing.
+
+**Not verified, and what to watch:**
+- Publishing is only checked up to the recorded `gh release create` command; no real release, tag or secret was created.
+- The release tests need network access and a logged-in `gh`, though no `.env`.
+- To prove the build refuses to package a key it finds in source, one test writes a generated throwaway key into a temp file, which is then deleted. A real key never touches a file.
+- One check beyond the brief: publishing also refuses uncommitted changes in `plugin/pirax-form-test/`, so the tagged commit always matches the signed ZIP.
+- The plugin README says the operator keeps a private local copy of the key. That matches the plan's note but not the design's "job only" wording, which is still for you to settle.
+- Your `lane-after-u2` run was going at the same time as mine; mine still passed in full.

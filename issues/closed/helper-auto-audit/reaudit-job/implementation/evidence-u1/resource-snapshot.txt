@@ -1,0 +1,13 @@
+Tue Oct  6 07:44:44 AM UTC 2026
+## concurrent native suites (worktree, etime, %cpu)
+1414461       02:58  122 node reaudit-job-u2 playground.ts
+1416944       01:31  125 node reaudit-job-u1 playground.ts
+1417052       01:23  125 node reaudit-job-u3 playground.ts
+1417986       00:00  0.0 sed -E s#(/[^ ]*worktrees/(reaudit-job-u[0-9]+)/test/plugin/playground.ts).*#\2 playground.ts#
+## bun test processes
+1150473       53:02 bun test
+1354238       49:30 bun test
+1373668       43:38 bun test
+ 09:44:44 up 16:04,  1 user,  load average: 6.99, 7.61, 7.05
+               total        used        free      shared  buff/cache   available
+Mem:              22          18           1           1           5           4

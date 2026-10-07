@@ -1,0 +1,15 @@
+bun test v1.4.2 (744846f84)
+
+tests/plugin-source.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+error: Cannot find module '../scripts/plugin-source' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/tests/plugin-source.test.ts'
+-------------------------------
+
+
+ 0 pass
+ 1 fail
+ 1 error
+Ran 1 test across 1 file. [20.00ms]
+exit 1

@@ -1,0 +1,32 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+314 |       for (const [path, plugin, id] of [["/gf-awaiting", "gravity", 1], ["/ff-awaiting", "fluent", 2]] as const) {
+315 |         const before = { connections, writes, traps };
+316 |         const results = await scanPageForms(local([path], true, { page: path, plugin, id }), { path, mask: [] }, { runDir, deliveryTimeoutMs: 2_000 });
+317 |         expect(shape(results)).toEqual([`${plugin}:awaiting-audit`]);
+318 |         expect(results[0]!.detail).toContain("Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16");
+319 |         expect({ connections, writes: writes - before.writes, traps }).toEqual({ connections: before.connections, writes: 1, traps: before.traps });
+                                                                             ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "connections": 16,
++   "connections": 29,
+    "traps": 0,
+    "writes": 1,
+  }
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/test/forms/browser.test.ts:319:72)
+      at async withEnv (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/test/forms/browser.test.ts:147:22)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/test/forms/browser.test.ts:309:11)
+(fail) scanner forwards awaiting-audit without polling the mailbox [1712.96ms]
+
+ 0 pass
+ 21 filtered out
+ 1 fail
+ 5 expect() calls
+Ran 1 test across 1 file. [1.97s]

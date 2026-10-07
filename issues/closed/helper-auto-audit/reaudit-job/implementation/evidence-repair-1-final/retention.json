@@ -1,0 +1,27 @@
+{
+  "nativeScopes": 18,
+  "syntheticNonZipPlaceholdersOmitted": 2,
+  "scanRoots": 3,
+  "valuesLoaded": 11,
+  "findings": 0,
+  "scopes": [
+    "artifacts/plugin/adapters-2026-10-07T12-49-04-162Z",
+    "artifacts/plugin/compatibility-2026-10-07T13-07-03-270Z",
+    "artifacts/plugin/core-2026-10-07T12-56-44-979Z",
+    "artifacts/plugin/forms-checker-2026-10-07T12-39-48-213Z",
+    "artifacts/plugin/harness-smoke-2026-10-07T13-23-55-007Z",
+    "artifacts/plugin/release-2026-10-07T13-26-18-814Z",
+    "artifacts/plugin/review-regressions-2026-10-07T12-55-45-107Z",
+    "artifacts/plugin/safety-2026-10-07T12-59-17-292Z",
+    "artifacts/plugin/stack-harness-2026-10-07T13-02-14-979Z",
+    "artifacts/plugin/updates-2026-10-07T13-03-50-488Z",
+    "runs/2026-10-07T12-34-38.231Z",
+    "runs/capture-test-2026-10-07T12-33-52.960Z",
+    "runs/forms-awaiting-4a5d454b-3cb6-4882-a229-7db444fc3938",
+    "runs/forms-awaiting-commands-6639aa27-2282-4351-a271-6f5fcdda2c09",
+    "runs/forms-browser-26685b54-535a-418a-965f-62973c152c06",
+    "runs/forms-collision-13fc670a-0f4a-46a4-8168-b00e968f0f7b",
+    "runs/forms-playground-215253f2-e19b-4ed1-884d-2944618b2165",
+    "runs/forms-report-tests-91787a29-6d74-4fb5-aea8-b3d12f3647a4"
+  ]
+}

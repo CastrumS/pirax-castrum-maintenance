@@ -1,0 +1,14 @@
+$ bun scripts/release-plugin.ts 
+exit 1
+leaked false
+--- stdout
+v0.0.1: dist/pirax-form-test.zip sha256 c1ba380bc2a492cebfa5c4dd47831f70e2297f1f567f5e9bd3c8fcd81923a2ca, signed by public key 1d7r/cNxID3/LUab8/nD1GYpAhb7XBA+WZDCS3AFcqI=
+--- stderr
+HTTP 502: Bad Gateway
+release-plugin: gh release create failed (exit 1); tag v0.0.1 was claimed on CastrumS/pirax-castrum-maintenance at 339b93a92525faaf158151a0733ba288c160086b; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly
+--- gh calls
+[["api","--include","repos/CastrumS/pirax-castrum-maintenance/git/ref/tags/v0.0.1"],["api","--paginate","repos/CastrumS/pirax-castrum-maintenance/releases?per_page=100","--jq",".[].tag_name"],["api","--method","POST","repos/CastrumS/pirax-castrum-maintenance/git/refs","-f","ref=refs/tags/v0.0.1","-f","sha=339b93a92525faaf158151a0733ba288c160086b"],["release","create","v0.0.1","--repo","CastrumS/pirax-castrum-maintenance","--verify-tag","--latest","--target","339b93a92525faaf158151a0733ba288c160086b","--title","v0.0.1","--notes","Pirax Form Test 0.0.1. Audited: gf 3.1.2, ff 6.2.14, ff_pro 6.2.15, cleantalk 6.88, fluent_smtp 2.4.1.","/tmp/pirax-release-test-0M8CDl/publish-release-failure/dist/pirax-form-test.zip","/tmp/pirax-release-test-0M8CDl/publish-release-failure/dist/pirax-form-test-manifest.json","/tmp/pirax-release-test-0M8CDl/publish-release-failure/dist/pirax-form-test-manifest.json.sig"]]
+--- dist
+pirax-form-test-manifest.json
+pirax-form-test-manifest.json.sig
+pirax-form-test.zip

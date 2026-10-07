@@ -1,0 +1,19 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/updates.test.ts:
+129 |     await cp(SOURCE, stage, { recursive: true });
+130 |     const replace = async (file: string, edits: [RegExp, string][]) => {
+131 |       let text = await Bun.file(join(stage, file)).text();
+132 |       for (const [pattern, line] of edits) {
+133 |         const matches = text.match(new RegExp(pattern.source, "gm"))?.length ?? 0;
+134 |         if (matches !== 1) throw new Error(`stageHelper: ${file} has ${matches} matches for ${pattern}, expected 1`);
+                                           ^
+error: stageHelper: pirax-form-test.php has 0 matches for /^const VERSION = '[^']*';$/, expected 1
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u1/test/plugin/update-fixture.ts:134:38)
+      at async stageHelper (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u1/test/plugin/update-fixture.ts:141:11)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u1/test/plugin/updates.test.ts:67:55)
+(fail) (unnamed) [25648.63ms]
+
+ 0 pass
+ 1 fail
+Ran 1 test across 1 file. [26.10s]

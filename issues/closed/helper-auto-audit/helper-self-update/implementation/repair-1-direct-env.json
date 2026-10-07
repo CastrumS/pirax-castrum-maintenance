@@ -1,0 +1,8 @@
+{
+  "head": "938bf9c029708984f4e14002d576923f7649fed4",
+  "exit": 0,
+  "parentPresent": true,
+  "shellChildPresent": false,
+  "realCredentialsLoaded": false,
+  "observation": "committed updater assertion with nonempty synthetic parent variable; also verifies Bun shell env replacement"
+}

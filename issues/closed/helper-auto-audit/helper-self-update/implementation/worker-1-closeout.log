@@ -1,0 +1,39 @@
+Unit 1 is committed as **`ea92a0e`** (on a detached HEAD on top of `2689aaa`) and the report is written. The updater and core tests pass, but the full configured test run did not: 247 passed and 8 failed. All 8 failures are in `tests/capture.test.ts`, which this change doesn't touch.
+
+**Changed files and reasons:**
+- `plugin/pirax-form-test/includes/updates.php` (new): checks the Ed25519-signed release feed and only accepts packages from this repository's own release URL. It adds the normal WordPress update offer, the plugin details screen, and auto-update opt-in for this plugin only. Before installing, it rechecks the live feed and the ZIP's SHA-256, and it never falls back to an unchecked download.
+- `pirax-form-test.php`: version 0.3.0, a `VERSION` constant, an `Update URI` header, and it loads `updates.php`.
+- `scripts/build-plugin.ts`: can now be imported, exposing `buildPlugin({source,zip})`, `FILES` and `withoutSigningKey` for the release worker. It packages `updates.php`, rejects a malformed public key, refuses to package the signing seed, and strips the seed from the zip/unzip child processes.
+- `test/plugin/core.test.ts`: checks the 0.3.0 build, the production key and release URL, the release files allowed in `dist/`, and scans for the seed.
+- `test/plugin/harness.ts`: strips the seed from unzip, Playground and Chromium. It also clears PHP's file-status cache before each request, because WordPress's `.maintenance` file still looked present after an update.
+- `test/plugin/update-fixture.ts` and `test/plugin/updates.test.ts` (new): a throwaway copy of the plugin with test keys and a local release server, plus 7 tests running real WordPress updates, both successful and refused.
+
+**Tests run:**
+- **Before the fix:** the updater tests failed (0 passed, 1 failed) because the updater didn't exist yet.
+- **Updater tests:** 7 passed, 0 failed.
+- **Core tests:** 10 passed, 0 failed.
+- **Full configured run:** 247 passed, 8 failed. All 8 are `capture.test.ts` "browser has been closed" errors. The updater and core tests passed inside this run too.
+- **capture.test.ts alone on this commit:** 22 passed, 0 failed.
+- `git diff --check` is clean. No code changed after the passing runs, so I didn't repeat them.
+
+What the updater tests show:
+- A signed 0.3.1 release goes from 0.3.0 to 0.3.1 through the normal wp-admin update screen.
+- 34 bad feeds offer no update.
+- 9 refused installs leave 0.3.0 untouched.
+
+**Evidence:** copies of the updater and core test outputs (summaries, request logs, browser traces) are in `implementation/evidence-u1/`, two runs each. A secret scan of that folder, including inside the trace ZIPs, found nothing; no values were printed. The run logs are in `implementation/`, starting with `worker-1-`, including the new `worker-1-capture-isolated.txt`.
+
+**Known limitations:**
+- The 8 `capture.test.ts` failures are outside the updater's scope and I didn't change those tests. Three things point to the test environment rather than this change:
+  - the file passes on its own;
+  - your baseline run that includes it passes 114/114 after the reboot;
+  - unit 2's run, which overlapped in time, hit the same error in 13 capture tests.
+
+  The likely cause is Chromium closing during the 53-minute run.
+- The commit is on a detached HEAD, so you still need to integrate it.
+
+**Unverified criteria:**
+- A fully green configured run is not proven, because of the capture failures above.
+- The production GitHub release feed wasn't exercised; tests use only the local release server, as planned.
+
+The full report is in `implementation/worker-1.md`.

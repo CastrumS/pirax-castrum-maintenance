@@ -1,0 +1,9 @@
+updater: gplvault-updater 5.3.9
+ciphertext: written, round trip verified
+secret GPLVAULT_UPDATER_PASSPHRASE: set
+secret GPLVAULT_LICENSE_KEY: set
+secret GPLVAULT_PRODUCT_ID: set
+secret IMAP_USER: set
+secret IMAP_PASSWORD: set
+secret PIRAX_HELPER_SIGNING_KEY: present, unchanged
+next: commit ../../open/helper-auto-audit/reaudit-job/implementation/gplvault-updater.zip.gpg (ciphertext only)

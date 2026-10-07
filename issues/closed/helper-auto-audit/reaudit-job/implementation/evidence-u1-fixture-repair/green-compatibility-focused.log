@@ -1,0 +1,10 @@
+start 2026-10-06T09:37:53Z
+bun test v1.4.2 (744846f84)
+
+ 4 pass
+ 19 filtered out
+ 0 fail
+ 94 expect() calls
+Ran 4 tests across 1 file. [316.25s]
+exit 0
+end 2026-10-06T09:43:09Z

@@ -1,0 +1,131 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-fetch.test.ts:
+280 |   });
+281 | 
+282 |   test("an already-active or unreadable initial status fails before activate/deactivate, preserving a pre-existing seat", async () => {
+283 |     for (const activated of [true, null, "no", 1] as unknown[]) {
+284 |       const { error, calls } = await run({ vault: { status: async () => ({ activated, remaining: 138 }) as never } });
+285 |       expect(error!.message).toBe(activated === true ? "activation: status already active" : "activation: status malformed");
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: "activation: status already active"
+Received: "cleanup: deactivate unconfirmed"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-fetch.test.ts:285:30)
+(fail) acquirePackages > an already-active or unreadable initial status fails before activate/deactivate, preserving a pre-existing seat [1.35ms]
+291 |   });
+292 | 
+293 |   test("a truthy non-boolean activation receipt is a refusal, still followed by confirmed deactivation", async () => {
+294 |     for (const activated of ["yes", 1, "true"] as unknown[]) {
+295 |       const { error, calls } = await run({ vault: { activate: async () => ({ activated, remaining: 138 }) as never } });
+296 |       expect(error!.message).toBe("activation: activate refused");
+                   ^
+TypeError: undefined is not an object (evaluating 'error.message')
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-fetch.test.ts:296:14)
+(fail) acquirePackages > a truthy non-boolean activation receipt is a refusal, still followed by confirmed deactivation [0.73ms]
+326 |     expect(error!.message).toBe("signal: SIGTERM received");
+327 |     expect(calls.slice(-3)).toEqual(["deactivate", "status", "close"]);
+328 |     expect(process.listenerCount("SIGTERM")).toBe(0);
+329 |     await rm(directory, { recursive: true, force: true });
+330 |     await Bun.sleep(700);
+331 |     expect(existsSync(directory)).toBe(false);
+                                        ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-fetch.test.ts:331:35)
+(fail) acquirePackages > an interrupted paid download is drained before cleanup and never recreates the private directory [701.82ms]
+481 |     activate: [{ activated: "yes", data: { activations_remaining: 138 } }, { activated: 1 }, { activated: true, data: { activations_remaining: 138 } }],
+482 |     deactivate: [{ deactivated: "yes" }, { deactivated: 1 }, { deactivated: true }],
+483 |   });
+484 |   const vault = await stand.open({ directory: await mkdtemp(join(scratch, "private-")) });
+485 |   try {
+486 |     expect(await vault.status()).toEqual({ activated: null, remaining: 139 });
+                                       ^
+error: expect(received).toEqual(expected)
+
+@@ -1,3 +1,3 @@
+  {
+-   "activated": null,
++   "activated": false,
+    "remaining": 139,
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-fetch.test.ts:486:34)
+(fail) real Playground child: only explicit booleans count as activation, deactivation or status facts [10468.83ms]
+505 |     status: [{ data: { activated: false, activations_remaining: 139 } }, { data: { activations_remaining: 139 } }],
+506 |     activate: [{ activated: true, data: { activations_remaining: 138 } }],
+507 |     deactivate: [{ deactivated: true }],
+508 |   });
+509 |   const error = await acquirePackages({ pins: PINS, directory: await mkdtemp(join(scratch, "private-")), env: stand.env, fetch: unchangedDiscovery, openVault: stand.open }).catch((e) => e as ReauditError);
+510 |   expect(error).toBeInstanceOf(ReauditError);
+                      ^
+error: expect(received).toBeInstanceOf(expected)
+
+Expected constructor: [class ReauditError extends Error]
+Received value: {
+  status: "unchanged",
+  versions: {
+    gf: "3.1.2",
+    ff: "6.2.14",
+    ff_pro: "6.2.15",
+    cleantalk: "6.88",
+    fluent_smtp: "2.4.1",
+  },
+  packages: null,
+  lifecycle: {
+    activationAttempted: true,
+    activationConfirmed: true,
+    deactivationAttempted: true,
+    deactivationConfirmed: true,
+    remainingBefore: 139,
+    remainingAfter: 139,
+    updater: {
+      before: "5.3.9",
+      after: "5.3.9",
+    },
+  },
+}
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-fetch.test.ts:510:17)
+(fail) real Playground child: a final status without data.activated does not confirm cleanup [17648.16ms]
+517 |     status: [{ data: { activated: false, activations_remaining: 139 } }, "wp_error"],
+518 |     activate: [{ activated: true, data: { activations_remaining: 138 } }],
+519 |     deactivate: [{ deactivated: "yes" }],
+520 |   });
+521 |   const error = await acquirePackages({ pins: PINS, directory: await mkdtemp(join(scratch, "private-")), env: stand.env, fetch: unchangedDiscovery, openVault: stand.open }).catch((e) => e as ReauditError);
+522 |   expect((error as ReauditError).message).toBe("cleanup: deactivate unconfirmed");
+                                                ^
+error: expect(received).toBe(expected)
+
+Expected: "cleanup: deactivate unconfirmed"
+Received: undefined
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-fetch.test.ts:522:43)
+(fail) real Playground child: a truthy malformed deactivation receipt plus an unreachable status does not confirm cleanup [15359.97ms]
+527 |     status: [{ data: { activated: true, activations_remaining: 138 } }],
+528 |     activate: ["wp_error"],
+529 |     deactivate: ["wp_error"],
+530 |   });
+531 |   const error = await acquirePackages({ pins: PINS, directory: await mkdtemp(join(scratch, "private-")), env: stand.env, fetch: unchangedDiscovery, openVault: stand.open }).catch((e) => e as ReauditError);
+532 |   expect((error as ReauditError).message).toBe("activation: status already active");
+                                                ^
+error: expect(received).toBe(expected)
+
+Expected: "activation: status already active"
+Received: "cleanup: deactivate unconfirmed (after activation: activate refused)"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-fetch.test.ts:532:43)
+(fail) real Playground child: an already-active initial status is refused before any activate or deactivate [12149.25ms]
+
+ 26 pass
+ 7 fail
+ 101 expect() calls
+Ran 33 tests across 1 file. [72.64s]
+exit 1

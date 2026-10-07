@@ -1,0 +1,14 @@
+{
+  "source-privacy-dry-run": {
+    "exit": 1,
+    "leaked": false,
+    "ghCalls": 0,
+    "dist": []
+  },
+  "source-privacy-publish": {
+    "exit": 1,
+    "leaked": false,
+    "ghCalls": 0,
+    "dist": []
+  }
+}

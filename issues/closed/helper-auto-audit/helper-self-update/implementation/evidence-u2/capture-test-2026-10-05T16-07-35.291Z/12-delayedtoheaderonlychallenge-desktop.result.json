@@ -1,0 +1,18 @@
+{
+  "state": "error",
+  "detail": "capture failed: evaluate: Target page, context or browser has been closed",
+  "image": null,
+  "health": {
+    "status": null,
+    "finalUrl": "http://127.0.0.1:37849/delayed?to=/header-only-challenge",
+    "criticalError": false,
+    "consoleErrors": [],
+    "failedRequests": [],
+    "mixedContent": []
+  },
+  "warnings": [
+    "network not idle after 15000 ms; captured anyway",
+    "trace not saved: stop: Target page, context or browser has been closed"
+  ],
+  "tracePath": null
+}

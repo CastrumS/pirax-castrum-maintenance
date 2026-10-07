@@ -1,0 +1,37 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: rejected
+Awaiting-audit fixture /gf-summary-only: rejected
+Awaiting-audit fixture /gf-awaiting-only-container: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-second-helper: rejected
+Awaiting-audit fixture /ff-awaiting-field: rejected
+Awaiting-audit fixture /ff-awaiting-invalid: awaiting-audit
+287 |       policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+288 |       expect(prepared.state).toBe("prepared"); if (prepared.state !== "prepared") return;
+289 |       const before = writes;
+290 |       const result = await submitForm(page, prepared, policy, { timeoutMs: 1_000, redact });
+291 |       console.log(`Awaiting-audit fixture ${path}: ${result.state}`);
+292 |       expect(`${path}: ${result.state}`).toBe(`${path}: ${expected}`);
+                                               ^
+error: expect(received).toBe(expected)
+
+Expected: "/ff-awaiting-invalid: rejected"
+Received: "/ff-awaiting-invalid: awaiting-audit"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/test/forms/browser.test.ts:292:42)
+      at async visit (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/test/forms/browser.test.ts:169:158)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u3/test/forms/browser.test.ts:286:11)
+(fail) exact awaiting-audit refusals are classified per message; near matches, extra refusals, stale and foreign messages are not [3398.42ms]
+
+ 0 pass
+ 21 filtered out
+ 1 fail
+ 61 expect() calls
+Ran 1 test across 1 file. [3.66s]

@@ -1,0 +1,9 @@
+$ bun scripts/release-plugin.ts --dry-run
+exit 1
+--- stdout
+--- stderr
+release-plugin: pirax-form-test.php: Version header and VERSION constant differ
+--- gh calls
+[]
+--- dist
+

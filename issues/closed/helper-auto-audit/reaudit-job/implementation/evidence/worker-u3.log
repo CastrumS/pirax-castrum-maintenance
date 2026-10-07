@@ -1,0 +1,1 @@
+That notice is just the last test monitor timing out, so nothing has changed. Unit 3 stands as reported: commit `c01afc3`, with the report at `implementation/report-u3.md`. The configured full suite still exited 1 on the Playground test in `test/plugin/updates.test.ts`, which this unit doesn't own; it passed when rerun on its own. B's final full-suite run should confirm it.

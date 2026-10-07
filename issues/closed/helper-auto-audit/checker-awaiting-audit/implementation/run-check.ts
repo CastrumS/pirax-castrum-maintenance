@@ -1,0 +1,17 @@
+import { secretRedactor } from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/src/forms/evidence.ts';
+import { unlink } from 'node:fs/promises';
+import { openSync, closeSync } from 'node:fs';
+const [name, command] = process.argv.slice(2);
+if (!name || !command) throw new Error('name and command required');
+const base = '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/open/helper-auto-audit/checker-awaiting-audit/implementation';
+const raw = `${base}/.${name}.raw`, log = `${base}/${name}.log`;
+const fd = openSync(raw, 'w', 0o600);
+const p = Bun.spawn(['bash','-c',command], {cwd:'/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit', stdout:fd, stderr:fd, env:{...process.env, AKROGON_BASE:'2689aaa3bd69a9a46cc77788fdc5219354cc923a',PATH:`/home/rudi/.local/share/mise/installs/node/24.21.0/bin:${process.env.PATH}`}});
+const exit = await p.exited;
+closeSync(fd);
+const text = secretRedactor()(await Bun.file(raw).text()).replace(/https?:\/\/[^\s"<>]*X-Amz-[^\s"<>]*/gi, '<private-signed-url>');
+await Bun.write(log, text + `\nCommand: ${command}\nExit: ${exit}\n`);
+await unlink(raw);
+await Bun.write(`${base}/${name}.exit`, String(exit)+'\n');
+console.log(`${name}: exit ${exit}; ${log}`);
+process.exit(exit);

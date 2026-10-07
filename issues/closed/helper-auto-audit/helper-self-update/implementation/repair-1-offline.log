@@ -1,0 +1,174 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+(pass) locked viewports and readiness limits [0.12ms]
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update/runs/capture-test-2026-10-05T23-37-24.888Z
+(pass) capture in real Chromium > failed later main-document navigation from /delayed-unreachable cannot reuse HTTP 200 [1656.79ms]
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update/runs/capture-test-2026-10-05T23-37-24.888Z
+(pass) capture in real Chromium > failed later main-document navigation from /delayed-post cannot reuse HTTP 200 [1596.19ms]
+(pass) capture in real Chromium > delayed main-document navigation to /missing uses final health and classification [1667.63ms]
+(pass) capture in real Chromium > delayed main-document navigation to /critical uses final health and classification [1639.29ms]
+(pass) capture in real Chromium > delayed main-document navigation to /forbidden uses final health and classification [1601.03ms]
+(pass) capture in real Chromium > delayed main-document navigation to /challenge uses final health and classification [1576.46ms]
+(pass) capture in real Chromium > delayed main-document navigation to /header-only-challenge uses final health and classification [1598.74ms]
+(pass) capture in real Chromium > direct HTTP redirect retains the final document status [764.50ms]
+(pass) capture in real Chromium > navigation triggered by readiness scrolling reconciles the final document [1767.94ms]
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update/runs/capture-test-2026-10-05T23-37-24.888Z
+(pass) capture in real Chromium > read-only policy blocks real WebSocket mutations while GET content captures [768.73ms]
+(pass) capture in real Chromium > full-page PNG at both viewports includes lazy content; trace saved [2563.48ms]
+(pass) capture in real Chromium > site and page masks combine; masked captures are stable, unmasked ones change [6121.22ms]
+(pass) capture in real Chromium > hides combine, remove elements from the full-page size, and warn or fail like masks [6834.05ms]
+(pass) capture in real Chromium > unmatched valid mask warns; invalid or non-CSS selectors are configuration errors [1559.33ms]
+(pass) capture in real Chromium > health: console/pageerror, 404 assets, transport failure; policy aborts are warnings; CAPTCHA text is not blocked [749.72ms]
+(pass) capture in real Chromium > 404 page and critical error are captured health failures, not blocked [1508.18ms]
+(pass) capture in real Chromium > unreachable, 403 and challenge pages are blocked with reasons and a trace [2166.16ms]
+(pass) capture in real Chromium > never-idle, infinitely scrolling page finishes within its limits with readiness warnings [3397.12ms]
+(pass) TLS and mixed content on a real HTTPS fixture > self-signed certificate is blocked unless the internal test option is set [66.30ms]
+(pass) TLS and mixed content on a real HTTPS fixture > HTTP resources on an HTTPS page are mixed content; plain HTTP links are not [1580.34ms]
+(pass) challengeReason needs explicit markers [0.15ms]
+
+tests/commands.test.ts:
+(pass) command preflight without browser or storage > parses selection, optional sites and approve page; retains list order [0.17ms]
+(pass) command preflight without browser or storage > rejects missing, extra, unsupported flags and approve all [0.06ms]
+(pass) command preflight without browser or storage > exit 2 for configuration before work; empty all is zero with no credentials [6.27ms]
+(pass) command preflight without browser or storage > CLI imports have no credential reads or exits and missing env is sanitized exit 2 [721.12ms]
+(pass) root forms alias invokes production entrypoint; empty/usage need no credentials or writes [765.03ms]
+(pass) direct forms/check errors sanitize trusted messages and classify config as exit 2 [395.44ms]
+(pass) only canonical completed run IDs qualify, in descending order [0.26ms]
+(pass) latest containing site is selected, incomplete/unrelated evidence never replaces it [0.46ms]
+(pass) latest valid containing site wins over unrelated newer history without falling back from blocked pages [0.88ms]
+(pass) direct approval rejects an unlisted page before touching its real lazy Store [2.63ms]
+(pass) newer valid forms-only runs are skipped; a malformed newer forms manifest is still an error [0.33ms]
+(pass) baseline/check entrypoints finish after the lazy command import instead of deadlocking [985.81ms]
+
+tests/compare.test.ts:
+(pass) comparePng with equal dimensions > identical images are same with ratio 0 and a decodable diff [1.19ms]
+(pass) comparePng with equal dimensions > ratio below, equal to and above the allowance (100 px image, 1 px = 0.01) [2.08ms]
+(pass) comparePng with equal dimensions > uses pixelmatch threshold 0.1: small colour deltas ignored, larger ones counted [1.04ms]
+(pass) comparePng with different dimensions > height-only change is changed regardless of allowance, with padded diff [0.80ms]
+(pass) comparePng with different dimensions > width-only change and both-axis change do not crash [1.50ms]
+(pass) comparePng with undecodable input > corrupt baseline or actual PNG is an explicit error, not a crash [0.50ms]
+
+tests/discovery.test.ts:
+(pass) bare bun test skips issues/** and still discovers tests/ and test/ [4.34ms]
+
+tests/env.test.ts:
+(pass) readR2Config > maps the four variables explicitly with region auto [0.07ms]
+(pass) readR2Config > names every missing or blank variable, never values [0.10ms]
+(pass) readR2Config > empty env names all four [0.15ms]
+(pass) readR2Config > defaults to process.env; importing helpers needs no credentials [20.43ms]
+
+tests/health.test.ts:
+(pass) normalizeHealth > deduplicates and sorts without dropping query distinctions [0.12ms]
+(pass) evaluateHealth > clean page has no findings [0.04ms]
+(pass) evaluateHealth > without a baseline every console and request finding fails [0.08ms]
+(pass) evaluateHealth > baselined console and URL/status pairs become warnings, new ones fail, removed ones vanish [0.15ms]
+(pass) evaluateHealth > benign third-party noise is not reported; the raw snapshot keeps it [0.14ms]
+(pass) evaluateHealth > HTTP >= 400, critical error and mixed content fail even when baselined [0.08ms]
+(pass) parseHealth > round-trips a valid snapshot and normalizes it [0.15ms]
+(pass) parseHealth > rejects malformed shapes with a field name [0.20ms]
+
+tests/sites.test.ts:
+(pass) loadSites valid input > normalizes literal YAML, preserves order, applies defaults [0.24ms]
+(pass) loadSites valid input > empty sites list is allowed [0.04ms]
+(pass) loadSites valid input > ratio bounds 0 and 1 are inclusive [0.10ms]
+(pass) loadSites valid input > shipped sites.example.yaml loads [0.18ms]
+(pass) loadSites valid input > committed sites.yaml designates exactly the operator's 12 test forms, offline [0.54ms]
+(pass) test_form designation > string-page and object-page designations load; absence stays absent [0.17ms]
+(pass) test_form designation > page must exactly match a listed normalized path [0.38ms]
+(pass) test_form designation > plugin must be gravity or fluent [0.22ms]
+(pass) test_form designation > id must be a numeric integer, never a coerced string [0.29ms]
+(pass) test_form designation > unknown member and malformed shape name the site [0.28ms]
+(pass) loadSites required negative cases > duplicate slug [0.05ms]
+(pass) loadSites required negative cases > missing url [0.03ms]
+(pass) loadSites required negative cases > trailing-slash url [0.04ms]
+(pass) loadSites required negative cases > empty pages [0.04ms]
+(pass) loadSites required negative cases > unknown site key [0.09ms]
+(pass) loadSites required negative cases > malformed masks [0.18ms]
+(pass) loadSites hide > optional site and page hide lists; absent means no key [0.12ms]
+(pass) loadSites hide > malformed hides name the field [0.09ms]
+(pass) loadSites broader validation > root shape and unknown root key [0.10ms]
+(pass) loadSites broader validation > site entry must be a mapping [0.03ms]
+(pass) loadSites broader validation > slug missing or malformed uses index [0.16ms]
+(pass) loadSites broader validation > url wrong type, scheme, credentials, query, fragment [0.16ms]
+(pass) loadSites broader validation > form_helper required boolean [0.06ms]
+(pass) loadSites broader validation > ratio type and bounds [0.15ms]
+(pass) loadSites broader validation > pages wrong type and bad page entries [0.15ms]
+(pass) loadSites broader validation > bad page paths [0.22ms]
+(pass) loadSites broader validation > paths that URL resolution would normalize off-site or into traversal [0.42ms]
+(pass) loadSites broader validation > percent-encoded non-traversal paths stay valid [0.14ms]
+(pass) loadSites broader validation > duplicate page paths and key collisions [0.15ms]
+(pass) loadSites broader validation > same page across different sites is fine [0.06ms]
+(pass) loadSites broader validation > read and YAML errors are wrapped without file contents [0.12ms]
+(pass) loadSites broader validation > default path is sites.yaml in the working directory [6.93ms]
+(pass) pageKey > mandated examples [0.04ms]
+(pass) pageKey > deterministic and filename safe [0.10ms]
+
+tests/awaiting-audit.test.ts:
+(pass) state key > accepts configured slugs only [0.07ms]
+(pass) stored firstSeen > canonical, past or present timestamps are accepted [0.11ms]
+(pass) stored firstSeen > malformed, wrong-shape, noncanonical and future values are rejected [0.11ms]
+(pass) 72-hour decision > strictly greater than 72 hours fails [0.07ms]
+(pass) 72-hour decision > notes state firstSeen, elapsed duration and threshold, distinguishing the boundary [0.03ms]
+(pass) 72-hour decision > elapsed formatting [0.01ms]
+(pass) unavailable storage > a sighting stays a first-sighting warning with safe diagnostics [0.94ms]
+(pass) unavailable storage > clearing failure is disclosed on an existing row and returned; never fabricates rows [0.22ms]
+
+tests/report.test.ts:
+(pass) private report > embeds images and escapes all untrusted text without external assets [1.91ms]
+(pass) private report > renders exact future Forms outcomes only when supplied [0.17ms]
+(pass) private report > skipped forms are neutral, explained, and accepted by check manifests and approval [0.27ms]
+(pass) private report > awaiting-audit is a warning with escaped versions, accepted by check manifests and approval; visual failures still fail [0.23ms]
+(pass) private report > aggregates blocked, failures and warnings while keeping capture separate [0.03ms]
+(pass) manifest and exact approval evidence > accepts canonical manifest and derives safe encoded page keys [0.08ms]
+(pass) manifest and exact approval evidence > rejects malformed schemas, shapes, duplicate sites, run mismatch and arbitrary artifact paths [0.24ms]
+(pass) manifest and exact approval evidence > requires current URL, requested pages and both complete captures from the selected run [0.24ms]
+(pass) manifest and exact approval evidence > validates actual PNG and raw health bytes against recorded dimensions [1.59ms]
+(pass) manifest and exact approval evidence > approval accepts full-page horizontal overflow using recorded dimensions [1.07ms]
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update/runs/2026-10-05T23-38-09.204Z/index.html
+(pass) local report renders all embedded images and inert hostile text in real Chromium [260.47ms]
+
+tests/store.test.ts:
+(pass) run IDs > canonical millisecond UTC ISO with colons replaced [0.03ms]
+(pass) run IDs > rejects noncanonical and malformed IDs [0.04ms]
+(pass) expiredReportKeys > keeps the newest distinct runs and removes every object of older runs [0.16ms]
+(pass) expiredReportKeys > default is 10 [0.07ms]
+(pass) expiredReportKeys > zero removes all recognized reports, never sentinels [0.06ms]
+(pass) expiredReportKeys > count at or below keep is a no-op [0.07ms]
+(pass) expiredReportKeys > input order does not matter; runs count once regardless of object count [0.06ms]
+(pass) expiredReportKeys > invalid keep throws [0.07ms]
+(pass) store validation before any request > createStore validates root and page size [0.13ms]
+(pass) store validation before any request > unsafe keys reject with StoreError, not a network error [0.52ms]
+(pass) store validation before any request > root counts toward the key length limit [0.08ms]
+(pass) store validation before any request > presign validates expiry and signs the scoped key for GET [0.13ms]
+(pass) store validation before any request > external folder marker of an expired run is selected but rejected, never slash-trimmed [0.14ms]
+(pass) store validation before any request > invalid keep rejects before listing [0.14ms]
+(pass) lazy environment > importing store needs no env; first use names missing variables [10.17ms]
+(pass) store:selftest missing configuration > all blank: nonzero, names all four, no artifact [6.05ms]
+(pass) store:selftest missing configuration > one blank: names only it and prints no values [8.75ms]
+
+test/plugin/artifacts.test.ts:
+(pass) findSecret and sanitizeZip keep the signing seed for scanning but not for their zip/unzip children [17.64ms]
+
+ 124 pass
+ 0 fail
+ 1072 expect() calls
+Ran 124 tests across 11 files. [44.80s]
+bun test v1.4.2 (744846f84)
+
+test/plugin/release.test.ts:
+(pass) offline: dry run signs the exact manifest bytes from source-derived facts and never calls GitHub [50.09ms]
+(pass) offline: importing the release script has no side effects [21.20ms]
+(pass) offline: a missing or malformed seed is refused by name, in both modes, before anything is built [178.32ms]
+(pass) offline: publishing refuses a seed whose public key is not the committed production key [23.01ms]
+(pass) offline: publishing refuses an existing local tag before any GitHub call [36.82ms]
+(pass) offline: a generated seed used as the source version never reaches CLI output, in either mode [33.91ms]
+(pass) offline: malformed or ambiguous source facts are refused before anything is built [84.93ms]
+(pass) offline: the parent refuses to package a seed found in source, and no private material reaches outputs or logs [27.13ms]
+
+ 8 pass
+ 6 filtered out
+ 0 fail
+ 139 expect() calls
+Ran 8 tests across 1 file. [477.00ms]
+exit=0

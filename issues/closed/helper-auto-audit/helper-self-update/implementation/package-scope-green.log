@@ -1,0 +1,15 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/updates.test.ts:
+(pass) staged fixture helpers replace only the test channel; the shipping source keeps the production trust root [932.10ms]
+(pass) a verified newer release is offered natively; every invalid feed offers nothing and drops a stale offer [54028.94ms]
+(pass) plugins_api answers only this helper's details, with inert escaped text, and never falls through to wordpress.org [2114.72ms]
+(pass) auto_update_plugin opts in this exact helper only and preserves every other decision [2763.47ms]
+(pass) the download boundary refuses unverified helper packages and leaves the installed bytes unchanged [57275.55ms]
+(pass) an authenticated admin lists, inspects and installs the signed release through native WordPress [14673.48ms]
+(pass) evidence: summary, request ledger and traces are retained without private key material [5182.68ms]
+
+ 7 pass
+ 0 fail
+ 153 expect() calls
+Ran 7 tests across 1 file. [170.95s]

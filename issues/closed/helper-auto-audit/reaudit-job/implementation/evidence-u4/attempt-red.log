@@ -1,0 +1,161 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-decide.test.ts:
+
+# Unhandled error between tests
+-------------------------------
+SyntaxError: Export named 'readSummaries' not found in module '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/scripts/reaudit/notify.ts'.
+-------------------------------
+
+
+tests/reaudit-publish.test.ts:
+v0.3.1: dist/pirax-form-test.zip sha256 205b3c71d48223f55159da9424f360e027a1ad5b85c1612f7386de804dbccbb3, signed by public key hrNraRZ19D3rWoPIiYneEZVabWh2cEwdQ2uY/HG6x70=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+v0.3.1: dist/pirax-form-test.zip sha256 4522beaa5e3b4e949a874dd13e40aadf31c6fb7665fa44f9dea2bd7e5f5087a1, signed by public key SpZbfXQT0lU40nZP1up+t5qL1VSOG7Pp01momczjXZk=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+134 | 
+135 | const remoteMain = (remote: string) => git(scratch, "--git-dir", remote, "rev-parse", "refs/heads/main");
+136 | const mutations = (calls: string[][]) => calls.filter((c) => (c[0] === "api" && c.includes("--method")) || (c[0] === "release" && c[1] !== "download"));
+137 | async function failure(run: Promise<unknown>) {
+138 |   const error = await run.then(() => undefined, (e: unknown) => e);
+139 |   expect(error).toBeInstanceOf(PublishError);
+                      ^
+error: expect(received).toBeInstanceOf(expected)
+
+Expected constructor: [class PublishError extends Error]
+Received value: undefined
+
+      at failure (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-publish.test.ts:139:17)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-publish.test.ts:242:19)
+(fail) a rerun attempt never publishes an earlier attempt's candidate of the same run [1878.17ms]
+v0.3.1: dist/pirax-form-test.zip sha256 23f6184f8f97681d5b1d25790bd2be34f64f5e25929eba4d32bc06b413782e85, signed by public key zu25bk+1S+XTmGa1mrPvjDts3m830oxSn6nc0EQdKW0=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+134 | 
+135 | const remoteMain = (remote: string) => git(scratch, "--git-dir", remote, "rev-parse", "refs/heads/main");
+136 | const mutations = (calls: string[][]) => calls.filter((c) => (c[0] === "api" && c.includes("--method")) || (c[0] === "release" && c[1] !== "download"));
+137 | async function failure(run: Promise<unknown>) {
+138 |   const error = await run.then(() => undefined, (e: unknown) => e);
+139 |   expect(error).toBeInstanceOf(PublishError);
+                      ^
+error: expect(received).toBeInstanceOf(expected)
+
+Expected constructor: [class PublishError extends Error]
+Received value: undefined
+
+      at failure (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-publish.test.ts:139:17)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-publish.test.ts:252:19)
+(fail) an unreadable new commit is refused before any push: no empty commit can disable the tag-commit check [1759.83ms]
+v0.3.1: dist/pirax-form-test.zip sha256 1a16474ec5c67ff97cbc7f0df5d2433498f4c47557162bf9919a172b1848fd92, signed by public key iL2h88qIHaJNqafF5Yl3GBzg56C6n2vIjGRgxtNT0dM=
+HTTP 502: Bad Gateway
+release-plugin: gh release create failed (exit 1); tag v0.3.1 was claimed on CastrumS/pirax-castrum-maintenance at 3f1893fc09fa1f94614c03a14e7f18fd88d87ee3; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly
+v0.3.1: dist/pirax-form-test.zip sha256 9d097d8e88b5d29a57a707a719b994ba75847beb44f976c6074166cf9e01412a, signed by public key YXczXjYGKFOiDQ60CXdRAjHsVG8BMsgvzqJhW0LqIIo=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+
+tests/reaudit-workflow.test.ts:
+22 | const watchdog = await load("reaudit-watchdog.yml");
+23 | const ALLOWED_SECRETS = ["GPLVAULT_LICENSE_KEY", "GPLVAULT_PRODUCT_ID", "GPLVAULT_UPDATER_PASSPHRASE", "IMAP_USER", "IMAP_PASSWORD", "PIRAX_HELPER_SIGNING_KEY"];
+24 | const secretsIn = (value: unknown) => [...JSON.stringify(value ?? null).matchAll(/secrets\.([A-Za-z0-9_]+)/g)].map((m) => m[1]!);
+25 | const step = (job: Job, match: (s: Step) => boolean) => {
+26 |   const found = job.steps.filter(match);
+27 |   expect(found).toHaveLength(1);
+                     ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 0
+
+      at step (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-workflow.test.ts:27:17)
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-workflow.test.ts:84:21)
+(fail) audit: read-only, no persisted credentials, explicit Node 24/Bun 1.4.2/native tools/Chromium, frozen install, >=90 min budget, vendor secrets only on the audit step [0.27ms]
+107 |   const scripts = runs(job).join("\n");
+108 |   expect(scripts).not.toMatch(/\bbun(?: --[\w-]+)* install\b|bunx|playwright|bun test|npm|apt-get/);
+109 |   expect(scripts).toContain("--no-install");
+110 |   const download = step(job, (s) => !!s.uses?.startsWith("actions/download-artifact@"));
+111 |   expect(Object.keys(download.with!).sort()).toEqual(["name", "path"]);
+112 |   expect(download.with!.name).toBe("reaudit-candidate-${{ github.run_attempt }}");
+                                    ^
+error: expect(received).toBe(expected)
+
+Expected: "reaudit-candidate-${{ github.run_attempt }}"
+Received: "reaudit-candidate"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-workflow.test.ts:112:31)
+(fail) publish: only after this run's successful audited candidate, write-capable, no install/vendor code, trusted checkout, signing key on one step [0.18ms]
+119 | test("reruns keep run_id and earlier artifacts: every artifact upload/download is bound to this run attempt", () => {
+120 |   const A = "${{ github.run_attempt }}";
+121 |   const names = Object.entries(audit.jobs).flatMap(([job, j]) =>
+122 |     j.steps.filter((s) => /^actions\/(upload|download)-artifact@/.test(s.uses ?? "")).map((s) => [job, s.uses!.split("@")[0], s.with?.name ?? s.with?.pattern]),
+123 |   );
+124 |   expect(names).toEqual([
+                      ^
+error: expect(received).toEqual(expected)
+
+@@ -4,3 +4,3 @@
+      "actions/upload-artifact",
+-     "reaudit-candidate-${{ github.run_attempt }}",
++     "reaudit-candidate",
+    ],
+@@ -9,3 +9,3 @@
+      "actions/upload-artifact",
+-     "reaudit-summary-${{ github.run_attempt }}-audit",
++     "reaudit-summary-audit",
+    ],
+@@ -14,3 +14,3 @@
+      "actions/upload-artifact",
+-     "reaudit-evidence-${{ github.run_attempt }}",
++     "reaudit-evidence",
+    ],
+@@ -19,3 +19,3 @@
+      "actions/download-artifact",
+-     "reaudit-candidate-${{ github.run_attempt }}",
++     "reaudit-candidate",
+    ],
+@@ -24,3 +24,3 @@
+      "actions/upload-artifact",
+-     "reaudit-summary-${{ github.run_attempt }}-publish",
++     "reaudit-summary-publish",
+    ],
+@@ -29,3 +29,3 @@
+      "actions/download-artifact",
+-     "reaudit-summary-${{ github.run_attempt }}-*",
++     "reaudit-summary-*",
+    ],
+
+- Expected  - 6
++ Received  + 6
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-workflow.test.ts:124:17)
+(fail) reruns keep run_id and earlier artifacts: every artifact upload/download is bound to this run attempt [0.14ms]
+212 |   await mkdir(join(dir, "reaudit-summary-1-audit"), { recursive: true });
+213 |   await writeFile(join(dir, "reaudit-summary-1-audit/summary.json"), JSON.stringify({ stage: "audit", reason: "native-suite-failed", cleanup: "confirmed", publication: "not-attempted" }));
+214 |   const needs = JSON.stringify({ audit: { result: "failure", outputs: {} }, publish: { result: "skipped", outputs: {} }, heartbeat: { result: "success", outputs: {} } });
+215 |   const r = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { REAUDIT_NEEDS: needs, GITHUB_RUN_ATTEMPT: "1" });
+216 |   expect(r.code).toBe(1);
+217 |   expect(JSON.parse(r.stderr.trim().split("\n").at(-1)!)).toMatchObject({ smtpAttempts: 0, smtpAccepted: false, stage: "audit" });
+                                                                ^
+error: expect(received).toMatchObject(expected)
+
+  {
++   "error": "Missing or blank environment variables: IMAP_USER, IMAP_PASSWORD",
+    "smtpAccepted": false,
+    "smtpAttempts": 0,
+-   "stage": "audit",
++   "stage": "setup",
+  }
+
+- Expected  - 1
++ Received  + 2
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-workflow.test.ts:217:59)
+(fail) notify --jobs picks the failed job's summary and, without mail credentials, fails safely before any SMTP attempt [66.53ms]
+
+ 20 pass
+ 7 fail
+ 1 error
+ 242 expect() calls
+Ran 27 tests across 3 files. [13.46s]
+exit=1

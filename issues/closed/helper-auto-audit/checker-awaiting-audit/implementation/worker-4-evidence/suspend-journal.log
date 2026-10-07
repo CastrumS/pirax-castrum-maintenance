@@ -1,0 +1,958 @@
+Oct 02 20:00:02 rudi-asus systemd-sleep[743776]: System returned from sleep operation 'suspend'.
+Oct 02 20:00:02 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:00:02 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:00:02 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.469s CPU time over 5.971s wall clock time, 1.4G memory peak.
+Oct 02 20:00:26 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:00:26 rudi-asus systemd-sleep[744621]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:00:26 rudi-asus systemd-sleep[744621]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:00:26 rudi-asus systemd-sleep[744621]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:00:27 rudi-asus systemd-sleep[744621]: Performing sleep operation 'suspend'...
+Oct 02 20:00:32 rudi-asus systemd-sleep[744621]: System returned from sleep operation 'suspend'.
+Oct 02 20:00:32 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:00:32 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:00:32 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.867s CPU time over 6.019s wall clock time, 1.4G memory peak.
+Oct 02 20:00:57 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:00:57 rudi-asus systemd-sleep[745222]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:00:57 rudi-asus systemd-sleep[745222]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:00:57 rudi-asus systemd-sleep[745222]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:00:57 rudi-asus systemd-sleep[745222]: Performing sleep operation 'suspend'...
+Oct 02 20:01:03 rudi-asus systemd-sleep[745222]: System returned from sleep operation 'suspend'.
+Oct 02 20:01:03 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:01:03 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:01:03 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.875s CPU time over 6.068s wall clock time, 1.4G memory peak.
+Oct 02 20:01:27 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:01:27 rudi-asus systemd-sleep[745867]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:01:27 rudi-asus systemd-sleep[745867]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:01:27 rudi-asus systemd-sleep[745867]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:01:27 rudi-asus systemd-sleep[745867]: Performing sleep operation 'suspend'...
+Oct 02 20:01:33 rudi-asus systemd-sleep[745867]: System returned from sleep operation 'suspend'.
+Oct 02 20:01:33 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:01:33 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:01:33 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.891s CPU time over 6.178s wall clock time, 1.4G memory peak.
+Oct 02 20:01:57 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:01:57 rudi-asus systemd-sleep[746516]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:01:57 rudi-asus systemd-sleep[746516]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:01:57 rudi-asus systemd-sleep[746516]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:01:57 rudi-asus systemd-sleep[746516]: Performing sleep operation 'suspend'...
+Oct 02 20:02:03 rudi-asus systemd-sleep[746516]: System returned from sleep operation 'suspend'.
+Oct 02 20:02:03 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:02:03 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:02:03 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.883s CPU time over 5.966s wall clock time, 1.4G memory peak.
+Oct 02 20:02:28 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:02:28 rudi-asus systemd-sleep[747095]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:02:28 rudi-asus systemd-sleep[747095]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:02:28 rudi-asus systemd-sleep[747095]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:02:28 rudi-asus systemd-sleep[747095]: Performing sleep operation 'suspend'...
+Oct 02 20:02:33 rudi-asus systemd-sleep[747095]: System returned from sleep operation 'suspend'.
+Oct 02 20:02:33 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:02:33 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:02:33 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.453s CPU time over 5.957s wall clock time, 1.4G memory peak.
+Oct 02 20:02:58 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:02:58 rudi-asus systemd-sleep[747685]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:02:58 rudi-asus systemd-sleep[747685]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:02:58 rudi-asus systemd-sleep[747685]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:02:58 rudi-asus systemd-sleep[747685]: Performing sleep operation 'suspend'...
+Oct 02 20:03:04 rudi-asus systemd-sleep[747685]: System returned from sleep operation 'suspend'.
+Oct 02 20:03:04 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:03:04 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:03:04 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.876s CPU time over 6.029s wall clock time, 1.4G memory peak.
+Oct 02 20:03:28 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:03:28 rudi-asus systemd-sleep[748275]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:03:28 rudi-asus systemd-sleep[748275]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:03:28 rudi-asus systemd-sleep[748275]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:03:28 rudi-asus systemd-sleep[748275]: Performing sleep operation 'suspend'...
+Oct 02 20:03:34 rudi-asus systemd-sleep[748275]: System returned from sleep operation 'suspend'.
+Oct 02 20:03:34 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:03:34 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:03:34 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.464s CPU time over 5.997s wall clock time, 1.4G memory peak.
+Oct 02 20:03:58 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:03:58 rudi-asus systemd-sleep[748938]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:03:58 rudi-asus systemd-sleep[748938]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:03:58 rudi-asus systemd-sleep[748938]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:03:58 rudi-asus systemd-sleep[748938]: Performing sleep operation 'suspend'...
+Oct 02 20:04:04 rudi-asus systemd-sleep[748938]: System returned from sleep operation 'suspend'.
+Oct 02 20:04:04 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:04:04 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:04:04 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.864s CPU time over 6.088s wall clock time, 1.4G memory peak.
+Oct 02 20:04:29 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:04:29 rudi-asus systemd-sleep[749657]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:04:29 rudi-asus systemd-sleep[749657]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:04:29 rudi-asus systemd-sleep[749657]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:04:29 rudi-asus systemd-sleep[749657]: Performing sleep operation 'suspend'...
+Oct 02 20:04:34 rudi-asus systemd-sleep[749657]: System returned from sleep operation 'suspend'.
+Oct 02 20:04:35 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:04:35 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:04:35 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.467s CPU time over 5.982s wall clock time, 1.4G memory peak.
+Oct 02 20:04:59 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:04:59 rudi-asus systemd-sleep[750453]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:04:59 rudi-asus systemd-sleep[750453]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:04:59 rudi-asus systemd-sleep[750453]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:04:59 rudi-asus systemd-sleep[750453]: Performing sleep operation 'suspend'...
+Oct 02 20:05:05 rudi-asus systemd-sleep[750453]: System returned from sleep operation 'suspend'.
+Oct 02 20:05:05 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:05:05 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:05:05 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.844s CPU time over 6.036s wall clock time, 1.4G memory peak.
+Oct 02 20:05:29 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:05:29 rudi-asus systemd-sleep[751105]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:05:29 rudi-asus systemd-sleep[751105]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:05:29 rudi-asus systemd-sleep[751105]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:05:29 rudi-asus systemd-sleep[751105]: Performing sleep operation 'suspend'...
+Oct 02 20:05:35 rudi-asus systemd-sleep[751105]: System returned from sleep operation 'suspend'.
+Oct 02 20:05:35 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:05:35 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:05:35 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.872s CPU time over 6.076s wall clock time, 1.4G memory peak.
+Oct 02 20:05:59 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:05:59 rudi-asus systemd-sleep[751709]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:05:59 rudi-asus systemd-sleep[751709]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:05:59 rudi-asus systemd-sleep[751709]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:05:59 rudi-asus systemd-sleep[751709]: Performing sleep operation 'suspend'...
+Oct 02 20:06:05 rudi-asus systemd-sleep[751709]: System returned from sleep operation 'suspend'.
+Oct 02 20:06:05 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:06:05 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:06:05 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.824s CPU time over 6.067s wall clock time, 1.4G memory peak.
+Oct 02 20:06:30 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:06:30 rudi-asus systemd-sleep[752295]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:06:30 rudi-asus systemd-sleep[752295]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:06:30 rudi-asus systemd-sleep[752295]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:06:30 rudi-asus systemd-sleep[752295]: Performing sleep operation 'suspend'...
+Oct 02 20:06:35 rudi-asus systemd-sleep[752295]: System returned from sleep operation 'suspend'.
+Oct 02 20:06:35 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:06:35 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:06:35 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.838s CPU time over 5.994s wall clock time, 1.4G memory peak.
+Oct 02 20:07:00 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:07:00 rudi-asus systemd-sleep[752897]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:07:00 rudi-asus systemd-sleep[752897]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:07:00 rudi-asus systemd-sleep[752897]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:07:00 rudi-asus systemd-sleep[752897]: Performing sleep operation 'suspend'...
+Oct 02 20:07:06 rudi-asus systemd-sleep[752897]: System returned from sleep operation 'suspend'.
+Oct 02 20:07:06 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:07:06 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:07:06 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.969s CPU time over 6.178s wall clock time, 1.4G memory peak.
+Oct 02 20:07:30 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:07:30 rudi-asus systemd-sleep[753536]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:07:30 rudi-asus systemd-sleep[753536]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:07:30 rudi-asus systemd-sleep[753536]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:07:30 rudi-asus systemd-sleep[753536]: Performing sleep operation 'suspend'...
+Oct 02 20:07:36 rudi-asus systemd-sleep[753536]: System returned from sleep operation 'suspend'.
+Oct 02 20:07:36 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:07:36 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:07:36 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.876s CPU time over 6.028s wall clock time, 1.4G memory peak.
+Oct 02 20:08:00 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:08:00 rudi-asus systemd-sleep[754777]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:08:00 rudi-asus systemd-sleep[754777]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:08:00 rudi-asus systemd-sleep[754777]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:08:00 rudi-asus systemd-sleep[754777]: Performing sleep operation 'suspend'...
+Oct 02 20:08:06 rudi-asus systemd-sleep[754777]: System returned from sleep operation 'suspend'.
+Oct 02 20:08:06 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:08:06 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:08:06 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.813s CPU time over 5.921s wall clock time, 1.4G memory peak.
+Oct 02 20:08:30 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:08:31 rudi-asus systemd-sleep[755431]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:08:31 rudi-asus systemd-sleep[755431]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:08:31 rudi-asus systemd-sleep[755431]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:08:31 rudi-asus systemd-sleep[755431]: Performing sleep operation 'suspend'...
+Oct 02 20:08:45 rudi-asus systemd-sleep[755431]: System returned from sleep operation 'suspend'.
+Oct 02 20:08:45 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:08:45 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:08:45 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.854s CPU time over 14.477s wall clock time, 1.4G memory peak.
+Oct 02 20:09:01 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:09:01 rudi-asus systemd-sleep[756503]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:09:01 rudi-asus systemd-sleep[756503]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:09:01 rudi-asus systemd-sleep[756503]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:09:01 rudi-asus systemd-sleep[756503]: Performing sleep operation 'suspend'...
+Oct 02 20:09:06 rudi-asus systemd-sleep[756503]: System returned from sleep operation 'suspend'.
+Oct 02 20:09:06 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:09:06 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:09:06 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.437s CPU time over 5.269s wall clock time, 1.4G memory peak.
+Oct 02 20:09:31 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:09:31 rudi-asus systemd-sleep[757096]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:09:31 rudi-asus systemd-sleep[757096]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:09:31 rudi-asus systemd-sleep[757096]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:09:31 rudi-asus systemd-sleep[757096]: Performing sleep operation 'suspend'...
+Oct 02 20:09:37 rudi-asus systemd-sleep[757096]: System returned from sleep operation 'suspend'.
+Oct 02 20:09:37 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:09:37 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:09:37 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.870s CPU time over 6.027s wall clock time, 1.4G memory peak.
+Oct 02 20:10:01 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:10:01 rudi-asus systemd-sleep[758419]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:10:01 rudi-asus systemd-sleep[758419]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:10:01 rudi-asus systemd-sleep[758419]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:10:01 rudi-asus systemd-sleep[758419]: Performing sleep operation 'suspend'...
+Oct 02 20:10:07 rudi-asus systemd-sleep[758419]: System returned from sleep operation 'suspend'.
+Oct 02 20:10:07 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:10:07 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:10:07 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.419s CPU time over 5.364s wall clock time, 1.4G memory peak.
+Oct 02 20:10:31 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:10:32 rudi-asus systemd-sleep[759028]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:10:32 rudi-asus systemd-sleep[759028]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:10:32 rudi-asus systemd-sleep[759028]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:10:32 rudi-asus systemd-sleep[759028]: Performing sleep operation 'suspend'...
+Oct 02 20:10:38 rudi-asus systemd-sleep[759028]: System returned from sleep operation 'suspend'.
+Oct 02 20:10:38 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:10:38 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:10:38 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.867s CPU time over 6.067s wall clock time, 1.4G memory peak.
+Oct 02 20:11:02 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:11:02 rudi-asus systemd-sleep[760368]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:11:02 rudi-asus systemd-sleep[760368]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:11:02 rudi-asus systemd-sleep[760368]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:11:02 rudi-asus systemd-sleep[760368]: Performing sleep operation 'suspend'...
+Oct 02 20:11:07 rudi-asus systemd-sleep[760368]: System returned from sleep operation 'suspend'.
+Oct 02 20:11:07 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:11:07 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:11:07 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.416s CPU time over 5.269s wall clock time, 1.4G memory peak.
+Oct 02 20:11:32 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:11:32 rudi-asus systemd-sleep[762525]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:11:32 rudi-asus systemd-sleep[762525]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:11:32 rudi-asus systemd-sleep[762525]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:11:32 rudi-asus systemd-sleep[762525]: Performing sleep operation 'suspend'...
+Oct 02 20:11:37 rudi-asus systemd-sleep[762525]: System returned from sleep operation 'suspend'.
+Oct 02 20:11:37 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:11:37 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:11:37 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.437s CPU time over 5.314s wall clock time, 1.4G memory peak.
+Oct 02 20:12:02 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:12:02 rudi-asus systemd-sleep[763232]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:12:02 rudi-asus systemd-sleep[763232]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:12:02 rudi-asus systemd-sleep[763232]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:12:02 rudi-asus systemd-sleep[763232]: Performing sleep operation 'suspend'...
+Oct 02 20:12:08 rudi-asus systemd-sleep[763232]: System returned from sleep operation 'suspend'.
+Oct 02 20:12:08 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:12:08 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:12:08 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.875s CPU time over 5.964s wall clock time, 1.4G memory peak.
+Oct 02 20:12:32 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:12:32 rudi-asus systemd-sleep[764882]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:12:32 rudi-asus systemd-sleep[764882]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:12:32 rudi-asus systemd-sleep[764882]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:12:33 rudi-asus systemd-sleep[764882]: Performing sleep operation 'suspend'...
+Oct 02 20:12:38 rudi-asus systemd-sleep[764882]: System returned from sleep operation 'suspend'.
+Oct 02 20:12:38 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:12:38 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:12:38 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.385s CPU time over 5.218s wall clock time, 1.4G memory peak.
+Oct 02 20:13:03 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:13:03 rudi-asus systemd-sleep[767011]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:13:03 rudi-asus systemd-sleep[767011]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:13:03 rudi-asus systemd-sleep[767011]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:13:03 rudi-asus systemd-sleep[767011]: Performing sleep operation 'suspend'...
+Oct 02 20:13:08 rudi-asus systemd-sleep[767011]: System returned from sleep operation 'suspend'.
+Oct 02 20:13:08 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:13:08 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:13:08 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.405s CPU time over 5.185s wall clock time, 1.4G memory peak.
+Oct 02 20:13:33 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:13:33 rudi-asus systemd-sleep[767631]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:13:33 rudi-asus systemd-sleep[767631]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:13:33 rudi-asus systemd-sleep[767631]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:13:33 rudi-asus systemd-sleep[767631]: Performing sleep operation 'suspend'...
+Oct 02 20:13:39 rudi-asus systemd-sleep[767631]: System returned from sleep operation 'suspend'.
+Oct 02 20:13:39 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:13:39 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:13:39 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.845s CPU time over 5.989s wall clock time, 1.4G memory peak.
+Oct 02 20:14:03 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:14:03 rudi-asus systemd-sleep[768258]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:14:03 rudi-asus systemd-sleep[768258]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:14:03 rudi-asus systemd-sleep[768258]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:14:03 rudi-asus systemd-sleep[768258]: Performing sleep operation 'suspend'...
+Oct 02 20:14:09 rudi-asus systemd-sleep[768258]: System returned from sleep operation 'suspend'.
+Oct 02 20:14:09 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:14:09 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:14:09 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.477s CPU time over 6.010s wall clock time, 1.4G memory peak.
+Oct 02 20:14:33 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:14:34 rudi-asus systemd-sleep[769289]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:14:34 rudi-asus systemd-sleep[769289]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:14:34 rudi-asus systemd-sleep[769289]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:14:34 rudi-asus systemd-sleep[769289]: Performing sleep operation 'suspend'...
+Oct 02 20:14:39 rudi-asus systemd-sleep[769289]: System returned from sleep operation 'suspend'.
+Oct 02 20:14:39 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:14:39 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:14:39 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.861s CPU time over 5.944s wall clock time, 1.4G memory peak.
+Oct 02 20:15:04 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:15:04 rudi-asus systemd-sleep[769891]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:15:04 rudi-asus systemd-sleep[769891]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:15:04 rudi-asus systemd-sleep[769891]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:15:04 rudi-asus systemd-sleep[769891]: Performing sleep operation 'suspend'...
+Oct 02 20:15:10 rudi-asus systemd-sleep[769891]: System returned from sleep operation 'suspend'.
+Oct 02 20:15:10 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:15:10 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:15:10 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.851s CPU time over 6.000s wall clock time, 1.4G memory peak.
+Oct 02 20:15:34 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:15:34 rudi-asus systemd-sleep[770886]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:15:34 rudi-asus systemd-sleep[770886]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:15:34 rudi-asus systemd-sleep[770886]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:15:34 rudi-asus systemd-sleep[770886]: Performing sleep operation 'suspend'...
+Oct 02 20:15:39 rudi-asus systemd-sleep[770886]: System returned from sleep operation 'suspend'.
+Oct 02 20:15:39 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:15:39 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:15:39 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.406s CPU time over 5.262s wall clock time, 1.4G memory peak.
+Oct 02 20:16:04 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:16:04 rudi-asus systemd-sleep[771505]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:16:04 rudi-asus systemd-sleep[771505]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:16:04 rudi-asus systemd-sleep[771505]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:16:04 rudi-asus systemd-sleep[771505]: Performing sleep operation 'suspend'...
+Oct 02 20:16:10 rudi-asus systemd-sleep[771505]: System returned from sleep operation 'suspend'.
+Oct 02 20:16:10 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:16:10 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:16:10 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.855s CPU time over 6.037s wall clock time, 1.4G memory peak.
+Oct 02 20:16:35 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:16:35 rudi-asus systemd-sleep[772090]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:16:35 rudi-asus systemd-sleep[772090]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:16:35 rudi-asus systemd-sleep[772090]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:16:35 rudi-asus systemd-sleep[772090]: Performing sleep operation 'suspend'...
+Oct 02 20:16:41 rudi-asus systemd-sleep[772090]: System returned from sleep operation 'suspend'.
+Oct 02 20:16:41 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:16:41 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:16:41 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.480s CPU time over 6.061s wall clock time, 1.4G memory peak.
+Oct 02 20:17:05 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:17:05 rudi-asus systemd-sleep[773258]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:17:05 rudi-asus systemd-sleep[773258]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:17:05 rudi-asus systemd-sleep[773258]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:17:05 rudi-asus systemd-sleep[773258]: Performing sleep operation 'suspend'...
+Oct 02 20:17:10 rudi-asus systemd-sleep[773258]: System returned from sleep operation 'suspend'.
+Oct 02 20:17:10 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:17:10 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:17:10 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.453s CPU time over 5.399s wall clock time, 1.4G memory peak.
+Oct 02 20:17:35 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:17:35 rudi-asus systemd-sleep[773995]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:17:35 rudi-asus systemd-sleep[773995]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:17:35 rudi-asus systemd-sleep[773995]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:17:35 rudi-asus systemd-sleep[773995]: Performing sleep operation 'suspend'...
+Oct 02 20:17:41 rudi-asus systemd-sleep[773995]: System returned from sleep operation 'suspend'.
+Oct 02 20:17:41 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:17:41 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:17:41 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.880s CPU time over 6.042s wall clock time, 1.4G memory peak.
+Oct 02 20:18:05 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:18:05 rudi-asus systemd-sleep[774597]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:18:05 rudi-asus systemd-sleep[774597]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:18:05 rudi-asus systemd-sleep[774597]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:18:05 rudi-asus systemd-sleep[774597]: Performing sleep operation 'suspend'...
+Oct 02 20:18:10 rudi-asus systemd-sleep[774597]: System returned from sleep operation 'suspend'.
+Oct 02 20:18:11 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:18:11 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:18:11 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.460s CPU time over 5.248s wall clock time, 1.4G memory peak.
+Oct 02 20:18:36 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:18:36 rudi-asus systemd-sleep[775228]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:18:36 rudi-asus systemd-sleep[775228]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:18:36 rudi-asus systemd-sleep[775228]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:18:36 rudi-asus systemd-sleep[775228]: Performing sleep operation 'suspend'...
+Oct 02 20:18:42 rudi-asus systemd-sleep[775228]: System returned from sleep operation 'suspend'.
+Oct 02 20:18:42 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:18:42 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:18:42 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.877s CPU time over 6.035s wall clock time, 1.4G memory peak.
+Oct 02 20:19:06 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:19:06 rudi-asus systemd-sleep[776254]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:19:06 rudi-asus systemd-sleep[776254]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:19:06 rudi-asus systemd-sleep[776254]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:19:06 rudi-asus systemd-sleep[776254]: Performing sleep operation 'suspend'...
+Oct 02 20:19:12 rudi-asus systemd-sleep[776254]: System returned from sleep operation 'suspend'.
+Oct 02 20:19:12 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:19:12 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:19:12 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.848s CPU time over 6.052s wall clock time, 1.4G memory peak.
+Oct 02 20:19:36 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:19:36 rudi-asus systemd-sleep[776859]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:19:36 rudi-asus systemd-sleep[776859]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:19:36 rudi-asus systemd-sleep[776859]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:19:36 rudi-asus systemd-sleep[776859]: Performing sleep operation 'suspend'...
+Oct 02 20:19:42 rudi-asus systemd-sleep[776859]: System returned from sleep operation 'suspend'.
+Oct 02 20:19:42 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:19:42 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:19:42 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.844s CPU time over 5.952s wall clock time, 1.4G memory peak.
+Oct 02 20:20:06 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:20:06 rudi-asus systemd-sleep[777507]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:20:06 rudi-asus systemd-sleep[777507]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:20:06 rudi-asus systemd-sleep[777507]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:20:06 rudi-asus systemd-sleep[777507]: Performing sleep operation 'suspend'...
+Oct 02 20:20:12 rudi-asus systemd-sleep[777507]: System returned from sleep operation 'suspend'.
+Oct 02 20:20:12 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:20:12 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:20:12 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.874s CPU time over 5.997s wall clock time, 1.4G memory peak.
+Oct 02 20:20:37 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:20:37 rudi-asus systemd-sleep[778350]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:20:37 rudi-asus systemd-sleep[778350]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:20:37 rudi-asus systemd-sleep[778350]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:20:37 rudi-asus systemd-sleep[778350]: Performing sleep operation 'suspend'...
+Oct 02 20:20:42 rudi-asus systemd-sleep[778350]: System returned from sleep operation 'suspend'.
+Oct 02 20:20:42 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:20:42 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:20:42 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.835s CPU time over 5.979s wall clock time, 1.4G memory peak.
+Oct 02 20:21:07 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:21:07 rudi-asus systemd-sleep[779430]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:21:07 rudi-asus systemd-sleep[779430]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:21:07 rudi-asus systemd-sleep[779430]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:21:07 rudi-asus systemd-sleep[779430]: Performing sleep operation 'suspend'...
+Oct 02 20:21:12 rudi-asus systemd-sleep[779430]: System returned from sleep operation 'suspend'.
+Oct 02 20:21:12 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:21:12 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:21:12 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.443s CPU time over 5.286s wall clock time, 1.4G memory peak.
+Oct 02 20:21:37 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:21:37 rudi-asus systemd-sleep[781367]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:21:37 rudi-asus systemd-sleep[781367]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:21:37 rudi-asus systemd-sleep[781367]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:21:37 rudi-asus systemd-sleep[781367]: Performing sleep operation 'suspend'...
+Oct 02 20:21:42 rudi-asus systemd-sleep[781367]: System returned from sleep operation 'suspend'.
+Oct 02 20:21:42 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:21:42 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:21:42 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.417s CPU time over 5.230s wall clock time, 1.4G memory peak.
+Oct 02 20:22:07 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:22:07 rudi-asus systemd-sleep[782632]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:22:07 rudi-asus systemd-sleep[782632]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:22:07 rudi-asus systemd-sleep[782632]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:22:07 rudi-asus systemd-sleep[782632]: Performing sleep operation 'suspend'...
+Oct 02 20:22:13 rudi-asus systemd-sleep[782632]: System returned from sleep operation 'suspend'.
+Oct 02 20:22:13 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:22:13 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:22:13 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.450s CPU time over 5.332s wall clock time, 1.4G memory peak.
+Oct 02 20:22:37 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:22:38 rudi-asus systemd-sleep[783526]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:22:38 rudi-asus systemd-sleep[783526]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:22:38 rudi-asus systemd-sleep[783526]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:22:38 rudi-asus systemd-sleep[783526]: Performing sleep operation 'suspend'...
+Oct 02 20:22:43 rudi-asus systemd-sleep[783526]: System returned from sleep operation 'suspend'.
+Oct 02 20:22:43 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:22:43 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:22:43 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.389s CPU time over 5.258s wall clock time, 1.4G memory peak.
+Oct 02 20:23:08 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:23:08 rudi-asus systemd-sleep[784645]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:23:08 rudi-asus systemd-sleep[784645]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:23:08 rudi-asus systemd-sleep[784645]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:23:08 rudi-asus systemd-sleep[784645]: Performing sleep operation 'suspend'...
+Oct 02 20:23:13 rudi-asus systemd-sleep[784645]: System returned from sleep operation 'suspend'.
+Oct 02 20:23:13 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:23:13 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:23:13 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.446s CPU time over 5.295s wall clock time, 1.4G memory peak.
+Oct 02 20:23:38 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:23:38 rudi-asus systemd-sleep[785424]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:23:38 rudi-asus systemd-sleep[785424]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:23:38 rudi-asus systemd-sleep[785424]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:23:38 rudi-asus systemd-sleep[785424]: Performing sleep operation 'suspend'...
+Oct 02 20:23:44 rudi-asus systemd-sleep[785424]: System returned from sleep operation 'suspend'.
+Oct 02 20:23:44 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:23:44 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:23:44 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.843s CPU time over 5.986s wall clock time, 1.4G memory peak.
+Oct 02 20:24:08 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:24:08 rudi-asus systemd-sleep[785997]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:24:08 rudi-asus systemd-sleep[785997]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:24:08 rudi-asus systemd-sleep[785997]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:24:08 rudi-asus systemd-sleep[785997]: Performing sleep operation 'suspend'...
+Oct 02 20:24:14 rudi-asus systemd-sleep[785997]: System returned from sleep operation 'suspend'.
+Oct 02 20:24:14 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:24:14 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:24:14 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.844s CPU time over 6.023s wall clock time, 1.4G memory peak.
+Oct 02 20:24:39 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:24:39 rudi-asus systemd-sleep[786706]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:24:39 rudi-asus systemd-sleep[786706]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:24:39 rudi-asus systemd-sleep[786706]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:24:39 rudi-asus systemd-sleep[786706]: Performing sleep operation 'suspend'...
+Oct 02 20:24:44 rudi-asus systemd-sleep[786706]: System returned from sleep operation 'suspend'.
+Oct 02 20:24:44 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:24:44 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:24:44 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.415s CPU time over 5.212s wall clock time, 1.4G memory peak.
+Oct 02 20:25:09 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:25:09 rudi-asus systemd-sleep[787261]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:25:09 rudi-asus systemd-sleep[787261]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:25:09 rudi-asus systemd-sleep[787261]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:25:09 rudi-asus systemd-sleep[787261]: Performing sleep operation 'suspend'...
+Oct 02 20:25:15 rudi-asus systemd-sleep[787261]: System returned from sleep operation 'suspend'.
+Oct 02 20:25:15 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:25:15 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:25:15 rudi-asus systemd[1]: systemd-suspend.service: Consumed 4.009s CPU time over 6.123s wall clock time, 1G memory peak.
+Oct 02 20:25:39 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:25:39 rudi-asus systemd-sleep[787949]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:25:39 rudi-asus systemd-sleep[787949]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:25:39 rudi-asus systemd-sleep[787949]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:25:39 rudi-asus systemd-sleep[787949]: Performing sleep operation 'suspend'...
+Oct 02 20:25:45 rudi-asus systemd-sleep[787949]: System returned from sleep operation 'suspend'.
+Oct 02 20:25:45 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:25:45 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:25:45 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.866s CPU time over 5.977s wall clock time, 1.4G memory peak.
+Oct 02 20:26:09 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:26:09 rudi-asus systemd-sleep[789173]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:26:09 rudi-asus systemd-sleep[789173]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:26:09 rudi-asus systemd-sleep[789173]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:26:09 rudi-asus systemd-sleep[789173]: Performing sleep operation 'suspend'...
+Oct 02 20:26:14 rudi-asus systemd-sleep[789173]: System returned from sleep operation 'suspend'.
+Oct 02 20:26:14 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:26:14 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:26:14 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.394s CPU time over 5.192s wall clock time, 1.4G memory peak.
+Oct 02 20:26:40 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:26:40 rudi-asus systemd-sleep[790197]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:26:40 rudi-asus systemd-sleep[790197]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:26:40 rudi-asus systemd-sleep[790197]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:26:40 rudi-asus systemd-sleep[790197]: Performing sleep operation 'suspend'...
+Oct 02 20:26:45 rudi-asus systemd-sleep[790197]: System returned from sleep operation 'suspend'.
+Oct 02 20:26:45 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:26:45 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:26:45 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.366s CPU time over 5.252s wall clock time, 1.4G memory peak.
+Oct 02 20:27:10 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:27:10 rudi-asus systemd-sleep[791167]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:27:10 rudi-asus systemd-sleep[791167]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:27:10 rudi-asus systemd-sleep[791167]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:27:10 rudi-asus systemd-sleep[791167]: Performing sleep operation 'suspend'...
+Oct 02 20:27:15 rudi-asus systemd-sleep[791167]: System returned from sleep operation 'suspend'.
+Oct 02 20:27:15 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:27:15 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:27:15 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.428s CPU time over 5.294s wall clock time, 1.4G memory peak.
+Oct 02 20:27:40 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:27:40 rudi-asus systemd-sleep[792174]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:27:40 rudi-asus systemd-sleep[792174]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:27:40 rudi-asus systemd-sleep[792174]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:27:40 rudi-asus systemd-sleep[792174]: Performing sleep operation 'suspend'...
+Oct 02 20:27:45 rudi-asus systemd-sleep[792174]: System returned from sleep operation 'suspend'.
+Oct 02 20:27:45 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:27:45 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:27:45 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.454s CPU time over 5.326s wall clock time, 1.4G memory peak.
+Oct 02 20:28:10 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:28:10 rudi-asus systemd-sleep[792923]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:28:10 rudi-asus systemd-sleep[792923]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:28:10 rudi-asus systemd-sleep[792923]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:28:10 rudi-asus systemd-sleep[792923]: Performing sleep operation 'suspend'...
+Oct 02 20:28:16 rudi-asus systemd-sleep[792923]: System returned from sleep operation 'suspend'.
+Oct 02 20:28:16 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:28:16 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:28:16 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.449s CPU time over 6.145s wall clock time, 1.4G memory peak.
+Oct 02 20:28:40 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:28:40 rudi-asus systemd-sleep[793510]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:28:40 rudi-asus systemd-sleep[793510]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:28:40 rudi-asus systemd-sleep[793510]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:28:40 rudi-asus systemd-sleep[793510]: Performing sleep operation 'suspend'...
+Oct 02 20:28:46 rudi-asus systemd-sleep[793510]: System returned from sleep operation 'suspend'.
+Oct 02 20:28:46 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:28:46 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:28:46 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.456s CPU time over 6.021s wall clock time, 1.4G memory peak.
+Oct 02 20:29:11 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:29:11 rudi-asus systemd-sleep[794127]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:29:11 rudi-asus systemd-sleep[794127]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:29:11 rudi-asus systemd-sleep[794127]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:29:11 rudi-asus systemd-sleep[794127]: Performing sleep operation 'suspend'...
+Oct 02 20:29:17 rudi-asus systemd-sleep[794127]: System returned from sleep operation 'suspend'.
+Oct 02 20:29:17 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:29:17 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:29:17 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.842s CPU time over 5.967s wall clock time, 1.4G memory peak.
+Oct 02 20:29:41 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:29:41 rudi-asus systemd-sleep[794682]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:29:41 rudi-asus systemd-sleep[794682]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:29:41 rudi-asus systemd-sleep[794682]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:29:41 rudi-asus systemd-sleep[794682]: Performing sleep operation 'suspend'...
+Oct 02 20:29:47 rudi-asus systemd-sleep[794682]: System returned from sleep operation 'suspend'.
+Oct 02 20:29:47 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:29:47 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:29:47 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.458s CPU time over 5.933s wall clock time, 1.4G memory peak.
+Oct 02 20:30:11 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:30:11 rudi-asus systemd-sleep[795260]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:30:11 rudi-asus systemd-sleep[795260]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:30:11 rudi-asus systemd-sleep[795260]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:30:11 rudi-asus systemd-sleep[795260]: Performing sleep operation 'suspend'...
+Oct 02 20:30:17 rudi-asus systemd-sleep[795260]: System returned from sleep operation 'suspend'.
+Oct 02 20:30:17 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:30:17 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:30:17 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.847s CPU time over 5.991s wall clock time, 1.4G memory peak.
+Oct 02 20:30:41 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:30:42 rudi-asus systemd-sleep[795854]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:30:42 rudi-asus systemd-sleep[795854]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:30:42 rudi-asus systemd-sleep[795854]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:30:42 rudi-asus systemd-sleep[795854]: Performing sleep operation 'suspend'...
+Oct 02 20:30:47 rudi-asus systemd-sleep[795854]: System returned from sleep operation 'suspend'.
+Oct 02 20:30:47 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:30:47 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:30:47 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.842s CPU time over 5.909s wall clock time, 1.4G memory peak.
+Oct 02 20:31:12 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:31:12 rudi-asus systemd-sleep[796659]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:31:12 rudi-asus systemd-sleep[796659]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:31:12 rudi-asus systemd-sleep[796659]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:31:12 rudi-asus systemd-sleep[796659]: Performing sleep operation 'suspend'...
+Oct 02 20:31:18 rudi-asus systemd-sleep[796659]: System returned from sleep operation 'suspend'.
+Oct 02 20:31:18 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:31:18 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:31:18 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.848s CPU time over 6.041s wall clock time, 1.4G memory peak.
+Oct 02 20:31:42 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:31:42 rudi-asus systemd-sleep[797300]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:31:42 rudi-asus systemd-sleep[797300]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:31:42 rudi-asus systemd-sleep[797300]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:31:42 rudi-asus systemd-sleep[797300]: Performing sleep operation 'suspend'...
+Oct 02 20:31:48 rudi-asus systemd-sleep[797300]: System returned from sleep operation 'suspend'.
+Oct 02 20:31:48 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:31:48 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:31:48 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.843s CPU time over 6.069s wall clock time, 1.4G memory peak.
+Oct 02 20:32:12 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:32:12 rudi-asus systemd-sleep[798130]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:32:12 rudi-asus systemd-sleep[798130]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:32:12 rudi-asus systemd-sleep[798130]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:32:12 rudi-asus systemd-sleep[798130]: Performing sleep operation 'suspend'...
+Oct 02 20:32:18 rudi-asus systemd-sleep[798130]: System returned from sleep operation 'suspend'.
+Oct 02 20:32:18 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:32:18 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:32:18 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.866s CPU time over 5.970s wall clock time, 1.4G memory peak.
+Oct 02 20:32:43 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:32:43 rudi-asus systemd-sleep[798680]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:32:43 rudi-asus systemd-sleep[798680]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:32:43 rudi-asus systemd-sleep[798680]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:32:43 rudi-asus systemd-sleep[798680]: Performing sleep operation 'suspend'...
+Oct 02 20:32:49 rudi-asus systemd-sleep[798680]: System returned from sleep operation 'suspend'.
+Oct 02 20:32:49 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:32:49 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:32:49 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.856s CPU time over 6.033s wall clock time, 1.4G memory peak.
+Oct 02 20:33:13 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:33:13 rudi-asus systemd-sleep[799611]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:33:13 rudi-asus systemd-sleep[799611]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:33:13 rudi-asus systemd-sleep[799611]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:33:13 rudi-asus systemd-sleep[799611]: Performing sleep operation 'suspend'...
+Oct 02 20:33:18 rudi-asus systemd-sleep[799611]: System returned from sleep operation 'suspend'.
+Oct 02 20:33:18 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:33:18 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:33:18 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.440s CPU time over 5.274s wall clock time, 1.4G memory peak.
+Oct 02 20:33:43 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:33:43 rudi-asus systemd-sleep[800340]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:33:43 rudi-asus systemd-sleep[800340]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:33:43 rudi-asus systemd-sleep[800340]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:33:43 rudi-asus systemd-sleep[800340]: Performing sleep operation 'suspend'...
+Oct 02 20:33:48 rudi-asus systemd-sleep[800340]: System returned from sleep operation 'suspend'.
+Oct 02 20:33:48 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:33:48 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:33:48 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.425s CPU time over 5.252s wall clock time, 1.4G memory peak.
+Oct 02 20:34:13 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:34:13 rudi-asus systemd-sleep[800896]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:34:13 rudi-asus systemd-sleep[800896]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:34:13 rudi-asus systemd-sleep[800896]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:34:13 rudi-asus systemd-sleep[800896]: Performing sleep operation 'suspend'...
+Oct 02 20:34:19 rudi-asus systemd-sleep[800896]: System returned from sleep operation 'suspend'.
+Oct 02 20:34:19 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:34:19 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:34:19 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.830s CPU time over 5.991s wall clock time, 1.4G memory peak.
+Oct 02 20:34:43 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:34:43 rudi-asus systemd-sleep[801639]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:34:43 rudi-asus systemd-sleep[801639]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:34:43 rudi-asus systemd-sleep[801639]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:34:44 rudi-asus systemd-sleep[801639]: Performing sleep operation 'suspend'...
+Oct 02 20:34:49 rudi-asus systemd-sleep[801639]: System returned from sleep operation 'suspend'.
+Oct 02 20:34:49 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:34:49 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:34:49 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.833s CPU time over 5.995s wall clock time, 1.4G memory peak.
+Oct 02 20:35:14 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:35:14 rudi-asus systemd-sleep[802988]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:35:14 rudi-asus systemd-sleep[802988]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:35:14 rudi-asus systemd-sleep[802988]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:35:14 rudi-asus systemd-sleep[802988]: Performing sleep operation 'suspend'...
+Oct 02 20:35:19 rudi-asus systemd-sleep[802988]: System returned from sleep operation 'suspend'.
+Oct 02 20:35:19 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:35:19 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:35:19 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.378s CPU time over 5.194s wall clock time, 1.4G memory peak.
+Oct 02 20:35:44 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:35:44 rudi-asus systemd-sleep[804738]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:35:44 rudi-asus systemd-sleep[804738]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:35:44 rudi-asus systemd-sleep[804738]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:35:44 rudi-asus systemd-sleep[804738]: Performing sleep operation 'suspend'...
+Oct 02 20:35:50 rudi-asus systemd-sleep[804738]: System returned from sleep operation 'suspend'.
+Oct 02 20:35:50 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:35:50 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:35:50 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.849s CPU time over 5.999s wall clock time, 1.4G memory peak.
+Oct 02 20:36:14 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:36:14 rudi-asus systemd-sleep[805328]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:36:14 rudi-asus systemd-sleep[805328]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:36:14 rudi-asus systemd-sleep[805328]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:36:14 rudi-asus systemd-sleep[805328]: Performing sleep operation 'suspend'...
+Oct 02 20:36:20 rudi-asus systemd-sleep[805328]: System returned from sleep operation 'suspend'.
+Oct 02 20:36:20 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:36:20 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:36:20 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.855s CPU time over 6.010s wall clock time, 1.4G memory peak.
+Oct 02 20:36:45 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:36:45 rudi-asus systemd-sleep[808004]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:36:45 rudi-asus systemd-sleep[808004]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:36:45 rudi-asus systemd-sleep[808004]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:36:45 rudi-asus systemd-sleep[808004]: Performing sleep operation 'suspend'...
+Oct 02 20:36:51 rudi-asus systemd-sleep[808004]: System returned from sleep operation 'suspend'.
+Oct 02 20:36:51 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:36:51 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:36:51 rudi-asus systemd[1]: systemd-suspend.service: Consumed 4.503s CPU time over 6.914s wall clock time, 1.1G memory peak.
+Oct 02 20:37:15 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:37:15 rudi-asus systemd-sleep[808836]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:37:15 rudi-asus systemd-sleep[808836]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:37:15 rudi-asus systemd-sleep[808836]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:37:15 rudi-asus systemd-sleep[808836]: Performing sleep operation 'suspend'...
+Oct 02 20:37:21 rudi-asus systemd-sleep[808836]: System returned from sleep operation 'suspend'.
+Oct 02 20:37:21 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:37:21 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:37:21 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.861s CPU time over 6.033s wall clock time, 1.4G memory peak.
+Oct 02 20:37:45 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:37:45 rudi-asus systemd-sleep[809444]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:37:45 rudi-asus systemd-sleep[809444]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:37:45 rudi-asus systemd-sleep[809444]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:37:45 rudi-asus systemd-sleep[809444]: Performing sleep operation 'suspend'...
+Oct 02 20:37:51 rudi-asus systemd-sleep[809444]: System returned from sleep operation 'suspend'.
+Oct 02 20:37:51 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:37:51 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:37:51 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.438s CPU time over 6.003s wall clock time, 1.4G memory peak.
+Oct 02 20:38:15 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:38:15 rudi-asus systemd-sleep[810136]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:38:15 rudi-asus systemd-sleep[810136]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:38:15 rudi-asus systemd-sleep[810136]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:38:15 rudi-asus systemd-sleep[810136]: Performing sleep operation 'suspend'...
+Oct 02 20:38:21 rudi-asus systemd-sleep[810136]: System returned from sleep operation 'suspend'.
+Oct 02 20:38:21 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:38:21 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:38:21 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.851s CPU time over 6.009s wall clock time, 1.4G memory peak.
+Oct 02 20:38:45 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:38:45 rudi-asus systemd-sleep[810727]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:38:45 rudi-asus systemd-sleep[810727]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:38:45 rudi-asus systemd-sleep[810727]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:38:46 rudi-asus systemd-sleep[810727]: Performing sleep operation 'suspend'...
+Oct 02 20:38:52 rudi-asus systemd-sleep[810727]: System returned from sleep operation 'suspend'.
+Oct 02 20:38:52 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:38:52 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:38:52 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.842s CPU time over 6.052s wall clock time, 1.4G memory peak.
+Oct 02 20:39:16 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:39:16 rudi-asus systemd-sleep[811293]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:39:16 rudi-asus systemd-sleep[811293]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:39:16 rudi-asus systemd-sleep[811293]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:39:16 rudi-asus systemd-sleep[811293]: Performing sleep operation 'suspend'...
+Oct 02 20:39:22 rudi-asus systemd-sleep[811293]: System returned from sleep operation 'suspend'.
+Oct 02 20:39:22 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:39:22 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:39:22 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.859s CPU time over 6.015s wall clock time, 1.4G memory peak.
+Oct 02 20:39:46 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:39:46 rudi-asus systemd-sleep[811886]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:39:46 rudi-asus systemd-sleep[811886]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:39:46 rudi-asus systemd-sleep[811886]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:39:46 rudi-asus systemd-sleep[811886]: Performing sleep operation 'suspend'...
+Oct 02 20:39:52 rudi-asus systemd-sleep[811886]: System returned from sleep operation 'suspend'.
+Oct 02 20:39:52 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:39:52 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:39:52 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.839s CPU time over 6.053s wall clock time, 1.4G memory peak.
+Oct 02 20:40:16 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:40:16 rudi-asus systemd-sleep[812445]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:40:16 rudi-asus systemd-sleep[812445]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:40:16 rudi-asus systemd-sleep[812445]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:40:16 rudi-asus systemd-sleep[812445]: Performing sleep operation 'suspend'...
+Oct 02 20:40:22 rudi-asus systemd-sleep[812445]: System returned from sleep operation 'suspend'.
+Oct 02 20:40:22 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:40:22 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:40:22 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.434s CPU time over 5.916s wall clock time, 1.4G memory peak.
+Oct 02 20:40:46 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:40:47 rudi-asus systemd-sleep[813025]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:40:47 rudi-asus systemd-sleep[813025]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:40:47 rudi-asus systemd-sleep[813025]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:40:47 rudi-asus systemd-sleep[813025]: Performing sleep operation 'suspend'...
+Oct 02 20:40:52 rudi-asus systemd-sleep[813025]: System returned from sleep operation 'suspend'.
+Oct 02 20:40:52 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:40:52 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:40:52 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.822s CPU time over 5.940s wall clock time, 1.4G memory peak.
+Oct 02 20:41:17 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:41:17 rudi-asus systemd-sleep[813677]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:41:17 rudi-asus systemd-sleep[813677]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:41:17 rudi-asus systemd-sleep[813677]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:41:17 rudi-asus systemd-sleep[813677]: Performing sleep operation 'suspend'...
+Oct 02 20:41:23 rudi-asus systemd-sleep[813677]: System returned from sleep operation 'suspend'.
+Oct 02 20:41:23 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:41:23 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:41:23 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.846s CPU time over 5.949s wall clock time, 1.4G memory peak.
+Oct 02 20:41:47 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:41:47 rudi-asus systemd-sleep[814276]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:41:47 rudi-asus systemd-sleep[814276]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:41:47 rudi-asus systemd-sleep[814276]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:41:47 rudi-asus systemd-sleep[814276]: Performing sleep operation 'suspend'...
+Oct 02 20:41:53 rudi-asus systemd-sleep[814276]: System returned from sleep operation 'suspend'.
+Oct 02 20:41:53 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:41:53 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:41:53 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.839s CPU time over 5.948s wall clock time, 1.4G memory peak.
+Oct 02 20:42:17 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:42:17 rudi-asus systemd-sleep[815151]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:42:17 rudi-asus systemd-sleep[815151]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:42:17 rudi-asus systemd-sleep[815151]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:42:17 rudi-asus systemd-sleep[815151]: Performing sleep operation 'suspend'...
+Oct 02 20:42:23 rudi-asus systemd-sleep[815151]: System returned from sleep operation 'suspend'.
+Oct 02 20:42:23 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:42:23 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:42:23 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.816s CPU time over 5.969s wall clock time, 1.4G memory peak.
+Oct 02 20:42:48 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:42:48 rudi-asus systemd-sleep[815769]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:42:48 rudi-asus systemd-sleep[815769]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:42:48 rudi-asus systemd-sleep[815769]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:42:48 rudi-asus systemd-sleep[815769]: Performing sleep operation 'suspend'...
+Oct 02 20:42:53 rudi-asus systemd-sleep[815769]: System returned from sleep operation 'suspend'.
+Oct 02 20:42:54 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:42:54 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:42:54 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.430s CPU time over 5.978s wall clock time, 1.4G memory peak.
+Oct 02 20:43:18 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:43:18 rudi-asus systemd-sleep[816312]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:43:18 rudi-asus systemd-sleep[816312]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:43:18 rudi-asus systemd-sleep[816312]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:43:18 rudi-asus systemd-sleep[816312]: Performing sleep operation 'suspend'...
+Oct 02 20:43:24 rudi-asus systemd-sleep[816312]: System returned from sleep operation 'suspend'.
+Oct 02 20:43:24 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:43:24 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:43:24 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.838s CPU time over 6.030s wall clock time, 1.4G memory peak.
+Oct 02 20:43:48 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:43:48 rudi-asus systemd-sleep[816874]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:43:48 rudi-asus systemd-sleep[816874]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:43:48 rudi-asus systemd-sleep[816874]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:43:48 rudi-asus systemd-sleep[816874]: Performing sleep operation 'suspend'...
+Oct 02 20:43:54 rudi-asus systemd-sleep[816874]: System returned from sleep operation 'suspend'.
+Oct 02 20:43:54 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:43:54 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:43:54 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.830s CPU time over 5.976s wall clock time, 1.4G memory peak.
+Oct 02 20:44:18 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:44:18 rudi-asus systemd-sleep[817448]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:44:18 rudi-asus systemd-sleep[817448]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:44:18 rudi-asus systemd-sleep[817448]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:44:18 rudi-asus systemd-sleep[817448]: Performing sleep operation 'suspend'...
+Oct 02 20:44:24 rudi-asus systemd-sleep[817448]: System returned from sleep operation 'suspend'.
+Oct 02 20:44:24 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:44:24 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:44:24 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.834s CPU time over 6.062s wall clock time, 1.4G memory peak.
+Oct 02 20:44:48 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:44:49 rudi-asus systemd-sleep[818013]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:44:49 rudi-asus systemd-sleep[818013]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:44:49 rudi-asus systemd-sleep[818013]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:44:49 rudi-asus systemd-sleep[818013]: Performing sleep operation 'suspend'...
+Oct 02 20:44:54 rudi-asus systemd-sleep[818013]: System returned from sleep operation 'suspend'.
+Oct 02 20:44:54 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:44:54 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:44:54 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.444s CPU time over 5.951s wall clock time, 1.4G memory peak.
+Oct 02 20:45:19 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:45:19 rudi-asus systemd-sleep[818573]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:45:19 rudi-asus systemd-sleep[818573]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:45:19 rudi-asus systemd-sleep[818573]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:45:19 rudi-asus systemd-sleep[818573]: Performing sleep operation 'suspend'...
+Oct 02 20:45:25 rudi-asus systemd-sleep[818573]: System returned from sleep operation 'suspend'.
+Oct 02 20:45:25 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:45:25 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:45:25 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.824s CPU time over 5.981s wall clock time, 1.4G memory peak.
+Oct 02 20:45:49 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:45:49 rudi-asus systemd-sleep[819143]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:45:49 rudi-asus systemd-sleep[819143]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:45:49 rudi-asus systemd-sleep[819143]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:45:49 rudi-asus systemd-sleep[819143]: Performing sleep operation 'suspend'...
+Oct 02 20:45:55 rudi-asus systemd-sleep[819143]: System returned from sleep operation 'suspend'.
+Oct 02 20:45:55 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:45:55 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:45:55 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.814s CPU time over 5.950s wall clock time, 1.4G memory peak.
+Oct 02 20:46:19 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:46:19 rudi-asus systemd-sleep[819727]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:46:19 rudi-asus systemd-sleep[819727]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:46:19 rudi-asus systemd-sleep[819727]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:46:19 rudi-asus systemd-sleep[819727]: Performing sleep operation 'suspend'...
+Oct 02 20:46:25 rudi-asus systemd-sleep[819727]: System returned from sleep operation 'suspend'.
+Oct 02 20:46:25 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:46:25 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:46:25 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.433s CPU time over 5.977s wall clock time, 1.4G memory peak.
+Oct 02 20:46:49 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:46:50 rudi-asus systemd-sleep[820306]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:46:50 rudi-asus systemd-sleep[820306]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:46:50 rudi-asus systemd-sleep[820306]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:46:50 rudi-asus systemd-sleep[820306]: Performing sleep operation 'suspend'...
+Oct 02 20:46:55 rudi-asus systemd-sleep[820306]: System returned from sleep operation 'suspend'.
+Oct 02 20:46:55 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:46:55 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:46:55 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.837s CPU time over 5.989s wall clock time, 1.4G memory peak.
+Oct 02 20:47:20 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:47:20 rudi-asus systemd-sleep[820927]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:47:20 rudi-asus systemd-sleep[820927]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:47:20 rudi-asus systemd-sleep[820927]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:47:20 rudi-asus systemd-sleep[820927]: Performing sleep operation 'suspend'...
+Oct 02 20:47:26 rudi-asus systemd-sleep[820927]: System returned from sleep operation 'suspend'.
+Oct 02 20:47:26 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:47:26 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:47:26 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.821s CPU time over 6.008s wall clock time, 1.4G memory peak.
+Oct 02 20:47:50 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:47:50 rudi-asus systemd-sleep[821532]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:47:50 rudi-asus systemd-sleep[821532]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:47:50 rudi-asus systemd-sleep[821532]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:47:50 rudi-asus systemd-sleep[821532]: Performing sleep operation 'suspend'...
+Oct 02 20:47:56 rudi-asus systemd-sleep[821532]: System returned from sleep operation 'suspend'.
+Oct 02 20:47:56 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:47:56 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:47:56 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.819s CPU time over 5.977s wall clock time, 1.4G memory peak.
+Oct 02 20:48:20 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:48:20 rudi-asus systemd-sleep[822096]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:48:20 rudi-asus systemd-sleep[822096]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:48:20 rudi-asus systemd-sleep[822096]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:48:20 rudi-asus systemd-sleep[822096]: Performing sleep operation 'suspend'...
+Oct 02 20:48:26 rudi-asus systemd-sleep[822096]: System returned from sleep operation 'suspend'.
+Oct 02 20:48:26 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:48:26 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:48:26 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.827s CPU time over 5.940s wall clock time, 1.4G memory peak.
+Oct 02 20:48:50 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:48:51 rudi-asus systemd-sleep[822664]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:48:51 rudi-asus systemd-sleep[822664]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:48:51 rudi-asus systemd-sleep[822664]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:48:51 rudi-asus systemd-sleep[822664]: Performing sleep operation 'suspend'...
+Oct 02 20:48:56 rudi-asus systemd-sleep[822664]: System returned from sleep operation 'suspend'.
+Oct 02 20:48:56 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:48:56 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:48:56 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.842s CPU time over 5.983s wall clock time, 1.4G memory peak.
+Oct 02 20:49:21 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:49:21 rudi-asus systemd-sleep[823239]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:49:21 rudi-asus systemd-sleep[823239]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:49:21 rudi-asus systemd-sleep[823239]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:49:21 rudi-asus systemd-sleep[823239]: Performing sleep operation 'suspend'...
+Oct 02 20:49:27 rudi-asus systemd-sleep[823239]: System returned from sleep operation 'suspend'.
+Oct 02 20:49:27 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:49:27 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:49:27 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.829s CPU time over 6.025s wall clock time, 1.4G memory peak.
+Oct 02 20:49:51 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:49:51 rudi-asus systemd-sleep[823833]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:49:51 rudi-asus systemd-sleep[823833]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:49:51 rudi-asus systemd-sleep[823833]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:49:51 rudi-asus systemd-sleep[823833]: Performing sleep operation 'suspend'...
+Oct 02 20:49:57 rudi-asus systemd-sleep[823833]: System returned from sleep operation 'suspend'.
+Oct 02 20:49:57 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:49:57 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:49:57 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.823s CPU time over 5.984s wall clock time, 1.4G memory peak.
+Oct 02 20:50:21 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:50:21 rudi-asus systemd-sleep[824501]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:50:21 rudi-asus systemd-sleep[824501]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:50:21 rudi-asus systemd-sleep[824501]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:50:21 rudi-asus systemd-sleep[824501]: Performing sleep operation 'suspend'...
+Oct 02 20:50:27 rudi-asus systemd-sleep[824501]: System returned from sleep operation 'suspend'.
+Oct 02 20:50:27 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:50:27 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:50:27 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.831s CPU time over 6.022s wall clock time, 1.4G memory peak.
+Oct 02 20:50:51 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:50:51 rudi-asus systemd-sleep[825103]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:50:51 rudi-asus systemd-sleep[825103]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:50:51 rudi-asus systemd-sleep[825103]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:50:52 rudi-asus systemd-sleep[825103]: Performing sleep operation 'suspend'...
+Oct 02 20:50:57 rudi-asus systemd-sleep[825103]: System returned from sleep operation 'suspend'.
+Oct 02 20:50:57 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:50:57 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:50:57 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.825s CPU time over 5.937s wall clock time, 1.4G memory peak.
+Oct 02 20:51:22 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:51:22 rudi-asus systemd-sleep[825723]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:51:22 rudi-asus systemd-sleep[825723]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:51:22 rudi-asus systemd-sleep[825723]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:51:22 rudi-asus systemd-sleep[825723]: Performing sleep operation 'suspend'...
+Oct 02 20:51:28 rudi-asus systemd-sleep[825723]: System returned from sleep operation 'suspend'.
+Oct 02 20:51:28 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:51:28 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:51:28 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.804s CPU time over 5.941s wall clock time, 1.4G memory peak.
+Oct 02 20:51:52 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:51:52 rudi-asus systemd-sleep[826445]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:51:52 rudi-asus systemd-sleep[826445]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:51:52 rudi-asus systemd-sleep[826445]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:51:52 rudi-asus systemd-sleep[826445]: Performing sleep operation 'suspend'...
+Oct 02 20:51:57 rudi-asus systemd-sleep[826445]: System returned from sleep operation 'suspend'.
+Oct 02 20:51:57 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:51:57 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:51:57 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.575s CPU time over 5.381s wall clock time, 1.4G memory peak.
+Oct 02 20:52:22 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:52:22 rudi-asus systemd-sleep[827271]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:52:22 rudi-asus systemd-sleep[827271]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:52:22 rudi-asus systemd-sleep[827271]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:52:22 rudi-asus systemd-sleep[827271]: Performing sleep operation 'suspend'...
+Oct 02 20:52:28 rudi-asus systemd-sleep[827271]: System returned from sleep operation 'suspend'.
+Oct 02 20:52:28 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:52:28 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:52:28 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.455s CPU time over 5.358s wall clock time, 1.4G memory peak.
+Oct 02 20:52:52 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:52:53 rudi-asus systemd-sleep[828105]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:52:53 rudi-asus systemd-sleep[828105]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:52:53 rudi-asus systemd-sleep[828105]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:52:53 rudi-asus systemd-sleep[828105]: Performing sleep operation 'suspend'...
+Oct 02 20:52:58 rudi-asus systemd-sleep[828105]: System returned from sleep operation 'suspend'.
+Oct 02 20:52:58 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:52:58 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:52:58 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.496s CPU time over 5.591s wall clock time, 1.4G memory peak.
+Oct 02 20:53:23 rudi-asus systemd[1]: Starting System Suspend...
+Oct 02 20:53:23 rudi-asus systemd-sleep[828766]: User sessions remain unfrozen on explicit request ($SYSTEMD_SLEEP_FREEZE_USER_SESSIONS=0).
+Oct 02 20:53:23 rudi-asus systemd-sleep[828766]: This is not recommended, and might result in unexpected behavior, particularly
+Oct 02 20:53:23 rudi-asus systemd-sleep[828766]: in suspend-then-hibernate operations or setups with encrypted home directories.
+Oct 02 20:53:23 rudi-asus systemd-sleep[828766]: Performing sleep operation 'suspend'...
+Oct 02 20:53:29 rudi-asus systemd-sleep[828766]: System returned from sleep operation 'suspend'.
+Oct 02 20:53:29 rudi-asus systemd[1]: systemd-suspend.service: Deactivated successfully.
+Oct 02 20:53:29 rudi-asus systemd[1]: Finished System Suspend.
+Oct 02 20:53:29 rudi-asus systemd[1]: systemd-suspend.service: Consumed 3.853s CPU time over 6.030s wall clock time, 1.4G memory peak.

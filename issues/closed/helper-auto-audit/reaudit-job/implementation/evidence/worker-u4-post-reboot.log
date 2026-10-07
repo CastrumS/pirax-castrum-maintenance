@@ -1,0 +1,26 @@
+The unit-4 remainder is finished: the run-attempt isolation and the commit-read guard are in, and the configured check ran to completion on the final commit with **exit 0 (516 pass, 0 fail, no skips, 38 files)**. `report-u4.md` is complete.
+
+**Commit:** `03612df` is one unlanded unit-4 commit on `16bffef` (26 files). The tree is clean. The earlier repairs, production pins, helper 0.3.0, the public key and the callback inventories are unchanged.
+
+**Changed files and reasons:**
+- **Attempt isolation (criterion 1):**
+  - The candidate now records the run attempt, and the publisher rejects a candidate from any other attempt (`decide.ts`, `run.ts`, `publish.ts`).
+  - Every artifact name in `reaudit.yml` includes `${{ github.run_attempt }}`.
+  - `notify.ts` gained `readSummaries(dir, attempt)`, which reads only the current attempt's summaries. If the current attempt left none, the email uses the fixed fallback with cleanup `unknown`, even when an earlier attempt's summary says cleanup was confirmed.
+  - README has a new "Reruns" paragraph: rerunning failed jobs cannot publish; start a fresh `main` dispatch instead.
+- **Commit-read guard (criterion 2):** after committing, `publish.ts` reads the new commit hash back. If that fails or the hash isn't 40 lowercase hex, it stops with `commit-unreadable` before any push.
+
+**Tests run** (logs in `evidence-u4/`):
+- **Red on unchanged `68b9bc7`:** 7 failures, plus a second run with 6. Against the local fake remote, the publisher went ahead with an earlier attempt's candidate, and with an empty commit read it pushed and printed "published".
+- **Typecheck:** passes.
+- **Focused suite:** 186 pass, 0 fail.
+- **Configured check:** launched with `setsid nohup` in its own session, holding `native-check.lock`. It started 19:20:19Z on head `03612df` and finished `Result exit=0` at 20:09:32Z. I polled `configured-check.exit` until it existed.
+- **Secret scan:** 0 findings across `evidence-u4/` and the 18 run/artifact folders this check created. I left out the report test's two 11-byte `"local trace"` placeholder files; I checked their content exactly.
+
+**Known limitations:**
+- No real release, push, dispatch, email or GPL activation happened. The "published" and "tag claimed" lines in the logs come from the local fake remote and fake `gh` in the tests.
+- B's two-line archive-env fix in `scripts/build-plugin.ts` is still pending with B, and this check doesn't cover it. I didn't touch that file.
+- `runs/` still holds a truncated trace ZIP from the earlier interrupted run, so a scan of the whole folder stops on it.
+- The two earlier interrupted checks are kept as logs and are not counted as passes.
+
+**Unverified criteria:** everything that only happens on `main` after merge. That covers real workflow reruns and artifact naming, a real publish and release check, notice delivery from Actions, the watchdog and heartbeat timing, B's live acquisition, and B's final full suite.

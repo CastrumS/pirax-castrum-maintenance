@@ -1,0 +1,57 @@
+{
+  "suite": "updates",
+  "scenarios": [
+    "updates-listing-install",
+    "updates-hash-mismatch",
+    "updates-details"
+  ],
+  "url": "http://127.0.0.1:32857",
+  "versions": {
+    "gf": "3.1.3.1",
+    "ff": "6.2.15",
+    "wp": "7.1.2",
+    "php": "8.3"
+  },
+  "fixtures": {
+    "gf": 1,
+    "ff": 3,
+    "page": "http://127.0.0.1:32857/pirax-forms/",
+    "feeds": {
+      "gf": 1
+    },
+    "async": {
+      "gf": true
+    },
+    "captcha": {
+      "gf": 2,
+      "ff": 4,
+      "page": "http://127.0.0.1:32857/pirax-captcha-forms/"
+    },
+    "unsupported": {
+      "gf": 3,
+      "ff": 5,
+      "page": "http://127.0.0.1:32857/pirax-unsupported-forms/"
+    }
+  },
+  "zips": {
+    "gravityforms": "2bb1058a45eaa2d91d5986280bd50cc3ddf135058674cd536e906aa53978ae5d",
+    "fluentform": "fb689be752ba7d3b18b7cd7ae6d6c6f9d180621c64ef52937501ad19ddae9b80"
+  },
+  "uploads": [
+    {
+      "file": "pirax-form-test-0.3.0-d2c20549.zip",
+      "sha256": "e1107e7f08477694ee317fb84555812a1ef0265bfbca97e779f91718a55e1398"
+    }
+  ],
+  "artifacts": {
+    "mail": "mail.jsonl",
+    "feeds": "feeds.jsonl",
+    "entries": "entries.json",
+    "network": "network.jsonl",
+    "traces": [
+      "updates-hash-mismatch.trace.zip",
+      "updates-details.trace.zip",
+      "updates-listing-install.trace.zip"
+    ]
+  }
+}

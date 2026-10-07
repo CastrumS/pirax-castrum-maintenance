@@ -1,0 +1,154 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/release.test.ts:
+50 | /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
+51 | async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
+52 |   const dir = join(scratch, name);
+53 |   for (const file of ["scripts/build-plugin.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+54 |     await mkdir(dirname(join(dir, file)), { recursive: true });
+55 |     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
+                   ^
+ENOENT: no such file or directory, open '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts'
+    path: "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async checkout (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:55:15)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:93:21)
+(fail) dry run signs the exact manifest bytes from source-derived facts and never calls GitHub [1.12ms]
+50 | /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
+51 | async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
+52 |   const dir = join(scratch, name);
+53 |   for (const file of ["scripts/build-plugin.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+54 |     await mkdir(dirname(join(dir, file)), { recursive: true });
+55 |     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
+                   ^
+ENOENT: no such file or directory, open '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts'
+    path: "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async checkout (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:55:15)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:135:21)
+(fail) importing the release script has no side effects [0.28ms]
+50 | /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
+51 | async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
+52 |   const dir = join(scratch, name);
+53 |   for (const file of ["scripts/build-plugin.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+54 |     await mkdir(dirname(join(dir, file)), { recursive: true });
+55 |     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
+                   ^
+ENOENT: no such file or directory, open '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts'
+    path: "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async checkout (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:55:15)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:151:21)
+(fail) a missing or malformed seed is refused by name, in both modes, before anything is built [0.30ms]
+50 | /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
+51 | async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
+52 |   const dir = join(scratch, name);
+53 |   for (const file of ["scripts/build-plugin.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+54 |     await mkdir(dirname(join(dir, file)), { recursive: true });
+55 |     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
+                   ^
+ENOENT: no such file or directory, open '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts'
+    path: "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async checkout (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:55:15)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:179:21)
+(fail) publishing refuses a seed whose public key is not the committed production key [0.32ms]
+50 | /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
+51 | async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
+52 |   const dir = join(scratch, name);
+53 |   for (const file of ["scripts/build-plugin.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+54 |     await mkdir(dirname(join(dir, file)), { recursive: true });
+55 |     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
+                   ^
+ENOENT: no such file or directory, open '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts'
+    path: "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async checkout (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:55:15)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:190:21)
+(fail) publishing refuses an existing local tag before any GitHub call [0.30ms]
+50 | /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
+51 | async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
+52 |   const dir = join(scratch, name);
+53 |   for (const file of ["scripts/build-plugin.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+54 |     await mkdir(dirname(join(dir, file)), { recursive: true });
+55 |     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
+                   ^
+ENOENT: no such file or directory, open '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts'
+    path: "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async checkout (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:55:15)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:203:21)
+(fail) publishing fails closed when the real GitHub lookup cannot answer [0.25ms]
+error: Cannot find module '../../scripts/release-plugin' from '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts'
+(fail) remote lookup tells a missing tag from an existing one [0.14ms]
+50 | /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
+51 | async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
+52 |   const dir = join(scratch, name);
+53 |   for (const file of ["scripts/build-plugin.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+54 |     await mkdir(dirname(join(dir, file)), { recursive: true });
+55 |     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
+                   ^
+ENOENT: no such file or directory, open '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts'
+    path: "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async checkout (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:55:15)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:225:21)
+(fail) publishing checks GitHub read-only, then creates exactly one release with the three signed assets [0.34ms]
+50 | /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
+51 | async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
+52 |   const dir = join(scratch, name);
+53 |   for (const file of ["scripts/build-plugin.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+54 |     await mkdir(dirname(join(dir, file)), { recursive: true });
+55 |     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
+                   ^
+ENOENT: no such file or directory, open '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts'
+    path: "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async checkout (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:55:15)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:257:23)
+(fail) malformed or ambiguous source facts are refused before anything is built [0.34ms]
+50 | /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
+51 | async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
+52 |   const dir = join(scratch, name);
+53 |   for (const file of ["scripts/build-plugin.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+54 |     await mkdir(dirname(join(dir, file)), { recursive: true });
+55 |     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
+                   ^
+ENOENT: no such file or directory, open '/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts'
+    path: "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/scripts/release-plugin.ts",
+ syscall: "open",
+   errno: -2,
+    code: "ENOENT"
+
+      at async checkout (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:55:15)
+      at async <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u3/test/plugin/release.test.ts:270:21)
+(fail) the parent refuses to package a seed found in source, and no private material reaches outputs or logs [0.34ms]
+
+ 0 pass
+ 10 fail
+ 1 expect() calls
+Ran 10 tests across 1 file. [17.00ms]

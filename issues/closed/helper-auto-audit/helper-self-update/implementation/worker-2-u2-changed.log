@@ -1,0 +1,246 @@
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/runs/capture-test-2026-10-05T16-07-35.291Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/runs/capture-test-2026-10-05T16-07-35.291Z
+261 |     ["/challenge", 200, false, "Cloudflare challenge page"],
+262 |     ["/header-only-challenge", 200, false, "Cloudflare challenge (cf-mitigated: challenge)"],
+263 |   ] as const) {
+264 |     test(`delayed main-document navigation to ${destination} uses final health and classification`, async () => {
+265 |       const r = await shoot(session, `/delayed?to=${destination}`);
+266 |       expect({ state: r.state, detail: r.detail, health: r.health }).toMatchObject({
+                                                                           ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "detail": "Cloudflare challenge (cf-mitigated: challenge)",
++   "detail": "capture failed: evaluate: Target page, context or browser has been closed",
+    "health": {
++     "consoleErrors": [],
+      "criticalError": false,
+-     "finalUrl": "http://127.0.0.1:37849/header-only-challenge",
+-     "status": 200,
++     "failedRequests": [],
++     "finalUrl": "http://127.0.0.1:37849/delayed?to=/header-only-challenge",
++     "mixedContent": [],
++     "status": null,
+    },
+-   "state": "blocked",
++   "state": "error",
+  }
+
+- Expected  - 4
++ Received  + 7
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:266:70)
+(fail) capture in real Chromium > delayed main-document navigation to /header-only-challenge uses final health and classification [158.83ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:287:18
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > direct HTTP redirect retains the final document status [1.31ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:292:23
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > navigation triggered by readiness scrolling reconciles the final document [0.46ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:305:21
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > read-only policy blocks real WebSocket mutations while GET content captures [0.33ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:319:23
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > full-page PNG at both viewports includes lazy content; trace saved [0.42ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:338:21
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > site and page masks combine; masked captures are stable, unmasked ones change [0.40ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:355:25
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > hides combine, remove elements from the full-page size, and warn or fail like masks [0.49ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:369:21
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > unmatched valid mask warns; invalid or non-CSS selectors are configuration errors [0.36ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:385:21
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > health: console/pageerror, 404 assets, transport failure; policy aborts are warnings; CAPTCHA text is not blocked [0.36ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:406:27
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > 404 page and critical error are captured health failures, not blocked [0.27ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:414:24
+      at processTicksAndRejections (native:7:39)
+(fail) capture in real Chromium > unreachable, 403 and challenge pages are blocked with reasons and a trace [0.31ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:441:21
+      at processTicksAndRejections (native:7:39)
+(fail) TLS and mixed content on a real HTTPS fixture > self-signed certificate is blocked unless the internal test option is set [0.69ms]
+120 | }
+121 | 
+122 | const firstLine = (e: unknown) => String(e instanceof Error ? e.message : e).split("\n")[0]!.replace(/^\w+\.\w+: /, "");
+123 | 
+124 | async function capture(browser: Browser, t: Timeouts, ignoreHTTPSErrors: boolean, req: CaptureRequest): Promise<CaptureResult> {
+125 |   const context = await browser.newContext({
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+ log: [],
+
+      at capture (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/src/capture.ts:125:33)
+      at shoot (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:214:21)
+      at /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/tests/capture.test.ts:447:25
+      at processTicksAndRejections (native:7:39)
+(fail) TLS and mixed content on a real HTTPS fixture > HTTP resources on an HTTPS page are mixed content; plain HTTP links are not [0.54ms]
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/runs/2026-10-05T16-07-53.402Z/index.html
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/runs/forms-browser-a1e1cf55-d01f-4a38-adfc-0c9ec54718fd
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/runs/forms-playground-00f9a1cf-3c5a-4d11-a330-2adb20883a83/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/runs/forms-collision-9709233c-393b-42bb-99ed-9aa2901b6338/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/runs/forms-report-tests-103e99c5-2e9a-4398-b0c4-a4e55703172d/summary.json
+
+ 237 pass
+ 13 fail
+ 3143 expect() calls
+Ran 250 tests across 22 files. [2962.66s]

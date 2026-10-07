@@ -1,0 +1,98 @@
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-decide.test.ts:
+142 |   });
+143 | 
+144 |   test("all gates passed: a strict candidate with digests but no paths or URLs", () => {
+145 |     const d = decideAudit(changedFacts());
+146 |     if (d.outcome !== "audited-candidate") throw new Error(d.outcome);
+147 |     expect(d.candidate).toEqual({
+                              ^
+error: expect(received).toEqual(expected)
+
+@@ -53,3 +53,2 @@
+    "repository": "CastrumS/pirax-castrum-maintenance",
+-   "runAttempt": "2",
+    "runId": "1234567890",
+
+- Expected  - 1
++ Received  + 0
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-decide.test.ts:147:25)
+(fail) decideAudit > all gates passed: a strict candidate with digests but no paths or URLs [0.29ms]
+200 |   ];
+201 |   test("two attempts of one run: each attempt's candidate is accepted only by that attempt", () => {
+202 |     const first = decideAudit(changedFacts({ runAttempt: "1" }));
+203 |     if (first.outcome !== "audited-candidate") throw new Error(first.outcome);
+204 |     const value = JSON.parse(JSON.stringify(first.candidate));
+205 |     expect(parseCandidate(value, { runId: RUN, runAttempt: "1" }).runAttempt).toBe("1");
+                                                                                    ^
+error: expect(received).toBe(expected)
+
+Expected: "1"
+Received: undefined
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-decide.test.ts:205:79)
+(fail) parseCandidate > two attempts of one run: each attempt's candidate is accepted only by that attempt [1.07ms]
+210 |     try {
+211 |       parseCandidate(edit(good()), { runId: RUN, runAttempt: ATTEMPT });
+212 |     } catch (e) {
+213 |       error = e as Error;
+214 |     }
+215 |     expect(error?.message).toBe(message);
+                                 ^
+error: expect(received).toBe(expected)
+
+Expected: "candidate: runAttempt"
+Received: "candidate: unknown keys"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-decide.test.ts:215:28)
+(fail) parseCandidate > refuses earlier attempt of this run with a fixed field message [0.08ms]
+210 |     try {
+211 |       parseCandidate(edit(good()), { runId: RUN, runAttempt: ATTEMPT });
+212 |     } catch (e) {
+213 |       error = e as Error;
+214 |     }
+215 |     expect(error?.message).toBe(message);
+                                 ^
+error: expect(received).toBe(expected)
+
+Expected: "candidate: runAttempt"
+Received: undefined
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-decide.test.ts:215:28)
+(fail) parseCandidate > refuses missing attempt with a fixed field message [0.12ms]
+210 |     try {
+211 |       parseCandidate(edit(good()), { runId: RUN, runAttempt: ATTEMPT });
+212 |     } catch (e) {
+213 |       error = e as Error;
+214 |     }
+215 |     expect(error?.message).toBe(message);
+                                 ^
+error: expect(received).toBe(expected)
+
+Expected: "candidate: runAttempt"
+Received: "candidate: unknown keys"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-decide.test.ts:215:28)
+(fail) parseCandidate > refuses attempt with leading zero with a fixed field message [0.06ms]
+210 |     try {
+211 |       parseCandidate(edit(good()), { runId: RUN, runAttempt: ATTEMPT });
+212 |     } catch (e) {
+213 |       error = e as Error;
+214 |     }
+215 |     expect(error?.message).toBe(message);
+                                 ^
+error: expect(received).toBe(expected)
+
+Expected: "candidate: runAttempt"
+Received: "candidate: unknown keys"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/tests/reaudit-decide.test.ts:215:28)
+(fail) parseCandidate > refuses numeric attempt with a fixed field message [0.05ms]
+
+ 52 pass
+ 6 fail
+ 194 expect() calls
+Ran 58 tests across 1 file. [424.00ms]
+exit=1

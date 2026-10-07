@@ -1,0 +1,8 @@
+{
+  "head": "f2b79e29775869e0f353824bb4aafe61280833b0",
+  "probe": "same env capture and string matcher as updates.test.ts; simulate a failed seed-stripping assertion using a fresh child with only synthetic credential values",
+  "code": 1,
+  "syntheticCredentialAppearedInFailureOutput": true,
+  "canaryNotInTestSource": true,
+  "realCredentialsLoaded": false
+}

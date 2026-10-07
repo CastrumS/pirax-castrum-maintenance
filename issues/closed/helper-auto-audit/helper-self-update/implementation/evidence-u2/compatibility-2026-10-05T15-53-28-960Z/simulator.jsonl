@@ -1,0 +1,2 @@
+{"id":1,"to":["owner@client.test"],"from":"wordpress@site.test","subject":"gf-1 notification A","headers":["content-type: text/html"],"provider":"Simulator","status":"sent","created":"2026-10-05 15:54:52"}
+{"id":2,"to":["owner@client.test"],"from":"wordpress@site.test","subject":"gf-1 notification A","headers":["content-type: text/html"],"provider":"Simulator","status":"sent","created":"2026-10-05 15:56:01"}

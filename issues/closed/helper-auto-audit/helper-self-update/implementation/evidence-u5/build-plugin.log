@@ -1,0 +1,4 @@
+$ bun run build:plugin
+$ bun scripts/build-plugin.ts
+dist/pirax-form-test.zip (11 files, sha256 538498605a192621c132eab0ffac10a4e333c7c7252f44670c9df5a732896caf)
+build-exit=0

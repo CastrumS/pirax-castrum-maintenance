@@ -1,0 +1,27 @@
+{
+  "state": "captured",
+  "detail": null,
+  "image": {
+    "width": 1440,
+    "height": 900
+  },
+  "health": {
+    "status": 200,
+    "finalUrl": "http://127.0.0.1:37849/normal",
+    "criticalError": false,
+    "consoleErrors": [],
+    "failedRequests": [
+      {
+        "url": "http://127.0.0.1:37849/forbidden",
+        "status": 403
+      },
+      {
+        "url": "http://127.0.0.1:37849/missing.png",
+        "status": 404
+      }
+    ],
+    "mixedContent": []
+  },
+  "warnings": [],
+  "tracePath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/runs/capture-test-2026-10-05T16-07-35.291Z/11-normal-desktop.trace.zip"
+}

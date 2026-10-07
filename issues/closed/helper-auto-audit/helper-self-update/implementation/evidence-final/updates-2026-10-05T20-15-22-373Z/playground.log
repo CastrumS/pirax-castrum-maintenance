@@ -1,0 +1,9 @@
+
+WordPress Playground CLI
+
+PHP 8.3  WordPress 7.1.2
+Extensions intl, redis, memcached
+
+
+Ready! WordPress is running on http://127.0.0.1:44747 (6 workers)
+

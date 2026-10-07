@@ -1,0 +1,1 @@
+The native updater suite passes (7/7) and core regression passes (10/10). The full configured `bun test` run is in progress; I'll commit and write `worker-1.md` once it finishes.

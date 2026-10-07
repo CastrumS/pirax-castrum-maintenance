@@ -1,0 +1,61 @@
+bun test v1.4.2 (744846f84)
+
+::group::tests/plugin-source.test.ts:
+(pass) the shipping table holds exactly the five known pins as stable numeric versions [0.16ms]
+(pass) the shipping helper header and VERSION constant agree with the reader [0.06ms]
+(pass) importing the reader is side-effect free and its default source does not depend on the working directory [13.75ms]
+(pass) malformed, incomplete, duplicate, unknown or nonliteral pins are refused by field, never by value [0.92ms]
+(pass) readAuditedVersions reads the given source directory [3.22ms]
+(pass) helper version refusals name the field, never the rejected value [5.25ms]
+(pass) helper version fixtures survive two successive patch bumps [1.36ms]
+(pass) wrong-version fixtures are genuinely different from every pin, now and after two pin bumps [0.34ms]
+(pass) native plugin tests carry no fixed audited vendor version [1.58ms]
+
+::endgroup::
+
+::group::tests/reaudit-bump.test.ts:
+(pass) the checked-in plugin guide's marked section is exactly the rendering of the current pins and helper version (no drift) [0.29ms]
+(pass) next helper patch is numeric, not lexical [0.03ms]
+(pass) a plan needs a changed, non-downgraded matrix and names the next helper patch [0.51ms]
+(pass) two successive bumps edit only the allowlisted lines, keep historical prose and are deterministic [8.51ms]
+(pass) pins-only rewrite changes compatibility.php alone (the native audit gate runs before the helper bump) [0.50ms]
+(pass) drift and ambiguity refuse the whole bump and write nothing [10.61ms]
+
+::endgroup::
+
+::group::test/plugin/core.test.ts:
+(pass) build:plugin produces only the allowlisted uploadable ZIP with no tests, secrets or licensed code [30.49ms]
+(pass) generated ZIP uploads and activates through wp-admin without Gravity Forms or Fluent Forms [15391.57ms]
+(pass) settings mutate only for manage_options with a valid nonce and valid values [41358.79ms]
+(pass) compatibility panel: admins only, read-only, every unaudited callback by hook with a real <script> closure file escaped [15088.77ms]
+(pass) marker parser classifies submitted values: ordinary, marked(id) or invalid-marker [1557.67ms]
+(pass) request marker and stacked worker context; nothing is inherited by another request [2337.25ms]
+(pass) wp_mail in marked context is redirected, stripped and tagged; ordinary mail is untouched [6874.58ms]
+(pass) a bad redirect fails before marking and marked mail is never delivered to original recipients [10548.04ms]
+(pass) the core never marks a request from query strings, cookies or arbitrary POST data [2316.46ms]
+(pass) deactivation unschedules, uninstall is guarded and removes options and owned events [7991.02ms]
+
+::endgroup::
+
+::group::test/plugin/release.test.ts:
+(pass) offline: dry run signs the exact manifest bytes from source-derived facts and never calls GitHub [57.15ms]
+(pass) offline: importing the release script has no side effects [26.56ms]
+(pass) offline: a missing or malformed seed is refused by name, in both modes, before anything is built [207.00ms]
+(pass) offline: publishing refuses a seed whose public key is not the committed production key [27.63ms]
+(pass) offline: publishing refuses an existing local tag before any GitHub call [33.68ms]
+(pass) publishing fails closed when the real GitHub lookup cannot answer [142.04ms]
+(pass) remote lookup tells a missing tag from an existing one [905.33ms]
+(pass) the test gh wrapper forwards only the two exact read-only lookups and answers every write itself [258.88ms]
+(pass) publishing checks GitHub read-only, claims the tag at HEAD, then creates exactly one release from it with the three signed assets [566.11ms]
+(pass) a tag claimed concurrently or an unanswered claim stops publication before gh release create [1135.72ms]
+(pass) a release failure after the claim leaves the tag for deliberate recovery: no retry, overwrite or delete [564.96ms]
+(pass) offline: a generated seed used as the source version never reaches CLI output, in either mode [38.67ms]
+(pass) offline: malformed or ambiguous source facts are refused before anything is built [185.72ms]
+(pass) offline: the parent refuses to package a seed found in source, and no private material reaches outputs or logs [48.93ms]
+
+::endgroup::
+
+ 39 pass
+ 0 fail
+ 598 expect() calls
+Ran 39 tests across 4 files. [125.90s]

@@ -1,0 +1,36 @@
+Worker 2's part is committed as `3439e6b` in the u2 worktree. The required full test run (`bun test` with the given `AKROGON_BASE`) passed on that code: 257 pass, 0 fail, exit 0. The report is written to `implementation/worker-2.md`.
+
+**What it does**
+- **New `src/forms/awaiting-audit.ts`:** each site has a "first seen" timestamp in `state/awaiting-audit/<slug>.json`, stored through the command's own Store as JSON content.
+  - The first `awaiting-audit` sighting starts the clock. Later sightings keep it, even when the plugin/version text or the command changes.
+  - The result stays a warning up to exactly 72 hours and becomes `failed` only when strictly over. The detail keeps the version text and adds the first-seen time, the elapsed time to the millisecond and the 72-hour threshold.
+  - Any completed site pass with no `awaiting-audit` result deletes that site's file only.
+  - Unreadable, malformed or future-dated state counts as a first sighting and writes a new timestamp; it never throws or escalates. A failed clear is reported and retried on the next pass. The messages are fixed text, never raw storage errors.
+- **`src/forms/runner.ts`:** `populateForms` takes an optional fourth argument `{ store, now? }` and returns messages for the command to log. It updates the clock once per site, after all of that site's pages. Without the argument it doesn't touch storage, so existing low-level callers are unchanged.
+  - The fix you asked for is in: the clock is updated even when the browser fails to launch. A configuration error still stops the run before that site's clock is touched.
+- **`src/commands/forms.ts` and `src/commands/check.ts`:** both always pass their own Store and log the messages before the status is calculated and the report published.
+
+**Tests**
+- **No-credentials unit tests (`tests/awaiting-audit.test.ts`):**
+  - the three 72-hour boundaries (1ms under, exact, 1ms over);
+  - bad stored values;
+  - storage failures caused by pointing the Store at a closed local port;
+  - a check that error details don't leak into the messages.
+- **Real R2 test (`test/forms/awaiting-audit.test.ts`), under a unique `test/forms-awaiting-audit-…/` folder:**
+  - stored bytes and content type, and the 72-hour boundaries;
+  - repeated escalation without resetting the clock, clearing for every other outcome, and other sites left alone;
+  - each storage operation made to fail in turn, report pruning leaving the state in place, and a real `runForms` pass clearing its own site.
+
+  Cleanup left 0 objects. Evidence summary: `runs/forms-awaiting-ca27768b-4555-47e4-a307-6c37544c71f2/summary.json`.
+- **`tests/store.test.ts`:** adds the state file to the pruning sentinels.
+- **First full run, on the code before the launch fix:** 246 pass, 11 fail, all in `tests/capture.test.ts`. The first failing test had its Chromium browser closed mid-test and the rest of that file failed with it. That run overlapped worker 1's suites. I waited for those to finish before running the final suite, which passed cleanly.
+
+**Not covered here**
+- Recognising the helper's refusal message in the browser, and end-to-end `forms`/`check` runs against a refusal page, belong to the later integration step. They need worker 1's new outcome type and message parser, so no real command run has produced an `awaiting-audit` sighting yet.
+
+**Limitations (in the report)**
+- Two runs for the same site at the same time can race, because R2 has no conditional write or lock.
+- A storage outage or corrupt state can delay the 72-hour failure, because it restarts the clock.
+- A failed clear leaves the old clock in place until a later pass succeeds.
+- "First seen" is when the checker saw the refusal, not when the plugin was updated.
+- Renaming a site leaves its old file behind; nothing cleans those up.

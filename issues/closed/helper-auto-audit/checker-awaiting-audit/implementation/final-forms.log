@@ -1,0 +1,138 @@
+$ bun test test/forms
+bun test v1.4.2 (744846f84)
+
+test/forms/config.test.ts:
+(pass) readFormConfig > returns the exact token and single address without trimming or transforming [0.17ms]
+(pass) readFormConfig > missing or blank names are EnvError naming each variable [0.08ms]
+(pass) readFormConfig > invalid token and address formats are value-free configuration errors [8.66ms]
+(pass) readImapConfig > 993 is implicit TLS, other ports require STARTTLS; password and folders are literal [0.20ms]
+(pass) readImapConfig > missing or blank names list every variable [0.06ms]
+(pass) readImapConfig > invalid host, port, user and non-literal folders are value-free errors [0.16ms]
+(pass) importing readers needs no environment; process.env default reads lazily [79.03ms]
+
+test/forms/evidence.test.ts:
+(pass) sanitizer removes raw, percent, JSON/unicode, HTML and nested encodings [3.11ms]
+(pass) automatic redaction distinguishes credentials from nonsecret configuration labels [2.03ms]
+(pass) sanitized trace JSON independently decodes without astral or mixed-escaped credentials [11.12ms]
+(pass) trace sanitation fails closed, deletes raw and unsafe output on invalid archive [4.52ms]
+
+test/forms/imap.test.ts:
+(pass) pollDelivery input and deadline > rejects non-canonical IDs and deadlines before any network access [0.59ms]
+(pass) pollDelivery input and deadline > a silent server cannot outlive the deadline; the connection is closed and not reported as absent mail [1554.97ms]
+(pass) pollDelivery input and deadline > STARTTLS is required off port 993: no credentials are ever sent in plaintext [56.20ms]
+(pass) pollDelivery input and deadline > refused and dropped connections are explicit sanitized failures [1.54ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: startup discovery is opt-in suppressed, including no-NAMESPACE LIST fallback [0.76ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: literal EXAMINE skips metadata LIST, preserves encoding and has no failed-open fallback [5.71ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > esm: installed fetch compiler requests only candidate UID and Subject PEEK [0.51ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: startup discovery is opt-in suppressed, including no-NAMESPACE LIST fallback [7.08ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: literal EXAMINE skips metadata LIST, preserves encoding and has no failed-open fallback [1.08ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > cjs: installed fetch compiler requests only candidate UID and Subject PEEK [0.95ms]
+(pass) installed ImapFlow contract (pure command/encoding diagnostics, not authentication) > unfolds and MIME-decodes one Subject, rejecting malformed/duplicate fields and near tags [0.57ms]
+(pass) tag matching and folder policy > rechecks the exact tag because IMAP SUBJECT search is a case-insensitive substring match [0.04ms]
+(pass) tag matching and folder policy > equal configured names are opened once and treated conservatively as spam [0.03ms]
+(pass) tag matching and folder policy > a match in both folders favors spam; no match waits [0.05ms]
+(pass) tag matching and folder policy > protocol evidence keeps only command names and fetch data items [0.10ms]
+
+test/forms/playground.test.ts:
+(pass) helper false fills only each designated native form without changing mail, entries or feeds; warning-only publication never accesses baselines [10271.07ms]
+(pass) native upload/no-marker are unsupported; required client/server rejection; a separately designated FF run still confirms [20172.21ms]
+(pass) native required GF checkbox/consent and FF checkbox/terms confirm, redirect and clean entries; helper false never submits [22032.68ms]
+(pass) native GF modern AJAX and FF AJAX retain separate confirmations and native cleanup [13222.19ms]
+(pass) native FF designation over both repeated scope pages: production forms run submits once and skips five (short internal deadline) [10555.68ms]
+(pass) scoped CLI without a designation, with a missing designated ID, or with helper false submits nothing and publishes truthful reports [25622.52ms]
+(pass) scoped production bun run forms local CLI submits only the designated form on the second listed page, once, and truthfully fails after one default five-minute deadline [310893.87ms]
+(pass) production check captures both widths unchanged on both scope pages and applies the same selection: one submission, five skips [37582.04ms]
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-playground-755ad144-0981-4fb6-9a67-f392302211f3/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-collision-a46df461-606c-4263-a65f-9e3a40e55562/synthetic-folder-collision/summary.json
+(pass) production forms command publishes with a nonsecret folder in both run and site paths [2190.87ms]
+(pass) forms-only manifest > parsePublishedManifest returns either validated mode; parseManifest stays check-only [0.89ms]
+(pass) forms-only manifest > both manifest modes accept skipped and awaiting-audit; unknown outcomes still reject [0.52ms]
+(pass) forms-only manifest > rejects fabricated viewports, missing forms, mixed discriminators and malformed identity [0.42ms]
+(pass) form outcome gating > failed/rejected fail, spam/not-verified/unsupported/awaiting-audit warn, delivered passes, skipped is neutral [0.16ms]
+(pass) form outcome gating > existing visual/health failures still fail with passing forms [0.02ms]
+(pass) form outcome gating > forms-only HTML has page Forms data without image panels and escapes hostile text [0.12ms]
+(pass) form outcome gating > forms-only HTML renders awaiting-audit as a warning with escaped versions and explains it [0.06ms]
+(pass) form outcome gating > forms-only HTML renders skipped literally as neutral and explains it [0.07ms]
+(pass) form outcome gating > check pages show form-aware page and site status [0.06ms]
+(pass) forms-only local and published reports > local report has only HTML and manifest, excludes traces, and renders in real Chromium [133.19ms]
+(pass) forms-only local and published reports > real R2: manifest last, traces excluded, approval still selects the older check [7489.76ms]
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-report-tests-b890f657-c112-4082-80ff-8acdcaa80cc8/summary.json
+
+test/forms/awaiting-audit.test.ts:
+Awaiting-audit state evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-b183a452-66aa-4c2f-b20c-d68540212482/summary.json
+(pass) awaiting-audit clock persists, ages, clears and degrades against real scoped R2 [28344.73ms]
+
+test/forms/browser.test.ts:
+(pass) detects actual distinct plugin forms once and preserves unknown identities [67.56ms]
+(pass) fills basic controls with full random marker, preserving hidden/honeypot data [195.12ms]
+(pass) native required checkbox groups choose one usable option; individual required and optional choices are preserved [586.12ms]
+(pass) HTTP-200 explicit challenges fail discovery, ordinary CAPTCHA/Cloudflare mentions remain empty [1190.78ms]
+(pass) preinspects whole form: hidden upload, marker constraints and custom flows never type [519.03ms]
+(pass) no-helper blocks autonomous input/change GET/POST/image/navigation and sockets [5598.55ms]
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+(pass) specific new GF and associated FF confirmations; errors sanitized; no retry [6584.63ms]
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: rejected
+Awaiting-audit fixture /gf-summary-only: rejected
+Awaiting-audit fixture /gf-awaiting-only-container: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-second-helper: rejected
+Awaiting-audit fixture /ff-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-invalid: rejected
+Awaiting-audit fixture /ff-awaiting-invalid: rejected
+Awaiting-audit fixture /gf-generic: rejected
+Awaiting-audit fixture /ff-generic: rejected
+Awaiting-audit fixture /gf-lowercase: rejected
+Awaiting-audit fixture /gf-blank: rejected
+Awaiting-audit fixture /ff-blank: rejected
+Awaiting-audit fixture /gf-no-version: rejected
+Awaiting-audit fixture /gf-bad-separator: rejected
+Awaiting-audit fixture /gf-mid-sentence: rejected
+Awaiting-audit fixture /gf-foreign-awaiting: failed
+Awaiting-audit fixture /ff-stale-awaiting: failed
+Awaiting-audit fixture /ff-foreign-awaiting: failed
+(pass) exact awaiting-audit refusals are classified per message; near matches, extra refusals, stale and foreign messages are not [9420.00ms]
+(pass) scanner forwards awaiting-audit without polling the mailbox [2486.33ms]
+(pass) marker changed after preparation is never submitted; native invalidity is rejection [365.58ms]
+(pass) scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, each designation is filled in its own scan [3139.96ms]
+(pass) selected submit blocks unrelated same-origin writes/GETs and autonomous native GET submit [315.03ms]
+(pass) no-marker/unknown/upload requires no credentials; opted-in IMAP preflight happens before POST [41014.37ms]
+(pass) omitted designation skips every form, helper true or false, with no credentials, typing or POST [1752.84ms]
+(pass) the designated form on the second listed page is the only attempt, in either page order [2109.97ms]
+(pass) helper false fills only the designated plugin/id: same-number GF/FF differ, other forms get no events or POST [2178.70ms]
+(pass) missing, wrong-plugin, elsewhere-only, GF #0 and empty-page designations fail once on their page; scan failures stay scan failures [4487.77ms]
+(pass) duplicate designated instances: only the first is attempted; rejected, unsupported and changed selections never fall through [2741.21ms]
+(pass) distinct sites and a second invocation each keep their own single attempt [3108.99ms]
+(pass) encoded URLs and browser exceptions are scrubbed from retained action traces [34.08ms]
+(pass) direct forms command writes a truthful local report without form credentials or visual/baseline access [607.37ms]
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-browser-c80fba2c-6ea2-4c44-92f3-3228aba4001e
+(pass) retained action traces are secret-free with no image/DOM/source payloads [294.08ms]
+
+test/forms/awaiting-audit-commands.test.ts:
+Awaiting-audit command evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit/runs/forms-awaiting-commands-7e2ec556-2368-4f58-8fd8-cc47f5ad8286/summary.json
+(pass) production forms/check age, escalate, share and clear the awaiting-audit clock against real scoped R2 [83765.38ms]
+
+ 70 pass
+ 0 fail
+ 1669 expect() calls
+Ran 70 tests across 8 files. [716.56s]
+
+Command: bun --env-file=.env run test:forms
+Exit: 0

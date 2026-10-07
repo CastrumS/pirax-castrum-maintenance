@@ -1,0 +1,29 @@
+bun test v1.4.2 (744846f84)
+
+tests/plugin-source.test.ts:
+ 96 |     "two tables": [table((t) => t.replace(/^const AUDITED_VERSIONS = array\([^]*?\n\);$/m, (block) => `${block}\n${block}`)), /expected exactly one AUDITED_VERSIONS array, found 2/],
+ 97 |     "empty source": [() => parseAuditedVersions(""), /found 0/],
+ 98 |   };
+ 99 |   for (const [name, [read, expected]] of Object.entries(cases)) {
+100 |     const text = message(read);
+101 |     expect({ name, text }).toEqual({ name, text: expect.stringMatching(expected) });
+                                 ^
+error: expect(received).toEqual(expected)
+
+@@ -2,3 +2,3 @@
+    "name": "unknown key",
+-   "text": StringMatching /has an unknown plugin key$/,
++   "text": "Error: includes/compatibility.php: AUDITED_VERSIONS has an unknown plugin key gravity",
+  }
+
+- Expected  - 1
++ Received  + 1
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u1/tests/plugin-source.test.ts:101:28)
+(fail) malformed, incomplete, duplicate, unknown or nonliteral pins are refused by field, never by value [1.28ms]
+
+ 8 pass
+ 1 fail
+ 111 expect() calls
+Ran 9 tests across 1 file. [58.00ms]
+exit 1

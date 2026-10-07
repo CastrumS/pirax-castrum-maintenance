@@ -1,0 +1,231 @@
+{
+  "dryRun": {
+    "exit": 0,
+    "ghCalls": 0,
+    "dist": [
+      "pirax-form-test-manifest.json",
+      "pirax-form-test-manifest.json.sig",
+      "pirax-form-test.zip"
+    ],
+    "version": "0.3.0",
+    "sha256": "2b05f4a0e6033215d3a7984b5f2e793a273ba0ac539ab48c3b780b46f43cc497",
+    "audited": {
+      "gf": "3.1.2",
+      "ff": "6.2.14",
+      "ff_pro": "6.2.16",
+      "cleantalk": "6.88",
+      "fluent_smtp": "2.4.1"
+    },
+    "testKeyFingerprint": "843c86efe6ae5c69f7056b4b7545b56fe0a1679d77d14de472b54dcef7ee72ca",
+    "verifiedWithTestKey": true,
+    "verifiedWithProductionKey": false
+  },
+  "import": {
+    "exit": 0,
+    "output": "",
+    "dist": "absent",
+    "ghCalls": 0
+  },
+  "seedRefusals": {
+    "seed-unset-dry-run": 1,
+    "seed-unset-publish": 1,
+    "seed-empty-dry-run": 1,
+    "seed-empty-publish": 1,
+    "seed-not-base64-dry-run": 1,
+    "seed-not-base64-publish": 1,
+    "seed-31-bytes-dry-run": 1,
+    "seed-31-bytes-publish": 1,
+    "seed-64-bytes-dry-run": 1,
+    "seed-64-bytes-publish": 1,
+    "seed-unpadded-dry-run": 1,
+    "seed-unpadded-publish": 1,
+    "seed-trailing-newline-dry-run": 1,
+    "seed-trailing-newline-publish": 1,
+    "seed-base64url-dry-run": 1,
+    "seed-base64url-publish": 1
+  },
+  "mismatch": {
+    "exit": 1,
+    "ghCalls": 0,
+    "dist": []
+  },
+  "localTag": {
+    "exit": 1,
+    "ghCalls": 0,
+    "dist": []
+  },
+  "remoteError": {
+    "exit": 1,
+    "ghCalls": [
+      "api --include"
+    ],
+    "dist": []
+  },
+  "remoteLookup": {
+    "absent": "CastrumS/pirax-castrum-maintenance@v0.0.0-pirax-never-released",
+    "present": "cli/cli@v2.0.0",
+    "invalidToken": "rejected (HTTP 401)"
+  },
+  "wrapper": {
+    "refLookup": {
+      "code": 1,
+      "synthesized": false
+    },
+    "releaseListing": {
+      "code": 1,
+      "synthesized": false
+    },
+    "refCreate": {
+      "code": 0,
+      "synthesized": true
+    },
+    "refDelete": {
+      "code": 0,
+      "synthesized": true
+    },
+    "fieldsImplyPost": {
+      "code": 0,
+      "synthesized": true
+    },
+    "otherGet": {
+      "code": 0,
+      "synthesized": true
+    },
+    "releaseCreate": {
+      "code": 0,
+      "synthesized": true
+    }
+  },
+  "publish": {
+    "exit": 0,
+    "lookups": [
+      "api --include",
+      "api --paginate"
+    ],
+    "claim": [
+      "api",
+      "--method",
+      "POST",
+      "repos/CastrumS/pirax-castrum-maintenance/git/refs",
+      "-f",
+      "ref=refs/tags/v0.0.1",
+      "-f",
+      "sha=9a0a009f46148a5a5f0657ce8c2114a1678ee5be"
+    ],
+    "create": [
+      "release",
+      "create",
+      "v0.0.1",
+      "--repo",
+      "CastrumS/pirax-castrum-maintenance",
+      "--verify-tag",
+      "--latest",
+      "--target",
+      "9a0a009f46148a5a5f0657ce8c2114a1678ee5be",
+      "--title",
+      "v0.0.1",
+      "--notes",
+      "Pirax Form Test 0.0.1. Audited: gf 3.1.2, ff 6.2.14, ff_pro 6.2.15, cleantalk 6.88, fluent_smtp 2.4.1.",
+      "/tmp/pirax-release-test-ym7nKX/publish/dist/pirax-form-test.zip",
+      "/tmp/pirax-release-test-ym7nKX/publish/dist/pirax-form-test-manifest.json",
+      "/tmp/pirax-release-test-ym7nKX/publish/dist/pirax-form-test-manifest.json.sig"
+    ],
+    "commit": "9a0a009f46148a5a5f0657ce8c2114a1678ee5be",
+    "testKeyFingerprint": "7d7e7b0b4da7ecf092ad04d3f12d0b2ab51025febe332f7bb31496ed0c7a1b2c"
+  },
+  "claimRefusals": {
+    "ref-exists": {
+      "exit": 1,
+      "writes": [
+        [
+          "api",
+          "--method",
+          "POST",
+          "repos/CastrumS/pirax-castrum-maintenance/git/refs",
+          "-f",
+          "ref=refs/tags/v0.0.1",
+          "-f",
+          "sha=3499f63f9bc1355224abe9a7841c2298275b07d3"
+        ]
+      ],
+      "message": "release-plugin: could not create tag v0.0.1 on CastrumS/pirax-castrum-maintenance (HTTP 422); release creation was not attempted; inspect remote tag state before retrying"
+    },
+    "ref-error": {
+      "exit": 1,
+      "writes": [
+        [
+          "api",
+          "--method",
+          "POST",
+          "repos/CastrumS/pirax-castrum-maintenance/git/refs",
+          "-f",
+          "ref=refs/tags/v0.0.1",
+          "-f",
+          "sha=190244736fd61e8c2b2ef4b591068b77691b1729"
+        ]
+      ],
+      "message": "release-plugin: could not create tag v0.0.1 on CastrumS/pirax-castrum-maintenance (exit 1); release creation was not attempted; inspect remote tag state before retrying"
+    }
+  },
+  "releaseFailure": {
+    "exit": 1,
+    "writes": [
+      [
+        "api",
+        "--method",
+        "POST",
+        "repos/CastrumS/pirax-castrum-maintenance/git/refs",
+        "-f",
+        "ref=refs/tags/v0.0.1",
+        "-f",
+        "sha=560d344464571b37a41238fa38d0110c5f124797"
+      ],
+      [
+        "release",
+        "create",
+        "v0.0.1",
+        "--repo",
+        "CastrumS/pirax-castrum-maintenance",
+        "--verify-tag",
+        "--latest",
+        "--target",
+        "560d344464571b37a41238fa38d0110c5f124797",
+        "--title",
+        "v0.0.1",
+        "--notes",
+        "Pirax Form Test 0.0.1. Audited: gf 3.1.2, ff 6.2.14, ff_pro 6.2.15, cleantalk 6.88, fluent_smtp 2.4.1.",
+        "/tmp/pirax-release-test-ym7nKX/publish-release-failure/dist/pirax-form-test.zip",
+        "/tmp/pirax-release-test-ym7nKX/publish-release-failure/dist/pirax-form-test-manifest.json",
+        "/tmp/pirax-release-test-ym7nKX/publish-release-failure/dist/pirax-form-test-manifest.json.sig"
+      ]
+    ],
+    "message": "HTTP 502: Bad Gateway\nrelease-plugin: gh release create failed (exit 1); tag v0.0.1 was claimed on CastrumS/pirax-castrum-maintenance at 560d344464571b37a41238fa38d0110c5f124797; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly"
+  },
+  "sourcePrivacy": {
+    "source-privacy-dry-run": {
+      "exit": 1,
+      "leaked": false,
+      "ghCalls": 0,
+      "dist": []
+    },
+    "source-privacy-publish": {
+      "exit": 1,
+      "leaked": false,
+      "ghCalls": 0,
+      "dist": []
+    }
+  },
+  "sourceRefusals": {
+    "header-differs-from-constant": "release-plugin: pirax-form-test.php: Version header and VERSION constant differ",
+    "prerelease": "release-plugin: pirax-form-test.php: VERSION is not a stable dotted numeric version",
+    "duplicate-audited-key": "release-plugin: includes/compatibility.php: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal",
+    "non-literal-audited-version": "release-plugin: includes/compatibility.php: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal",
+    "missing-audited-key": "release-plugin: includes/compatibility.php: AUDITED_VERSIONS is missing fluent_smtp",
+    "unknown-audited-key": "release-plugin: includes/compatibility.php: AUDITED_VERSIONS has an unknown plugin key",
+    "prerelease-audited-version": "release-plugin: includes/compatibility.php: AUDITED_VERSIONS 'ff' is not a stable dotted numeric version"
+  },
+  "seedInSource": {
+    "exit": 1,
+    "message": "release-plugin: README.md contains the value of PIRAX_HELPER_SIGNING_KEY"
+  }
+}

@@ -1,0 +1,28 @@
+I fixed the Gravity Forms masking defect and committed it on top of b307e0e. The full configured `bun test` run on the corrected code finished at exit 0: 252 pass, 0 fail, in 2429.69s.
+
+**What was wrong:** b307e0e treated all text in Gravity Forms' `#gform_<id>_validation_container` as framing. So a generic block or other refusal text placed in that container, next to an awaiting paragraph, was hidden and the result became `awaiting-audit`.
+
+**The fix (commit `a5298de`, `src/forms/submit.ts`):** only Gravity Forms' native summary heading (`.gform_submission_error`) inside that container now counts as framing. It is matched by its class, not its localized wording.
+- Any other text in the container counts as its own message, so a generic block or extra refusal there keeps the result `rejected`.
+- A container holding only the awaiting text is classified `awaiting-audit`.
+- A bare summary heading (ordinary native validation) still comes back `rejected`, with the heading in the detail.
+
+**New fixtures in `test/forms/browser.test.ts`:**
+- **Failed on b307e0e, pass now:** the awaiting-only container was `rejected`, and the generic-block-in-container case was `awaiting-audit`, which is the masking defect. Log: `worker-1-red-2.log`.
+- **No separate fail-first result:** the extra-text-in-container case uses the same code path as the generic case, and the test stops at its first mismatch.
+- **Regression guard:** the bare-summary case gave `rejected` before and after the fix.
+
+**Green on a5298de:** typecheck exit 0; report tests 11/11 and 11/11; the whole browser test file 22/22. Log: `worker-1-green-2.log`, evidence in `runs/forms-browser-805bf138-…`.
+
+**Full-suite run:** the first attempt, on b307e0e, was stopped with the previous session and produced no result, so I'm not counting it. The log is `worker-1-changed-tests.log`. Environment values were swapped for placeholders before it was written (none printed). Two replacements were made, both `NVD_BACKEND`, which looks like over-matching of an ordinary shell variable rather than a secret. Other workers' `bun test` runs were going at the same time with no failures.
+
+**Report:** `implementation/worker-1.md` is complete. `CHANGED_TESTS_RESULT` now holds the actual output, and the blanket-summary limitation is gone. Remaining limitations:
+- Text placed inside the summary heading itself would be treated as framing.
+- The message pattern is strict, so a change to the helper's text format would need it updated.
+- Gravity Forms' modern AJAX path has no separate fixture.
+
+Not verified here:
+- A real helper release producing this message (the helper-self-update leaf's scope).
+- Storage, aging and command exit codes (workers 2 and 3).
+
+The working tree is clean, and only my seven owned files are touched.

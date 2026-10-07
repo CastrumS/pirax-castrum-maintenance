@@ -1,0 +1,22 @@
+The full configured test run on unchanged `f1b75c1` finished and passed: exit 0, 262 pass / 0 fail across 25 files, in 2407 s (16:25–17:05 CEST). That makes AC6, the criterion `worker-4.md` left unverified, verified now. The report is written and no code was changed.
+
+- **Typecheck:** passes (exit 0).
+- **Full test run:** I launched it in its own session with `setsid nohup`, separate from the CLI, and waited with foreground `sleep 240` checks only. It wrote its own exit file. Everything that failed on Oct 2 passed this time, including the 60 s preflight test and all the plugin Playground suites.
+- **Scanner check with B's external probe:** passes (exit 0). The probe opened 92 unrelated real loopback connections, and the test still counted none of them as mailbox polling. The original red log is kept.
+- **Summary copies:** I saved the command and state `summary.json` files from the passing run into the evidence folder, after checking they contain no tokens or signed links.
+- **Host:** no suspends this boot, and B's sleep/idle/lid inhibitor stayed active the whole time.
+
+The report separates the four runs: the Oct 2 run that failed during the host suspend loop, the two interrupted attempts with no exit file, and this completed run. All earlier logs are untouched, and the worktree is still clean at `f1b75c1`.
+
+Remaining limitations, all listed in the report:
+- This is a single clean run, made with B's inhibitor active.
+- The 60 s preflight test has run close to its limit before. It passed here, but its time isn't printed, so the margin is unknown.
+- No released helper emits the awaiting message yet.
+
+The report makes no delivered-mail claim.
+
+Files are in `implementation/`:
+- worker-4-finish.md
+- worker-4-evidence/finish-changed-tests.log, plus its .exit/.head/.start/.end files
+- worker-4-evidence/finish-commands-summary.json
+- worker-4-evidence/finish-state-summary.json

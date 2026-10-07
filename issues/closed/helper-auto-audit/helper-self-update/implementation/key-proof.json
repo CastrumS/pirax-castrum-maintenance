@@ -1,0 +1,22 @@
+{
+  "time": "2026-10-05T21:25:27.360Z",
+  "head": "f2b79e29775869e0f353824bb4aafe61280833b0",
+  "publicKey": "D8BfOn8TZC3jD+Hv5Q+p7SGPNGIYISVcMCqQWU0Dh9w=",
+  "publicFingerprint": "246341d08d0b2704733dcd4bda087bb72881af1f25b803d0878dd5366b164b5d",
+  "pairMatchesEmbeddedKey": true,
+  "signVerify": true,
+  "githubSecretNamePresent": true,
+  "githubSecretValueReadBack": false,
+  "trackedFilesScanned": 554,
+  "environmentFilesExcluded": true,
+  "privateRepresentationsScanned": 6,
+  "credentialValuesScanned": 10,
+  "credentialsRemovedBeforeChildProcesses": true,
+  "scans": {
+    "trackedSource": [],
+    "dist": [],
+    "worktreeArtifacts": [],
+    "authoritativeLeaf": []
+  },
+  "privateValuesRetained": false
+}

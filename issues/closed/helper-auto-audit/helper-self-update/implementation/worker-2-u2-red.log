@@ -1,0 +1,37 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/compatibility.test.ts:
+448 |       const compoundBlock = await lastBlock();
+449 |       await h.drainQueues();
+450 |       const done2 = await since(m2);
+451 |       await note(`GF modern AJAX generic check ${mode}, GF 3.1.3`, { marked: compound.ok, http: done2.http, added: done2.added, last: compoundBlock && { message: compoundBlock.message, reasons: compoundBlock.reasons } });
+452 |       expect(compound.ok).toBe(false);
+453 |       expect(compound.text).toContain(BLOCKED);
+                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Pirax test blocked: integrations could not be suppressed"
+Received: "Pirax test blocked: awaiting audit of Gravity Forms 3.1.3\n\nName(Required)\nEmail(Required)\nMessage\nSubmit"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/test/plugin/compatibility.test.ts:453:29)
+(fail) GF modern AJAX: CleanTalk's generic check wrapped (unrecognizable) refuses marked submissions before it runs; ordinary ones keep it [65508.23ms]
+448 |       const compoundBlock = await lastBlock();
+449 |       await h.drainQueues();
+450 |       const done2 = await since(m2);
+451 |       await note(`GF modern AJAX generic check ${mode}, GF 3.1.3`, { marked: compound.ok, http: done2.http, added: done2.added, last: compoundBlock && { message: compoundBlock.message, reasons: compoundBlock.reasons } });
+452 |       expect(compound.ok).toBe(false);
+453 |       expect(compound.text).toContain(BLOCKED);
+                                  ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "Pirax test blocked: integrations could not be suppressed"
+Received: "Pirax test blocked: awaiting audit of Gravity Forms 3.1.3\n\nName(Required)\nEmail(Required)\nMessage\nSubmit"
+
+      at <anonymous> (/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/test/plugin/compatibility.test.ts:453:29)
+(fail) GF modern AJAX: CleanTalk's generic check moved to plugins_loaded priority 1 refuses marked submissions before it runs; ordinary ones keep it [59366.99ms]
+
+ 0 pass
+ 21 filtered out
+ 2 fail
+ 26 expect() calls
+Ran 2 tests across 1 file. [197.29s]

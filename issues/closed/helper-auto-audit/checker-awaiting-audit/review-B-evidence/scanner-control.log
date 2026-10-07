@@ -1,0 +1,10 @@
+bun test v1.4.2 (744846f84)
+
+test/forms/browser.test.ts:
+(pass) scanner forwards awaiting-audit without polling the mailbox [2493.70ms]
+
+ 1 pass
+ 21 filtered out
+ 0 fail
+ 8 expect() calls
+Ran 1 test across 1 file. [2.77s]

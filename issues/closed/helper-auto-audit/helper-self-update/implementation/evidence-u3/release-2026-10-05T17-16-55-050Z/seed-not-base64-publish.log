@@ -1,0 +1,9 @@
+$ bun scripts/release-plugin.ts 
+exit 1
+--- stdout
+--- stderr
+release-plugin: PIRAX_HELPER_SIGNING_KEY is not base64 of a 32-byte Ed25519 seed
+--- gh calls
+[]
+--- dist
+

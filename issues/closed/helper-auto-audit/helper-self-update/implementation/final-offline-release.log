@@ -1,0 +1,17 @@
+bun test v1.4.2 (744846f84)
+
+test/plugin/release.test.ts:
+(pass) offline: dry run signs the exact manifest bytes from source-derived facts and never calls GitHub [57.65ms]
+(pass) offline: importing the release script has no side effects [18.27ms]
+(pass) offline: a missing or malformed seed is refused by name, in both modes, before anything is built [191.84ms]
+(pass) offline: publishing refuses a seed whose public key is not the committed production key [21.92ms]
+(pass) offline: publishing refuses an existing local tag before any GitHub call [25.08ms]
+(pass) offline: a generated seed used as the source version never reaches CLI output, in either mode [31.68ms]
+(pass) offline: malformed or ambiguous source facts are refused before anything is built [96.53ms]
+(pass) offline: the parent refuses to package a seed found in source, and no private material reaches outputs or logs [27.90ms]
+
+ 8 pass
+ 6 filtered out
+ 0 fail
+ 139 expect() calls
+Ran 8 tests across 1 file. [494.00ms]

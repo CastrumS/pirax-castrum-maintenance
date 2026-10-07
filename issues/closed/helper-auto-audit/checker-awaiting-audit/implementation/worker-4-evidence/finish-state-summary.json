@@ -1,0 +1,94 @@
+{
+  "root": "test/forms-awaiting-audit-2026-10-05T14-27-26.711Z-7d061f04/",
+  "directory": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-awaiting-8b7602eb-f0fa-4e66-9f98-0cd1b85a6b8d",
+  "scenarios": {
+    "first-and-repeat": {
+      "stored": "{\"firstSeen\":\"2026-10-05T14:26:26.712Z\"}",
+      "contentType": "application/json;charset=utf-8",
+      "changedVersionRetainedClock": true
+    },
+    "boundaries-and-escalation": {
+      "boundaries": {
+        "minus-1ms": "awaiting-audit",
+        "exact": "awaiting-audit",
+        "plus-1ms": "failed"
+      },
+      "repeatedEscalationKeptFirstSeen": "2026-09-05T14:26:26.712Z"
+    },
+    "clearing": {
+      "cleared": [
+        "rejected",
+        "failed",
+        "not-verified",
+        "unsupported",
+        "delivered",
+        "delivered-spam",
+        "skipped-only",
+        "designation-missing",
+        "no-forms"
+      ],
+      "otherSiteUntouched": true,
+      "freshClockAfterClear": "2026-10-05T14:26:26.712Z"
+    },
+    "malformed": {
+      "replaced": [
+        "not-json",
+        "wrong-shape",
+        "extra-field",
+        "noncanonical",
+        "future"
+      ]
+    },
+    "induced-failures": {
+      "list": {
+        "diagnostics": [
+          "Awaiting-audit state could not be read; counted as a first sighting."
+        ],
+        "replacementWritten": true
+      },
+      "get": {
+        "diagnostics": [
+          "Awaiting-audit state could not be read; counted as a first sighting."
+        ],
+        "replacementWritten": true
+      },
+      "put": {
+        "diagnostics": [
+          "Awaiting-audit first sighting could not be saved; the 72-hour clock may not have started."
+        ],
+        "objectWritten": false
+      },
+      "clear-list": {
+        "diagnostics": [
+          "Awaiting-audit state could not be cleared; retried on the next pass without an awaiting-audit result."
+        ],
+        "oldObjectRetained": true,
+        "retryCleared": true
+      },
+      "clear-delete": {
+        "diagnostics": [
+          "Awaiting-audit state could not be cleared; retried on the next pass without an awaiting-audit result."
+        ],
+        "oldObjectRetained": true,
+        "retryCleared": true
+      }
+    },
+    "pruning": {
+      "reportsRemaining": 0,
+      "stateRetained": true
+    },
+    "run-forms-clear": {
+      "exitCode": 0,
+      "localPath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-awaiting-8b7602eb-f0fa-4e66-9f98-0cd1b85a6b8d/command/2026-10-05T14-27-54.304Z/index.html",
+      "otherSiteUntouched": true,
+      "logs": [
+        "Local report: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/checker-awaiting-audit-u4/runs/forms-awaiting-8b7602eb-f0fa-4e66-9f98-0cd1b85a6b8d/command/2026-10-05T14-27-54.304Z/index.html",
+        "Private report published; bearer link withheld from logs. Open the local report above."
+      ]
+    }
+  },
+  "cleanup": {
+    "deleted": 3,
+    "remaining": 0
+  }
+}

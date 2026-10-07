@@ -1,0 +1,17 @@
+{
+  "state": "blocked",
+  "detail": "navigation failed: net::ERR_BLOCKED_BY_CLIENT",
+  "image": null,
+  "health": {
+    "status": null,
+    "finalUrl": "chrome-error://chromewebdata/",
+    "criticalError": false,
+    "consoleErrors": [],
+    "failedRequests": [],
+    "mixedContent": []
+  },
+  "warnings": [
+    "read-only policy blocked POST http://127.0.0.1:37849/write"
+  ],
+  "tracePath": "/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/helper-self-update-u2/runs/capture-test-2026-10-05T16-07-35.291Z/2-delayedpost-desktop.trace.zip"
+}

@@ -1,0 +1,86 @@
+Queued 2026-10-06T19:20:19Z
+Lock acquired 2026-10-06T19:20:19Z; head 03612dff38eb361ce978a916f7a523dc1b49a70b; gh /home/rudi/.local/share/mise/installs/gh/latest/gh_2.101.0_linux_amd64/bin/gh; node v24.21.0
+$ bun scripts/build-plugin.ts
+dist/pirax-form-test.zip (11 files, sha256 144641541835f62019729bb4f36fea68cd1cc8b61b9c9557daedcbb9e39f82eb)
+bun test v1.4.2 (744846f84)
+
+tests/capture.test.ts:
+Failed navigation fixture: {"path":"/delayed-unreachable","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/capture-test-2026-10-06T19-20-19.639Z
+Failed navigation fixture: {"path":"/delayed-post","state":"blocked","health":{"status":null,"finalUrl":"chrome-error://chromewebdata/","criticalError":false,"consoleErrors":[],"failedRequests":[],"mixedContent":[]},"hasImage":false,"writes":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/capture-test-2026-10-06T19-20-19.639Z
+WebSocket fixture: {"mutations":0,"connections":0} artifacts: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/capture-test-2026-10-06T19-20-19.639Z
+
+tests/reaudit-operations.test.ts:
+watchdog: notice not sent: Error
+
+tests/report.test.ts:
+Report browser artifact: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/2026-10-06T19-21-08.607Z/index.html
+
+tests/reaudit-publish.test.ts:
+v0.3.1: dist/pirax-form-test.zip sha256 7ca5279709f43a693250ea6d25de6cf64789b0294bed61bc67806cc5bfc18ba4, signed by public key 66kqZP1GyxTSS+G9bNLdxCGfNgikAWgy2E7SnMW9WEs=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+v0.3.1: dist/pirax-form-test.zip sha256 4eb457942899d5445fc5da57e96c4451089d633c4995a019d1d70c9bf9743784, signed by public key s9dNx+euZ2y2v9UoSE+xLhBZTdGEbP9MAzIr6mgOVcY=
+HTTP 502: Bad Gateway
+release-plugin: gh release create failed (exit 1); tag v0.3.1 was claimed on CastrumS/pirax-castrum-maintenance at a77bc6c5a5c7fb9c8b270313eb74bc39b304b1f5; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly
+v0.3.1: dist/pirax-form-test.zip sha256 a0522cc3d5fc411fc5c98298ff84b274fa85d52281bc109247fc8e88e3911c92, signed by public key sUpPTd52oGUhvYxkl37il1ViM8lNnbF3JO7XPI8xmwI=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+
+test/forms/awaiting-audit-commands.test.ts:
+Awaiting-audit command evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/forms-awaiting-commands-77ceeba5-b557-449f-b2de-78869d8292d8/summary.json
+
+test/forms/awaiting-audit.test.ts:
+Awaiting-audit state evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/forms-awaiting-121f2d26-b54e-4b5b-9118-f4bd93c805d2/summary.json
+
+test/forms/browser.test.ts:
+Submission fixture /plain: confirmed
+Submission fixture /ff: confirmed
+Submission fixture /gf-ajax: confirmed
+Submission fixture /save-trap: failed
+Submission fixture /reject: rejected
+Submission fixture /foreign: failed
+Submission fixture /no-confirmation: failed
+Submission fixture /stale: failed
+Submission fixture /ff-stale: failed
+Submission fixture /ff-foreign: failed
+Submission fixture /ff-redirect: confirmed
+Submission fixture /ff-redirect-no-entry: failed
+Awaiting-audit fixture /gf-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-multi: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-nested: awaiting-audit
+Awaiting-audit fixture /ff-awaiting: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-generic-in-container: rejected
+Awaiting-audit fixture /gf-awaiting-extra-in-container: rejected
+Awaiting-audit fixture /gf-summary-only: rejected
+Awaiting-audit fixture /gf-awaiting-only-container: awaiting-audit
+Awaiting-audit fixture /gf-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-second-helper: rejected
+Awaiting-audit fixture /ff-awaiting-field: rejected
+Awaiting-audit fixture /gf-awaiting-invalid: rejected
+Awaiting-audit fixture /ff-awaiting-invalid: rejected
+Awaiting-audit fixture /gf-generic: rejected
+Awaiting-audit fixture /ff-generic: rejected
+Awaiting-audit fixture /gf-lowercase: rejected
+Awaiting-audit fixture /gf-blank: rejected
+Awaiting-audit fixture /ff-blank: rejected
+Awaiting-audit fixture /gf-no-version: rejected
+Awaiting-audit fixture /gf-bad-separator: rejected
+Awaiting-audit fixture /gf-mid-sentence: rejected
+Awaiting-audit fixture /gf-foreign-awaiting: failed
+Awaiting-audit fixture /ff-stale-awaiting: failed
+Awaiting-audit fixture /ff-foreign-awaiting: failed
+Forms browser evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/forms-browser-5d7095c0-bc6c-4f3a-b09b-ee03e7c98089
+
+test/forms/playground.test.ts:
+Native forms evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/forms-playground-54018da7-2c73-417f-aab4-aa271cfc8946/summary.json
+
+test/forms/report.test.ts:
+Forms collision evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/forms-collision-9b5972dc-b75b-4009-9c3f-c63373540e94/synthetic-folder-collision/summary.json
+Forms report evidence: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job-u4/runs/forms-report-tests-4c86d7e2-71d4-4892-b53a-8e9be4251685/summary.json
+
+ 516 pass
+ 0 fail
+ 5673 expect() calls
+Ran 516 tests across 38 files. [2952.96s]
+
+Result exit=0 at 2026-10-06T20:09:32Z

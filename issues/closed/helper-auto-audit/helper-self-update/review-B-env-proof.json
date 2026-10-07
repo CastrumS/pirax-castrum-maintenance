@@ -1,0 +1,34 @@
+{
+  "head": "f2b79e29775869e0f353824bb4aafe61280833b0",
+  "realCredentialsLoaded": false,
+  "realZipOperations": true,
+  "privateValuesRetained": false,
+  "present": {
+    "hits": 0
+  },
+  "absent": {
+    "hits": 0
+  },
+  "calls": [
+    {
+      "stage": "key-present",
+      "tool": "unzip",
+      "signingKeyPresent": true
+    },
+    {
+      "stage": "key-present",
+      "tool": "unzip",
+      "signingKeyPresent": true
+    },
+    {
+      "stage": "key-present",
+      "tool": "zip",
+      "signingKeyPresent": true
+    },
+    {
+      "stage": "without-key-control",
+      "tool": "unzip",
+      "signingKeyPresent": false
+    }
+  ]
+}

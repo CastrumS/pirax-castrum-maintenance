@@ -1,0 +1,32 @@
+slug: reaudit-job
+phase: merged
+created: 2026-10-02
+repo: Pirax-Castrum-Maintenance
+debate: "no"
+blocked-by: 
+  - helper-self-update
+sources: 
+  []
+busy_since: 
+  {}
+busy_notified: 
+  {}
+attempts: 
+  A: 0
+  B: 0
+done: 
+  []
+fix_rounds: 1
+verdict: 
+  {}
+tab: wM:tB
+worktree: /home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/issues/worktrees/reaudit-job
+pane: 
+  A: wM:pK
+  B: wM:pM
+prompted: 
+  {}
+prompted_at: 
+  {}
+delivery_error: 
+  {}

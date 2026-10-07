@@ -1,0 +1,9 @@
+$ unshare -rn bun --no-env-file test test/plugin/release.test.ts -t ^offline:   (no network namespace)
+bun test v1.4.2 (744846f84)
+
+ 8 pass
+ 6 filtered out
+ 0 fail
+ 139 expect() calls
+Ran 8 tests across 1 file. [503.00ms]
+exit=0

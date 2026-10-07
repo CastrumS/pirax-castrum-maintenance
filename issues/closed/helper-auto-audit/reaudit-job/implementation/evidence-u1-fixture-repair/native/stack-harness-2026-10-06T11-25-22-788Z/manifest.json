@@ -1,0 +1,61 @@
+{
+  "suite": "stack-harness",
+  "scenarios": [
+    "stack-controls"
+  ],
+  "url": "http://127.0.0.1:45867",
+  "versions": {
+    "gf": "3.1.2",
+    "ff": "6.2.14",
+    "wp": "7.1.2",
+    "php": "8.3",
+    "ffPro": "6.2.15",
+    "cleantalk": "6.88",
+    "fluentSmtp": "2.4.1"
+  },
+  "fixtures": {
+    "stack": {
+      "webhook": 18,
+      "capture": "http://127.0.0.1:45867/pirax-harness/capture/webhook"
+    },
+    "gf": 1,
+    "ff": 3,
+    "page": "http://127.0.0.1:45867/pirax-forms/",
+    "feeds": {
+      "gf": 1
+    },
+    "async": {
+      "gf": true
+    },
+    "captcha": {
+      "gf": 2,
+      "ff": 4,
+      "page": "http://127.0.0.1:45867/pirax-captcha-forms/"
+    },
+    "unsupported": {
+      "gf": 3,
+      "ff": 5,
+      "page": "http://127.0.0.1:45867/pirax-unsupported-forms/"
+    }
+  },
+  "zips": {
+    "gravityforms": "cf69559f9f7c14aa5fcf4d37e8cd23df7be557fcdedc5b2dbb105ff96dea336d",
+    "fluentform": "b397ab46fe64e7a35c3c893ca1491c2b28b1f815977a6eaeb4597c6a1db034b9",
+    "fluentformpro": "20074cff095a24bffffa370b79be360a1f26fdaf26dce67e13338072c48e5c90",
+    "cleantalk": "f739c063cfe5a4516a8056b0518be32c1a73dfb834eb62e1823b8f41da68d50e",
+    "fluentSmtp": "4932248e0fae299842ca0bd6b8dc71de7efef9b0302ffd7f29df39028673553f"
+  },
+  "uploads": [],
+  "artifacts": {
+    "mail": "mail.jsonl",
+    "feeds": "feeds.jsonl",
+    "entries": "entries.json",
+    "network": "network.jsonl",
+    "http": "http.jsonl",
+    "envelopes": "envelopes.jsonl",
+    "simulator": "simulator.jsonl",
+    "traces": [
+      "stack-controls.trace.zip"
+    ]
+  }
+}

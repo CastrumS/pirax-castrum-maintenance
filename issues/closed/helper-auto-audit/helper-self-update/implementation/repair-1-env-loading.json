@@ -1,0 +1,14 @@
+{
+  "omittedWithAutoEnv": {
+    "PIRAX_HELPER_SIGNING_KEY": "present",
+    "exit": 0
+  },
+  "emptyWithAutoEnv": {
+    "PIRAX_HELPER_SIGNING_KEY": "absent",
+    "exit": 0
+  },
+  "omittedWithoutAutoEnv": {
+    "PIRAX_HELPER_SIGNING_KEY": "absent",
+    "exit": 0
+  }
+}

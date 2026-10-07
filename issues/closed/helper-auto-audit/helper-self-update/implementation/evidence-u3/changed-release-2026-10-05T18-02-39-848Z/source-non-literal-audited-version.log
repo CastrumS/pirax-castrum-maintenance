@@ -1,0 +1,9 @@
+$ bun scripts/release-plugin.ts --dry-run
+exit 1
+--- stdout
+--- stderr
+release-plugin: includes/compatibility.php: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal
+--- gh calls
+[]
+--- dist
+

@@ -1,0 +1,22 @@
+/home/rudi/.local/share/mise/installs/gh/latest/gh_2.101.0_linux_amd64/bin/gh
+bun test v1.4.2 (744846f84)
+
+tests/reaudit-operations.test.ts:
+watchdog: notice not sent: Error
+
+tests/reaudit-publish.test.ts:
+v0.3.1: dist/pirax-form-test.zip sha256 8894f9d84f1ce2b6354cd82597710d1f7c9d7aad10a4d19bfb43c915138a753a, signed by public key iK3sE76nV3Rd0BW3AdP9+pnbCy55fusgsgQymziKLqw=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+v0.3.1: dist/pirax-form-test.zip sha256 96dfded327f180adb777993b7607728472bca209524d48b8ec341af84b47ae8f, signed by public key CcQFt1Mfv/sFo3qEn+KJ5hK6jRh2yFGnBPDPSgI4nhY=
+HTTP 502: Bad Gateway
+release-plugin: gh release create failed (exit 1); tag v0.3.1 was claimed on CastrumS/pirax-castrum-maintenance at 93f5fee29a42067aeee84f5992a084512a04afe0; inspect remote tag and release state before recovery: creation or upload may have partially succeeded; do not retry or delete blindly
+v0.3.1: dist/pirax-form-test.zip sha256 dcfdd8a9cfadbb1f9314e56e8bbcd1cbe1e8734f4e762fb4f3e8f21de967065c, signed by public key DeefjEtTdibUmwxGB02NQcdBPEb0J36tNsMvrhoVsTU=
+{"synthesized":true}
+published v0.3.1 on CastrumS/pirax-castrum-maintenance
+
+ 210 pass
+ 0 fail
+ 1189 expect() calls
+Ran 210 tests across 10 files. [116.28s]
+exit 0

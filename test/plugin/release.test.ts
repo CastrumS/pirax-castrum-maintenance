@@ -53,7 +53,7 @@ const GIT = ["-c", "user.name=Release Test", "-c", "user.email=release@test.inva
 /** A committed disposable checkout: scripts + helper source, with optional per-file source edits. */
 async function checkout(name: string, edits: Record<string, (text: string) => string> = {}) {
   const dir = join(scratch, name);
-  for (const file of ["scripts/build-plugin.ts", "scripts/plugin-source.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
+  for (const file of ["scripts/build-plugin.ts", "scripts/plugin-source.ts", "scripts/release-plugin.ts", "scripts/reaudit/privacy.ts", "test/plugin/artifacts.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)]) {
     await mkdir(dirname(join(dir, file)), { recursive: true });
     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
   }

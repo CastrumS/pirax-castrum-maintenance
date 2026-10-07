@@ -15,6 +15,12 @@ Candidate identity now includes the attempt. Upload/download names and the summa
 - `tests/reaudit-workflow.test.ts` checks matching upload/download names and real CLI fallback without SMTP credentials.
 - The leaf's `implementation/evidence-u4/attempt-red*.log` records the old behavior, including a synthetic publication of an earlier candidate. The final worker check passed516 tests,0fail, exit0 on03612df. This proves local contracts, not live Actions rerun behavior; that remains post-merge.
 
+## Clarification — 2026-10-07 review repair
+
+The recovery sentence above was too broad: rerunning only a failed publish job cannot use the prior audit's candidate. Rerunning a failed audit includes downstream jobs and can create and publish a fresh current-attempt candidate; a fresh main dispatch is not the only safe route. Attempt binding remains unchanged.
+
+The pinned download-artifact v8.0.1 extracts a single pattern match flat, not under its artifact name. The repaired workflow explicitly downloads each named summary into its attempt/job directory; the workflow regression extracts real ZIPs using that rule before invoking the real loader and CLI. Missing current evidence still never falls back to older evidence.
+
 ## Learning
 
 A workflow run ID does not uniquely identify an execution. Bind handoff data and artifact selection to both run and attempt. Never substitute older evidence when the current execution produced none, especially for cleanup or publication state.

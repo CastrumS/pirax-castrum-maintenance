@@ -1,5 +1,5 @@
 // Same-host schedule watchdog for reaudit.yml: read-only gh GET lookups of the workflow's state and its
-// latest started schedule/manual run. Disabled, overdue (>48h since the last start), missing history after
+// latest started main schedule/manual run. Disabled, overdue (>48h since the last start), missing history after
 // the install grace, or any missing/malformed/failed Actions fact is unhealthy and attempts one safe notice.
 // A failed recent audit still proves the scheduler is alive; failed-run notices belong to reaudit.yml itself.
 // Limitation: it runs on the same GitHub Actions scheduler, so a total scheduler outage silences both.
@@ -38,7 +38,8 @@ export function normalizeWatchdogFacts(workflow: unknown, runs: unknown, now: nu
   if (!isObject(runs) || !Array.isArray(runs.workflow_runs)) throw new InvalidResponse();
   let lastStartedAt: number | null = null;
   for (const run of runs.workflow_runs) {
-    if (!isObject(run) || typeof run.event !== "string") throw new InvalidResponse();
+    if (!isObject(run) || typeof run.event !== "string" || typeof run.head_branch !== "string") throw new InvalidResponse();
+    if (run.head_branch !== "main") continue; // Every audit job skips non-main dispatches; they prove no liveness.
     const started = instant(run.run_started_at, now);
     if ((run.event === "schedule" || run.event === "workflow_dispatch") && (lastStartedAt === null || started > lastStartedAt)) lastStartedAt = started;
   }
@@ -75,7 +76,7 @@ export function observe(gh: Gh, now: number): WatchdogDecision {
   if (typeof workflow === "string") return { healthy: false, reason: workflow };
   if (workflow.status === 404) return { healthy: false, reason: "workflow-missing" };
   if (workflow.status !== 200) return { healthy: false, reason: "actions-query-failed" };
-  const runs = get(gh, `${API}/runs?per_page=50`);
+  const runs = get(gh, `${API}/runs?branch=main&per_page=50`);
   if (typeof runs === "string") return { healthy: false, reason: runs };
   if (runs.status !== 200) return { healthy: false, reason: "actions-query-failed" };
   try { return decideWatchdog(normalizeWatchdogFacts(workflow.body, runs.body, now), now); }

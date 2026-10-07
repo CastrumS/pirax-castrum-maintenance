@@ -8,13 +8,15 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseInstant } from "../scripts/reaudit/heartbeat";
+import { chooseNotice, formatFailure, readSummaries, type FailureSummary } from "../scripts/reaudit/notify";
+import { readAuditedVersions } from "../scripts/plugin-source";
 
 const ROOT = resolve(import.meta.dir, "..");
 const REPO = "CastrumS/pirax-castrum-maintenance";
 const scratch = await mkdtemp(join(tmpdir(), "reaudit-workflow-"));
 afterAll(() => rm(scratch, { recursive: true, force: true }));
 
-type Step = { name?: string; uses?: string; run?: string; if?: string; id?: string; with?: Record<string, unknown>; env?: Record<string, string> };
+type Step = { name?: string; uses?: string; run?: string; if?: string; id?: string; "continue-on-error"?: boolean; with?: Record<string, unknown>; env?: Record<string, string> };
 type Job = { if?: string; needs?: string | string[]; permissions?: Record<string, string>; "timeout-minutes"?: number; "runs-on"?: string; steps: Step[]; outputs?: Record<string, string> };
 type Workflow = { on: Record<string, unknown>; permissions?: unknown; concurrency?: { group: string; "cancel-in-progress": boolean }; jobs: Record<string, Job> };
 const load = async (name: string) => Bun.YAML.parse(await readFile(join(ROOT, ".github/workflows", name), "utf8")) as Workflow;
@@ -127,7 +129,8 @@ test("reruns keep run_id and earlier artifacts: every artifact upload/download i
     ["audit", "actions/upload-artifact", `reaudit-evidence-${A}`],
     ["publish", "actions/download-artifact", `reaudit-candidate-${A}`],
     ["publish", "actions/upload-artifact", `reaudit-summary-${A}-publish`],
-    ["notify", "actions/download-artifact", `reaudit-summary-${A}-*`],
+    ["notify", "actions/download-artifact", `reaudit-summary-${A}-audit`],
+    ["notify", "actions/download-artifact", `reaudit-summary-${A}-publish`],
   ]);
 });
 
@@ -224,6 +227,49 @@ test("notify --jobs picks the failed job's summary and, without mail credentials
   const bad = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { REAUDIT_NEEDS: "{not json", GITHUB_RUN_ATTEMPT: "1" });
   expect(bad.code).toBe(1);
   expect(JSON.parse(bad.stderr.trim().split("\n").at(-1)!)).toMatchObject({ smtpAttempts: 0, stage: "unknown" });
+});
+
+test("pinned download action's flat single-match/named extraction reaches the real summary loader and CLI", async () => {
+  const pins = readAuditedVersions();
+  const versions = { oldVersions: pins, candidateVersions: { ...pins, ff: `${pins.ff}.1` } };
+  const summaries: FailureSummary[] = [
+    { stage: "audit", reason: "native-suite-failed", cleanup: "confirmed", publication: "not-attempted", ...versions },
+    { stage: "cleanup", reason: "cleanup-failed", cleanup: "failed", site: "http://127.0.0.1:41234", publication: "not-attempted", ...versions },
+    ...(["main-pushed", "tag-claimed", "release-incomplete"] as const).map((publication): FailureSummary => ({ stage: "publication", reason: "release-cli-failed", cleanup: "not-applicable", publication, commit: "a".repeat(40), tag: "v0.3.1", ...versions })),
+  ];
+  for (const [index, summary] of summaries.entries()) {
+    const temp = join(scratch, `extraction-${index}`);
+    const expand = (s: unknown) => String(s).replaceAll("${{ runner.temp }}", temp).replaceAll("${{ github.run_attempt }}", "1");
+    const job = summary.stage === "publication" ? "publish" : "audit";
+    const name = `reaudit-summary-1-${job}`;
+    const archive = join(temp, "summary.zip");
+    const source = join(temp, "upload");
+    await mkdir(source, { recursive: true });
+    await writeFile(join(source, "summary.json"), JSON.stringify(summary));
+    expect(Bun.spawnSync(["zip", "-q", archive, "summary.json"], { cwd: source, env: { PATH: process.env.PATH } }).exitCode).toBe(0);
+    const downloads = audit.jobs.notify!.steps.filter((s) => s.uses?.startsWith("actions/download-artifact@"));
+    for (const download of downloads) {
+      expect(download.uses).toBe("actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c");
+      expect(download["continue-on-error"]).toBe(true);
+      const selected = download.with?.name ? expand(download.with.name) === name : name.startsWith(expand(download.with?.pattern).replace(/\*$/, ""));
+      if (!selected) continue; // The other job has no artifact: continue-on-error permits that absence.
+      // v8.0.1 src/download-artifact.ts: name || mergeMultiple || artifacts.length === 1 => resolvedPath.
+      // This fixture has exactly one artifact. Never synthesize an artifact-name child directory.
+      const destination = resolve(expand(download.with?.path));
+      await mkdir(destination, { recursive: true });
+      expect(Bun.spawnSync(["unzip", "-q", archive, "-d", destination], { env: { PATH: process.env.PATH } }).exitCode).toBe(0);
+    }
+    const dir = expand(step(audit.jobs.notify!, (s) => !!s.run?.includes("scripts/reaudit/notify.ts")).env!.SUMMARIES);
+    const needs = { [job]: { result: "failure" } };
+    const notice = chooseNotice(needs, readSummaries(dir, "1"));
+    expect(notice).toEqual(summary); // Every stage/reason/version/cleanup/site/partial-publication fact survives.
+    expect(formatFailure(notice)).toEqual(formatFailure(summary));
+    const r = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { REAUDIT_NEEDS: JSON.stringify(needs), GITHUB_RUN_ATTEMPT: "1" });
+    expect(r.code).toBe(1);
+    expect(JSON.parse(r.stderr.trim().split("\n").at(-1)!)).toMatchObject({ smtpAttempts: 0, stage: summary.stage });
+    expect(readSummaries(dir, "2")).toEqual({});
+    expect(chooseNotice(needs, readSummaries(dir, "2")).reason).toBe(`${job}-job-failure`);
+  }
 });
 
 test("publish and heartbeat jobs install nothing: their scripts load without node_modules", async () => {

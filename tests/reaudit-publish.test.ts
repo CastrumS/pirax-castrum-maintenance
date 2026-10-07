@@ -76,10 +76,10 @@ echo "unexpected gh call" >&2; exit 1
 
 let count = 0;
 /** A committed checkout whose origin/main is a local bare remote, plus its gh wrapper state; test signing key. */
-async function fixture() {
+async function fixture(encodedSeed = false) {
   const id = ++count;
   const dir = join(scratch, `checkout-${id}`);
-  const files = ["scripts/build-plugin.ts", "scripts/plugin-source.ts", "scripts/release-plugin.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)];
+  const files = ["scripts/build-plugin.ts", "scripts/plugin-source.ts", "scripts/release-plugin.ts", "scripts/reaudit/privacy.ts", "test/plugin/artifacts.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)];
   for (const file of files) {
     await mkdir(dirname(join(dir, file)), { recursive: true });
     await cp(join(ROOT, file), join(dir, file));
@@ -87,6 +87,10 @@ async function fixture() {
   const key = testKey();
   const updates = join(dir, "plugin/pirax-form-test/includes/updates.php");
   await writeFile(updates, (await readFile(updates, "utf8")).replace(PRODUCTION_KEY, key.publicKey));
+  if (encodedSeed) {
+    const doc = join(dir, "plugin/pirax-form-test/README.md");
+    await writeFile(doc, (await readFile(doc, "utf8")) + "\n" + encodeURIComponent(key.secrets()[0]!) + "\n");
+  }
   await writeFile(join(dir, ".gitignore"), "dist/\n");
   git(dir, "init", "-q", "-b", "main");
   git(dir, "add", "-A");
@@ -170,6 +174,15 @@ test("publishes this run's candidate: reconstructed allowlisted commit, normal p
     }
   expect(gitCalls.filter((c) => c.includes(" push "))).toHaveLength(1);
   expect(gitCalls.some((c) => c.includes(f.env.GH_TOKEN) || c.includes(f.seed))).toBe(false);
+});
+
+test("encoded signing seed in final ZIP is withheld before any tag or release mutation", async () => {
+  const f = await fixture(true);
+  const s = await failure(publish({ root: f.dir, candidatePath: f.candidatePath, runId: RUN, runAttempt: ATTEMPT, env: f.env, remoteUrl: f.remote }));
+  expect(mutations(await f.calls()).length).toBe(0);
+  expect(s).toMatchObject({ stage: "publication", reason: "release-cli-failed", publication: "main-pushed", commit: remoteMain(f.remote), tag: `v${f.plan.to}` });
+  expect(await Bun.file(join(f.state, "assets/pirax-form-test.zip")).exists()).toBe(false);
+  expect(await Bun.file(join(f.dir, "dist/pirax-form-test.zip")).exists()).toBe(false);
 });
 
 test("main advanced since the audit: nothing is committed, pushed, claimed or released", async () => {

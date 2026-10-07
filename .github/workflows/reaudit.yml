@@ -4,8 +4,8 @@
 # Expressions never reach shell code: every value a step needs arrives through its own `env:`.
 # A rerun keeps the run ID and earlier attempts' artifacts, so every artifact name carries github.run_attempt and the
 # scripts accept only this attempt's (Actions sets GITHUB_RUN_ATTEMPT): a rerun never inherits an earlier candidate or
-# cleanup-confirmed summary. Rerunning failed jobs therefore never publishes an earlier attempt's audit; dispatch a
-# fresh main run instead (README "Automatic re-audit").
+# cleanup-confirmed summary. A failed-publish-only rerun has no current candidate; rerunning a failed audit can
+# produce a fresh candidate for its downstream publish job (README "Automatic re-audit").
 name: reaudit
 
 on:
@@ -163,12 +163,19 @@ jobs:
           bun-version: "1.4.2"
       - name: Dependencies
         run: bun --no-env-file install --frozen-lockfile
-      - name: Summaries
+      # Named downloads extract flat into path; each optional job gets the loader's attempt-bound directory.
+      - name: Audit summary
         continue-on-error: true
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          pattern: reaudit-summary-${{ github.run_attempt }}-*
-          path: ${{ runner.temp }}/summaries
+          name: reaudit-summary-${{ github.run_attempt }}-audit
+          path: ${{ runner.temp }}/summaries/reaudit-summary-${{ github.run_attempt }}-audit
+      - name: Publish summary
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: reaudit-summary-${{ github.run_attempt }}-publish
+          path: ${{ runner.temp }}/summaries/reaudit-summary-${{ github.run_attempt }}-publish
       - name: Notify
         env:
           IMAP_USER: ${{ secrets.IMAP_USER }}

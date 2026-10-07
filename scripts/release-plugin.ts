@@ -20,6 +20,7 @@ import { rm, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 import { buildPlugin, withoutSigningKey } from "./build-plugin.ts";
 import { only, readAuditedVersions, readHelperVersion } from "./plugin-source.ts";
+import { scanEvidence, secretValues } from "./reaudit/privacy.ts";
 
 const ROOT = resolve(import.meta.dir, "..");
 const SOURCE = join(ROOT, "plugin/pirax-form-test");
@@ -99,6 +100,14 @@ async function release(dryRun: boolean) {
   if (!verify(null, bytes, createPublicKey(key), signature)) throw new Error("the new signature does not verify");
   await writeFile(MANIFEST, bytes);
   await writeFile(SIGNATURE, signature.toString("base64"));
+  // Gate the exact final bytes (ZIP entries included) before any tag/release mutation. Nothing below rebuilds
+  // or edits these assets. Reuse the encoded-known-secret scanner and its credential-free archive children.
+  try {
+    if ((await scanEvidence(DIST, secretValues(process.env))).length) throw new Error("secret");
+  } catch {
+    await Promise.all([ZIP, MANIFEST, SIGNATURE].map((file) => rm(file, { force: true })));
+    throw new Error("release asset privacy check failed; assets withheld, publication not attempted");
+  }
   console.log(`${tag}: ${relative(ROOT, ZIP)} sha256 ${sha256}, signed by public key ${rawPublicKey(key)}`);
   if (dryRun) {
     console.log(`dry run: ${relative(ROOT, MANIFEST)} and .sig written; nothing published`);

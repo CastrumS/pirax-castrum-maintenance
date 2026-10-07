@@ -398,7 +398,7 @@ describe("heartbeat operation against a local temp remote", () => {
 
 describe("watchdog", () => {
   const workflow = (over: Record<string, unknown> = {}) => ({ id: 1, name: "reaudit", path: ".github/workflows/reaudit.yml", state: "active", created_at: iso(now - 10 * DAY), ...over });
-  const run = (event: string, startedMs: number, conclusion: string | null = "success") => ({ id: startedMs, event, status: "completed", conclusion, run_started_at: iso(startedMs) });
+  const run = (event: string, startedMs: number, conclusion: string | null = "success") => ({ id: startedMs, event, head_branch: "main", status: "completed", conclusion, run_started_at: iso(startedMs) });
   const runs = (...list: unknown[]) => ({ total_count: list.length, workflow_runs: list });
 
   test("latest started schedule/manual run decides overdue at >48h exactly", () => {
@@ -432,6 +432,7 @@ describe("watchdog", () => {
       [workflow({ created_at: "soon" }), runs()], [workflow(), { workflow_runs: null }], [workflow(), {}], [workflow(), runs({ event: "schedule" })],
       [workflow(), runs({ ...run("schedule", now), run_started_at: "2026-02-30T00:00:00Z" })], [workflow(), runs(run("schedule", now + DAY))],
       [workflow(), runs({ ...run("schedule", now), event: 5 })],
+      [workflow(), runs({ ...run("schedule", now), head_branch: undefined })],
       [workflow({ created_at: "2026-10-06T12:00:00+99:99" }), runs()], [workflow(), runs({ ...run("schedule", now), run_started_at: "2026-10-06T11:00:00+00:99" })],
     ];
     for (const [w, r] of bad) expect(() => normalizeWatchdogFacts(w, r, now)).toThrow();
@@ -461,6 +462,21 @@ describe("watchdog", () => {
       expect(args.join(" ")).toContain("repos/CastrumS/pirax-castrum-maintenance/actions/workflows/reaudit.yml");
       expect(args.some((a) => /^(-X|--method|-f|-F|--field|--raw-field|--input)$/.test(a))).toBe(false);
     }
+  });
+
+  test("recent skipped non-main dispatch cannot mask overdue main; requests main history", () => {
+    const g = gh({
+      "workflows/reaudit.yml/runs": http(200, runs(
+        { ...run("workflow_dispatch", now - HOUR, "skipped"), head_branch: "feature" },
+        run("schedule", now - 3 * DAY),
+      )),
+      "workflows/reaudit.yml": http(200, workflow()),
+    });
+    expect(observe(g, now)).toEqual({ healthy: false, reason: "audit-overdue" });
+    const url = new URL(g.calls[1]!.at(-1)!, "https://api.github.com/");
+    expect(url.searchParams.get("branch")).toBe("main");
+    const failedMain = gh({ "workflows/reaudit.yml/runs": http(200, runs(run("workflow_dispatch", now - HOUR, "failure"))), "workflows/reaudit.yml": http(200, workflow()) });
+    expect(observe(failedMain, now)).toEqual({ healthy: true, reason: "healthy" });
   });
 
   test("missing workflow, API failure and unparsable output are unhealthy", () => {

@@ -11,7 +11,7 @@
 sites:
   - slug: suntos
     url: https://suntos.de
-    form_helper: false
+    form_helper: false                 # helper 0.3.1 configured 2026-10-07; marked test: awaiting-audit
     hide: ['.brx-popup', '.brx-popup-backdrop', '.wcpay-express-checkout-wrapper']   # timed pop-ups; Apple/Google Pay buttons load late
     max_diff_pixel_ratio: 0.02                     # lazy product images settle slightly differently
     test_form: { page: /kontakt/, plugin: fluent, id: 4 }
@@ -30,7 +30,7 @@ sites:
 
   - slug: stolarijabanek
     url: https://stolarijabanek.com
-    form_helper: true                  # helper 0.2.4 ready 2026-10-01
+    form_helper: true                  # helper 0.3.1 installed 2026-10-07
     max_diff_pixel_ratio: 0.02                     # lazy images settle slightly differently on mobile
     test_form: { page: /kontakt/, plugin: fluent, id: 1 }
     pages:
@@ -44,8 +44,8 @@ sites:
 
   - slug: centrum-panda
     url: https://centrum-panda.pl
-    form_helper: false
-    test_form: { page: /, plugin: gravity, id: 3 }   # child enrollment (GF #1 is general contact)
+    form_helper: false                 # helper 0.3.1 installed 2026-10-07; first marked test failed, see run 2026-10-07T19-09-13.798Z
+    test_form: { page: /, plugin: gravity, id: 1 }   # general contact (GF #3 child enrollment has several submit controls)
     pages:
       - /                               # GF #1 and GF #3 appear site-wide
       - /organizacja/
@@ -59,7 +59,7 @@ sites:
 
   - slug: tara-garden
     url: https://www.tara.garden
-    form_helper: false
+    form_helper: false                 # helper 0.3.1 configured 2026-10-07; marked test: rejected
     test_form: { page: /about-us/, plugin: gravity, id: 1 }
     pages:
       - /
@@ -79,7 +79,7 @@ sites:
 
   - slug: epamalgradnja
     url: https://epamalgradnja.hr
-    form_helper: false
+    form_helper: false                 # helper 0.3.1 configured 2026-10-07; marked test: failed
     test_form: { page: /kontakt/, plugin: gravity, id: 1 }
     pages:
       - /                               # GF #1 + reCAPTCHA, site-wide
@@ -93,7 +93,7 @@ sites:
 
   - slug: alu-kon
     url: https://www.alu-kon.hr
-    form_helper: false
+    form_helper: false                 # helper 0.3.1 installed 2026-10-07; first marked test failed, see run 2026-10-07T19-09-13.798Z
     test_form: { page: /kontakt/, plugin: gravity, id: 1 }
     pages:
       - /                               # GF #1, site-wide
@@ -112,7 +112,7 @@ sites:
 
   - slug: baterije-akumulatori
     url: https://baterije-akumulatori.com
-    form_helper: false
+    form_helper: false                 # helper 0.3.1 configured 2026-10-07; marked test: failed
     test_form: { page: /kontakt/, plugin: gravity, id: 2 }
     pages:
       - /                               # GF #2 + reCAPTCHA
@@ -137,7 +137,7 @@ sites:
 
   - slug: bravarskiservis
     url: https://bravarskiservis.hr
-    form_helper: false
+    form_helper: false                 # helper 0.3.1 configured 2026-10-07; marked test: failed
     hide: ['.main-carousel']                       # comments carousel, sometimes not yet initialised
     test_form: { page: /kontakt/, plugin: fluent, id: 5 }
     pages:
@@ -157,7 +157,7 @@ sites:
 
   - slug: spok-ing
     url: https://spok-ing.hr
-    form_helper: false
+    form_helper: false                 # helper 0.3.1 installed 2026-10-07; first marked test failed, see run 2026-10-07T19-09-13.798Z
     test_form: { page: /kontakt/, plugin: fluent, id: 6 }
     pages:
       - /                               # Fluent #6
@@ -169,7 +169,7 @@ sites:
 
   - slug: laris-tcb
     url: https://laris-tcb.hr
-    form_helper: false
+    form_helper: false                 # helper 0.3.1 configured 2026-10-07; marked test: failed
     hide: ['.fl-module-pp-testimonials']           # rotating client reviews change the page height
     test_form: { page: /, plugin: gravity, id: 2 }   # site-wide inquiry (GF #4 is on /kontakt/)
     pages:
@@ -200,7 +200,7 @@ sites:
 
   - slug: instrukcijezasve
     url: https://instrukcijezasve.hr
-    form_helper: false
+    form_helper: false                 # helper 0.3.1 configured 2026-10-07; marked test: rejected
     test_form: { page: /kontakt/, plugin: gravity, id: 4 }
     pages:
       - /                               # GF #6

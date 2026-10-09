@@ -26,7 +26,7 @@ const AUDITED_VERSIONS = array(
 	'gf'          => '3.1.3.1',
 	'ff'          => '6.2.15',
 	'ff_pro'      => '6.2.15',
-	'cleantalk'   => '6.89',
+	'cleantalk'   => '6.89.1',
 	'fluent_smtp' => '2.4.1',
 );
 

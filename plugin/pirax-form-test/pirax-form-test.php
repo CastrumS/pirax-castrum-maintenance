@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Pirax Form Test
  * Description:       Redirects marked Pirax test form submissions to the operator's test mailbox and keeps them away from clients.
- * Version:           0.3.1
+ * Version:           0.3.2
  * Requires at least: 6.4
  * Requires PHP:      7.4
  * Author:            Pirax
@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 
 const SWEEP_HOOK = 'pirax_form_test_sweep';
 /** Must equal the Version header: release tooling reads it. Updates compare against the header on disk. */
-const VERSION = '0.3.1';
+const VERSION = '0.3.2';
 
 require_once __DIR__ . '/includes/settings.php';
 require_once __DIR__ . '/includes/marker.php';

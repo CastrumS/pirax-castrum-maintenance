@@ -11,7 +11,7 @@
 sites:
   - slug: suntos
     url: https://suntos.de
-    form_helper: false                 # helper 0.3.1 configured 2026-10-07; marked test: awaiting-audit
+    form_helper: false                 # helper 0.3.1, marked test 2026-10-09: awaiting-audit
     hide: ['.brx-popup', '.brx-popup-backdrop', '.wcpay-express-checkout-wrapper']   # timed pop-ups; Apple/Google Pay buttons load late
     max_diff_pixel_ratio: 0.02                     # lazy product images settle slightly differently
     test_form: { page: /kontakt/, plugin: fluent, id: 4 }
@@ -44,7 +44,7 @@ sites:
 
   - slug: centrum-panda
     url: https://centrum-panda.pl
-    form_helper: false                 # helper 0.3.1 installed 2026-10-07; first marked test failed, see run 2026-10-07T19-09-13.798Z
+    form_helper: false                 # helper 0.3.1, marked test 2026-10-09: rejected
     test_form: { page: /, plugin: gravity, id: 1 }   # general contact (GF #3 child enrollment has several submit controls)
     pages:
       - /                               # GF #1 and GF #3 appear site-wide
@@ -59,7 +59,7 @@ sites:
 
   - slug: tara-garden
     url: https://www.tara.garden
-    form_helper: false                 # helper 0.3.1 configured 2026-10-07; marked test: rejected
+    form_helper: false                 # helper 0.3.1, marked test 2026-10-09: failed
     test_form: { page: /about-us/, plugin: gravity, id: 1 }
     pages:
       - /
@@ -93,7 +93,7 @@ sites:
 
   - slug: alu-kon
     url: https://www.alu-kon.hr
-    form_helper: false                 # helper 0.3.1 installed 2026-10-07; first marked test failed, see run 2026-10-07T19-09-13.798Z
+    form_helper: false                 # helper 0.3.1, marked test 2026-10-09: failed
     test_form: { page: /kontakt/, plugin: gravity, id: 1 }
     pages:
       - /                               # GF #1, site-wide
@@ -157,7 +157,7 @@ sites:
 
   - slug: spok-ing
     url: https://spok-ing.hr
-    form_helper: false                 # helper 0.3.1 installed 2026-10-07; first marked test failed, see run 2026-10-07T19-09-13.798Z
+    form_helper: false                 # helper 0.3.1, marked test 2026-10-09: awaiting-audit
     test_form: { page: /kontakt/, plugin: fluent, id: 6 }
     pages:
       - /                               # Fluent #6

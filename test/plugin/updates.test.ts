@@ -154,8 +154,8 @@ test("staged fixture helpers replace only the test channel; the shipping source 
   const main = await Bun.file(join(SOURCE, "pirax-form-test.php")).text();
   expect(updates).toContain(`const UPDATE_RELEASES_ROOT = '${PRODUCTION_ROOT}';`);
   expect(updates).toContain(`const UPDATE_PUBLIC_KEY = '${PRODUCTION_KEY}';`);
-  expect(main).toMatch(/^ \* Version: {11}0\.3\.0$/m);
-  expect(main).toMatch(/^const VERSION = '0\.3\.0';$/m);
+  const headerVersion: string = main.match(/^ \* Version: {11}(\d+\.\d+\.\d+)$/m)![1];
+  expect(main).toContain(`const VERSION = '${headerVersion}';`);
   expect(main).toMatch(/^ \* Update URI: {8}https:\/\/github\.com\/CastrumS\/pirax-castrum-maintenance$/m);
   expect(main).toContain("require_once __DIR__ . '/includes/updates.php';");
   // Nothing in the shipping source can replace the key or channel at runtime.

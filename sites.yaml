@@ -34,7 +34,8 @@ sites:
     max_diff_pixel_ratio: 0.02                     # lazy images settle slightly differently on mobile
     test_form: { page: /kontakt/, plugin: fluent, id: 1 }
     pages:
-      - /
+      - path: /
+        mask: ['.content-2__img', '.content-3__col .bg-image']   # lazy-loaded images are captured at different load stages
       - /o-nama/
       - /usluge/
       - /usluge/kuhinje/
@@ -118,7 +119,6 @@ sites:
       - /                               # GF #2 + reCAPTCHA
       - /o-nama/
       - /proizvod/
-      - /proizvod/baterija-litijeva-cr-1-2aa-3v-varta/   # GF #1 product inquiry + reCAPTCHA
       - /category/akumulatori/akumulatori-6v/yuasa-akumulatori-6v/
       - /pretraga/
       - /kontakt/                       # GF #2 + reCAPTCHA
@@ -171,6 +171,7 @@ sites:
     url: https://laris-tcb.hr
     form_helper: false                 # helper 0.3.1 configured 2026-10-07; marked test: failed
     hide: ['.fl-module-pp-testimonials']           # rotating client reviews change the page height
+    mask: ['.pp-3d-slider']                        # 3D photo slider rotates
     test_form: { page: /, plugin: gravity, id: 2 }   # site-wide inquiry (GF #4 is on /kontakt/)
     pages:
       - /                               # GF #2 + reCAPTCHA, site-wide

@@ -4,7 +4,7 @@
 // licensed Gravity Forms GF_VERSION ZIP (GRAVITY_FORMS_ZIP) and Fluent Forms FF_VERSION from wordpress.org,
 // installs the test-only mu-plugin, seeds native fixtures (fixtures.php) and returns a Harness.
 // startHarness({ compatibility: true }) adds the licensed Fluent Forms Pro ZIP (FLUENT_FORMS_PRO_ZIP)
-// and pinned CleanTalk and FluentSMTP (all vendor pins come from the plugin's AUDITED_VERSIONS), with third-party HTTP contained and FluentSMTP's Simulator
+// and pinned CleanTalk and FluentSMTP (all vendor pins come from the selected deployment's audited versions), with third-party HTTP contained and FluentSMTP's Simulator
 // as the mail transport (see mu-plugin.php):
 //   url, token, versions, users, fixtures      site facts
 //   http() / envelopes() / simulator()          compatibility stack: contained HTTP, effective PHPMailer envelopes, Simulator log
@@ -27,8 +27,12 @@ import { chromium, type Browser, type BrowserContext, type Page, type Request } 
 import { withoutSigningKey } from "../../scripts/build-plugin";
 import { readAuditedVersions } from "../../scripts/plugin-source";
 import { redact, sanitizeZip } from "./artifacts";
+import { PHP_VERSION, WP_VERSION } from "./platform";
 
-/** Vendor pins: the plugin's own AUDITED_VERSIONS (exact versions, as it audits them); both licensed ZIPs must match too. */
+/**
+ * Vendor pins: the selected deployment's audited versions (DEPLOYMENT, read at import), exactly as the helper built
+ * for it audits them; both licensed ZIPs must match too.
+ */
 const PINS = readAuditedVersions();
 export const GF_VERSION = PINS.gf;
 export const FF_VERSION = PINS.ff;
@@ -36,8 +40,7 @@ export const FF_PRO_VERSION = PINS.ff_pro;
 export const CLEANTALK_VERSION = PINS.cleantalk;
 export const FLUENT_SMTP_VERSION = PINS.fluent_smtp;
 /** Platform pins: not audited vendor packages. */
-export const WP_VERSION = "7.1.2";
-export const PHP_VERSION = "8.3";
+export { PHP_VERSION, WP_VERSION };
 
 const ROOT = resolve(import.meta.dir, "../..");
 const CACHE = join(ROOT, ".cache/plugin-test");

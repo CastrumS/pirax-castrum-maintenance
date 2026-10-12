@@ -1,11 +1,11 @@
-// Version fixtures derived from the shipping source (plan D2), so native tests follow pin and helper
-// bumps instead of hard-coding today's versions:
-//   PINS / HELPER_VERSION                     AUDITED_VERSIONS and the helper version, via scripts/plugin-source.ts
+// Version fixtures derived from the selected deployment's versions.json (DEPLOYMENT, read at import), so native
+// tests follow pin and helper bumps instead of hard-coding today's versions:
+//   PINS / HELPER_VERSION                     audited pins and helper version, via scripts/plugin-source.ts
 //   nextPatch(v)                              last dotted component + 1 (3.1.2 → 3.1.3, 6.88 → 6.89, 3.1.9 → 3.1.10)
 //   nearMisses(pin)                           versions an exact string comparison must reject, all different from pin
 //   exactMatrix(pin, extra?)                  { pin: true, each near miss (and extra): false }, an exact comparison's expected result
-//   pinLine(key, version?)                    an AUDITED_VERSIONS line exactly as compatibility.php writes it
-//   withHelperVersion(to, from?)              edit of pirax-form-test.php's header and VERSION, each matched exactly once
+//   pinLine(key, version?)                    an AUDITED_VERSIONS line exactly as the rendered compatibility.php holds it
+//   withHelperVersion(to, from?)              edit of a rendered main file's header and VERSION, each matched exactly once
 //   withAlteredFile(h, file, search, replace, body)  an installed plugin file edited (search exactly once) during body, then restored
 import { expect } from "bun:test";
 import type { Harness } from "./harness";

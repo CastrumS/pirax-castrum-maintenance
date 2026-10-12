@@ -1,41 +1,41 @@
-// Builds and signs a helper release, then publishes it as a GitHub release on CastrumS/pirax-castrum-maintenance.
-// The version (header + VERSION constant) and the audited matrix (AUDITED_VERSIONS) are read from the
-// production PHP source by plugin-source.ts. The ZIP is built by build:plugin's buildPlugin(); dist/ then also holds
-// pirax-form-test-manifest.json {version, package, sha256, audited} and its .sig, the base64 of the
-// 64-byte detached Ed25519 signature over the exact manifest bytes.
+// Builds and signs the selected deployment's helper release, then publishes it as a GitHub release on the
+// deployment's channel repository. DEPLOYMENT selects deployments/<name>/ (src/deployment.ts) before the seed or any
+// build or GitHub step: its helper version, audited pins, public key, name, repository and asset names drive the
+// release. The ZIP is built by build:plugin's buildPlugin(), which reads the rendered bytes back against the
+// deployment; dist/ then also holds <slug>-manifest.json {version, package, sha256, audited} and its .sig, the
+// base64 of the 64-byte detached Ed25519 signature over the exact manifest bytes.
 //
 // The signing seed comes only from PIRAX_HELPER_SIGNING_KEY (base64 of 32 raw Ed25519 seed bytes) and
 // never reaches a file, an argument, a log or a child process.
 //
 // Usage:
-//   bun scripts/release-plugin.ts --dry-run   build and sign only (any seed, e.g. a generated test key); no GitHub
-//   bun scripts/release-plugin.ts             publish: the seed must match UPDATE_PUBLIC_KEY; refuses an existing
-//                                             local or remote v<version> tag/release or an unanswered lookup, then
-//                                             creates the remote tag ref at HEAD (fails if it exists) and runs
-//                                             `gh release create v<version> --verify-tag --latest` with the three assets
-// Import-safe: remoteTag() is exported for tests; nothing runs on import.
+//   DEPLOYMENT=<name> bun scripts/release-plugin.ts --dry-run
+//       build and sign only (any seed, e.g. a generated test key); no GitHub
+//   DEPLOYMENT=<name> bun scripts/release-plugin.ts
+//       publish: the seed must match the deployment's public key and every build input (BUILD_INPUTS and the
+//       deployment's config.json and versions.json) must be committed; refuses an existing local or remote
+//       v<version> tag/release or an unanswered lookup, then creates the remote tag ref at HEAD (fails if it
+//       exists) and runs `gh release create v<version> --verify-tag --latest` with the three assets
+// Import-safe: remoteTag() is exported for tests, signingKey() and rawPublicKey() for deployment-selftest.ts; nothing
+// runs on import.
 import { createPrivateKey, createPublicKey, sign, verify, type KeyObject } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { rm, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
+import { loadDeployment } from "../src/deployment.ts";
 import { buildPlugin, withoutSigningKey } from "./build-plugin.ts";
-import { only, readAuditedVersions, readHelperVersion } from "./plugin-source.ts";
 import { scanEvidence, secretValues } from "./reaudit/privacy.ts";
 
 const ROOT = resolve(import.meta.dir, "..");
-const SOURCE = join(ROOT, "plugin/pirax-form-test");
 const DIST = join(ROOT, "dist");
-const ZIP = join(DIST, "pirax-form-test.zip");
-const MANIFEST = join(DIST, "pirax-form-test-manifest.json");
-const SIGNATURE = `${MANIFEST}.sig`;
-const REPO = "CastrumS/pirax-castrum-maintenance";
+/** Shared files every deployment's build reads (templates, renderer, build, loader and its imports), and this script. */
+const BUILD_INPUTS = ["plugin/pirax-form-test", "scripts/render-plugin.ts", "scripts/build-plugin.ts", "scripts/plugin-source.ts", "scripts/release-plugin.ts", "src/deployment.ts", "src/forms/config.ts", "src/env.ts"];
 const KEY = "PIRAX_HELPER_SIGNING_KEY";
 /** DER prefixes that wrap a raw 32-byte Ed25519 seed (PKCS#8) and public key (SPKI). */
 const PKCS8_ED25519 = Buffer.from("302e020100300506032b657004220420", "hex");
 const SPKI_ED25519 = Buffer.from("302a300506032b6570032100", "hex");
 
 /** The seed as a signing key. Errors name the variable, never its value. */
-function signingKey(env = process.env): KeyObject {
+export function signingKey(env = process.env): KeyObject {
   const text = env[KEY];
   if (!text) throw new Error(`${KEY} is not set`);
   const seed = Buffer.from(text, "base64");
@@ -43,16 +43,8 @@ function signingKey(env = process.env): KeyObject {
   return createPrivateKey({ key: Buffer.concat([PKCS8_ED25519, seed]), format: "der", type: "pkcs8" });
 }
 
-const rawPublicKey = (key: KeyObject) => createPublicKey(key).export({ format: "der", type: "spki" }).subarray(SPKI_ED25519.length).toString("base64");
-
-/** Version, audited matrix (both via plugin-source.ts) and embedded public key, parsed narrowly from the helper source. */
-function readSource(source = SOURCE) {
-  const version = readHelperVersion(source);
-  const audited = readAuditedVersions(source);
-  const updates = readFileSync(join(source, "includes/updates.php"), "utf8");
-  const publicKey = only(updates, /^const UPDATE_PUBLIC_KEY = '([^']*)';$/gm, "includes/updates.php", "UPDATE_PUBLIC_KEY");
-  return { version, audited, publicKey };
-}
+/** base64 of the raw 32-byte Ed25519 public key, the format of config.channel.publicKey. */
+export const rawPublicKey = (key: KeyObject) => createPublicKey(key).export({ format: "der", type: "spki" }).subarray(SPKI_ED25519.length).toString("base64");
 
 /** Runs a command that never sees the seed; returns its exit code and output. */
 function run(cmd: string[], env: Record<string, string | undefined> = process.env) {
@@ -75,17 +67,23 @@ export async function remoteTag(repo: string, tag: string, env: Record<string, s
 }
 
 async function release(dryRun: boolean) {
+  const deployment = loadDeployment();
   const key = signingKey();
-  const { version, audited, publicKey } = readSource();
+  const { helperVersion: version, audited } = deployment.versions;
+  const REPO = deployment.config.channel.repository;
+  const ZIP = join(DIST, deployment.assets.zip);
+  const MANIFEST = join(DIST, deployment.assets.manifest);
+  const SIGNATURE = join(DIST, deployment.assets.signature);
   const tag = `v${version}`;
   let commit = "";
   if (!dryRun) {
-    if (rawPublicKey(key) !== publicKey) throw new Error(`${KEY} does not match UPDATE_PUBLIC_KEY in includes/updates.php`);
+    if (rawPublicKey(key) !== deployment.config.channel.publicKey) throw new Error(`${KEY} does not match config.channel.publicKey of deployment ${deployment.name}`);
+    const inputs = [...BUILD_INPUTS, relative(deployment.root, deployment.paths.config), relative(deployment.root, deployment.paths.versions)];
     const head = run(["git", "rev-parse", "--verify", "HEAD"]);
-    const dirty = run(["git", "status", "--porcelain", "--", relative(ROOT, SOURCE)]);
+    const dirty = run(["git", "status", "--porcelain", "--untracked-files=all", "--", ...inputs]);
     const local = run(["git", "tag", "--list", tag]);
     if (head.code !== 0 || dirty.code !== 0 || local.code !== 0) throw new Error("git could not read this checkout");
-    if (dirty.stdout) throw new Error(`${relative(ROOT, SOURCE)} has uncommitted changes; the release must match its target commit`);
+    if (dirty.stdout) throw new Error(`build inputs have uncommitted changes (${dirty.stdout.trim().split("\n").map((line) => line.slice(3)).join(", ")}); the release must match its target commit`);
     if (local.stdout.trim()) throw new Error(`tag ${tag} already exists locally`);
     if ((await remoteTag(REPO, tag)) !== "absent") throw new Error(`tag or release ${tag} already exists on ${REPO}`);
     commit = head.stdout.trim();
@@ -94,8 +92,8 @@ async function release(dryRun: boolean) {
   // Never leave assets of an earlier build next to a new ZIP.
   await rm(MANIFEST, { force: true });
   await rm(SIGNATURE, { force: true });
-  const { sha256 } = await buildPlugin({ source: SOURCE, zip: ZIP });
-  const bytes = Buffer.from(`${JSON.stringify({ version, package: `https://github.com/${REPO}/releases/download/${tag}/pirax-form-test.zip`, sha256, audited }, null, 2)}\n`);
+  const { sha256 } = await buildPlugin({ deployment, zip: ZIP });
+  const bytes = Buffer.from(`${JSON.stringify({ version, package: deployment.packageUrl, sha256, audited }, null, 2)}\n`);
   const signature = sign(null, bytes, key);
   if (!verify(null, bytes, createPublicKey(key), signature)) throw new Error("the new signature does not verify");
   await writeFile(MANIFEST, bytes);
@@ -121,7 +119,7 @@ async function release(dryRun: boolean) {
     const status = claim.stderr.match(/\(HTTP (\d{3})\)/)?.[1];
     throw new Error(`could not create tag ${tag} on ${REPO} (${status ? `HTTP ${status}` : `exit ${claim.code}`}); release creation was not attempted; inspect remote tag state before retrying`);
   }
-  const notes = `Pirax Form Test ${version}. Audited: ${Object.entries(audited).map(([plugin, audit]) => `${plugin} ${audit}`).join(", ")}.`;
+  const notes = `${deployment.config.plugin.name} ${version}. Audited: ${Object.entries(audited).map(([plugin, audit]) => `${plugin} ${audit}`).join(", ")}.`;
   // --verify-tag releases only the tag claimed above; no --clobber, so an existing release or asset makes gh fail.
   const create = Bun.spawnSync(["gh", "release", "create", tag, "--repo", REPO, "--verify-tag", "--latest", "--target", commit, "--title", tag, "--notes", notes, ZIP, MANIFEST, SIGNATURE], {
     cwd: ROOT,

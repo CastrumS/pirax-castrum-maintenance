@@ -1,8 +1,11 @@
-// Signed helper self-updates against real WordPress (plan D2–D4; AC1, AC2): a staged 0.3.0 helper
-// pointing at a loopback release fixture is offered 0.3.1 through the native update transient,
-// plugins_api and auto_update_plugin, and installs it through Plugin_Upgrader from an authenticated
-// wp-admin session. Every invalid feed or package leaves no offer and the installed bytes unchanged.
-// No update or auth HTTP is mocked: WordPress fetches the fixture over real loopback HTTP.
+// Signed helper self-updates against real WordPress (plan D2–D4, D10; AC1, AC2, AC3): a 0.3.0 helper of the
+// synthetic second deployment (its own name, slug and loopback channel, built from disposable deployment data by
+// the production build) is offered 0.3.1 through the native update transient, plugins_api and auto_update_plugin,
+// and installs it through Plugin_Upgrader from an authenticated wp-admin session. Every invalid feed or package,
+// a foreign key's signature and the Pirax channel's package URL included, leaves no offer and the installed bytes
+// unchanged. No update or auth HTTP is mocked: WordPress fetches the fixture over real loopback HTTP. Keys are
+// generated here; the production key's refusal is scripts/deployment-selftest.ts --updates.
+// The Pirax helper is never installed next to the fixture helper: both share the internal namespace.
 // bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/updates.test.ts
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { createHash } from "node:crypto";
@@ -11,11 +14,16 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { withoutSigningKey } from "../../scripts/build-plugin";
+import { loadDeployment } from "../../src/deployment";
 import { findSecret } from "./artifacts";
 import { FF_VERSION, startHarness, type Harness } from "./harness";
+import { allowChannelPort, browserUpdate, lit, refuseForeign, updateSession, type ScenarioCase, type UpdateSession } from "./update-scenario";
 import {
+  BASENAME,
   MANIFEST,
+  NAME,
   SIGNATURE,
+  SLUG,
   manifestFor,
   packagePath,
   sha256,
@@ -28,22 +36,25 @@ import {
   type StagedHelper,
   type TestKey,
 } from "./update-fixture";
+import { PINS } from "./version-fixtures";
 
 setDefaultTimeout(180_000);
 
 const ROOT = resolve(import.meta.dir, "../..");
 const SOURCE = join(ROOT, "plugin/pirax-form-test");
-const B = "pirax-form-test/pirax-form-test.php";
+const B = BASENAME;
 const F = "\\Pirax\\FormTest\\";
+/** The Pirax channel, independently written down: the fixture helper must never accept it. */
 const PRODUCTION_ROOT = "https://github.com/CastrumS/pirax-castrum-maintenance/releases";
 const PRODUCTION_KEY = "D8BfOn8TZC3jD+Hv5Q+p7SGPNGIYISVcMCqQWU0Dh9w=";
+const pirax = loadDeployment({ env: { DEPLOYMENT: "pirax" } });
 /** Another plugin's real wordpress.org package URL, which the helper's download filter must leave alone. */
 const UNRELATED = `https://downloads.wordpress.org/plugin/fluentform.${FF_VERSION}.zip`;
-const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}', true)`;
+/** Shared templates and every real deployment's data, committed and working-tree state: staging must not touch them. */
 const sourceDigest = async () =>
   createHash("sha256")
-    .update(await Bun.$`git ls-files -s -- ${SOURCE}`.cwd(ROOT).env(withoutSigningKey()).text())
-    .update(await Bun.$`git diff --no-ext-diff -- ${SOURCE}`.cwd(ROOT).env(withoutSigningKey()).text())
+    .update(await Bun.$`git ls-files -s -- ${SOURCE} deployments`.cwd(ROOT).env(withoutSigningKey()).text())
+    .update(await Bun.$`git diff --no-ext-diff -- ${SOURCE} deployments`.cwd(ROOT).env(withoutSigningKey()).text())
     .digest("hex");
 
 let h: Harness;
@@ -58,7 +69,8 @@ let newer: StagedHelper; // 0.3.2, a later release that appears between offer an
 let hostile: StagedHelper; // 0.3.1 built with another key: a valid, installable but unsigned package
 let admin: { context: BrowserContext; page: Page };
 let sourceBefore: string;
-const cases: { name: string; offered: boolean; installed?: string; error?: string[]; requests?: string[] }[] = [];
+let session: UpdateSession;
+const cases: ScenarioCase[] = [];
 
 beforeAll(async () => {
   sourceBefore = await sourceDigest();
@@ -66,14 +78,11 @@ beforeAll(async () => {
   key = testKey();
   other = testKey();
   out = await mkdtemp(join(tmpdir(), "pirax-update-zips-"));
-  const stage = (version: string, k: TestKey) => stageHelper({ version, publicKey: k.publicKey, root: fixture.root, out });
+  // Vendor pins are the selected deployment's, matching the licensed ZIPs the harness boots with.
+  const stage = (version: string, k: TestKey) => stageHelper({ version, publicKey: k.publicKey, root: fixture.root, audited: PINS, out });
   [installed, target, newer, hostile] = await Promise.all([stage("0.3.0", key), stage("0.3.1", key), stage("0.3.2", key), stage("0.3.1", other)]);
-  // WordPress's safe HTTP API admits only ports 80/443/8080 besides the site's own; the fixture's
-  // port is admitted by a test-only mu-plugin in this disposable site, for its exact host and port.
-  await h.php(`
-    file_put_contents(WPMU_PLUGIN_DIR . '/pirax-update-fixture-port.php', "<?php\\nadd_filter('http_allowed_safe_ports', static fn(\\$p, \\$host) => '127.0.0.1' === \\$host ? array_merge((array) \\$p, [${fixture.port}]) : \\$p, 10, 2);\\n");
-    return true;
-  `);
+  await allowChannelPort(h, fixture);
+  session = updateSession(h, fixture);
   admin = await h.browser("updates-listing-install");
   await login(admin.page);
   await h.uploadPlugin(admin.page, installed.zip);
@@ -86,87 +95,61 @@ afterAll(async () => {
   if (out) await rm(out, { recursive: true, force: true });
 }, 60_000);
 
-async function login(page: Page) {
-  await page.goto(`${h.url}/wp-login.php`);
-  await page.fill("#user_login", h.users.admin.login);
-  await page.fill("#user_pass", h.users.admin.password);
-  await page.click("#wp-submit");
-  await page.waitForURL(/\/wp-admin\/?/);
-}
+const login = (page: Page) => session.login(page);
 
 const valid = (release = target, k = key) => ({
   ...signedFeed(k, manifestFor(fixture.root, release.version, release.bytes, audited)),
   [packagePath(release.version)]: release.bytes,
 });
 
-/** Native refresh: the stored transient is made due (optionally carrying a stale offer) and wp_update_plugins() runs. */
-const refresh = (stale?: object) =>
-  h.php<{ offer: Record<string, any> | null }>(`
-    $t = get_site_transient('update_plugins');
-    if (!is_object($t)) $t = new stdClass();
-    $t->last_checked = 0;
-    $stale = ${lit(stale ?? null)};
-    if ($stale) { $t->response = (array) ($t->response ?? []); $t->response['${B}'] = (object) $stale; }
-    update_option('_site_transient_update_plugins', $t); // raw write: no filter runs here
-    wp_update_plugins();
-    $after = get_site_transient('update_plugins');
-    return ['offer' => isset($after->response['${B}']) ? (array) $after->response['${B}'] : null];
-  `);
-
-/** What a fresh request loads: the helper's own constant and header, every installed file's digest, temp leftovers. */
-const state = () =>
-  h.php<{ version: string; header: string; files: Record<string, string>; active: boolean; temps: string[] }>(`
-    require_once ABSPATH . 'wp-admin/includes/plugin.php';
-    $dir = WP_PLUGIN_DIR . '/pirax-form-test';
-    $files = [];
-    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)) as $f) $files[substr($f->getPathname(), strlen($dir) + 1)] = hash_file('sha256', $f->getPathname());
-    ksort($files);
-    return [
-      'version' => ${F}VERSION,
-      'header' => get_plugin_data(WP_PLUGIN_DIR . '/${B}', false, false)['Version'],
-      'files' => $files,
-      'active' => is_plugin_active('${B}'),
-      'temps' => array_values(array_map('basename', glob(get_temp_dir() . 'pirax-form-test-*.tmp') ?: [])),
-    ];
-  `);
-
+const refresh = (stale?: object) => session.refresh(stale);
+const state = () => session.state();
 const expectInstalled = async (helper: StagedHelper) => {
   const s = await state();
   expect({ version: s.version, header: s.header, active: s.active, temps: s.temps }).toEqual({ version: helper.version, header: helper.version, active: true, temps: [] });
   expect(s.files).toEqual(Object.fromEntries(Object.entries(helper.files).sort(([a], [b]) => a.localeCompare(b))));
 };
+const nativeUpgrade = () => session.nativeUpgrade();
+const since = (n: number) => session.since(n);
 
-/** Plugin_Upgrader::bulk_upgrade(), exactly as wp_ajax_update_plugin() runs it; returns the skin's error codes. */
-const nativeUpgrade = () =>
-  h.php<{ codes: string[]; result: unknown }>(`
-    require_once ABSPATH . 'wp-admin/includes/admin.php';
-    require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
-    wp_set_current_user(1);
-    $skin = new WP_Ajax_Upgrader_Skin();
-    $result = (new Plugin_Upgrader($skin))->bulk_upgrade(['${B}']);
-    return ['codes' => $skin->get_errors()->get_error_codes(), 'result' => is_array($result) ? array_map(fn($r) => is_wp_error($r) ? $r->get_error_code() : (bool) $r, $result) : $result];
-  `);
-
-const since = (n: number) => fixture.requests.slice(n).map((r) => `${r.status} ${r.path.replace(/^\/CastrumS\/pirax-castrum-maintenance\/releases\//, "")}`);
-
-test("staged fixture helpers replace only the test channel; the shipping source keeps the production trust root", async () => {
+test("staged helpers carry only the fixture deployment's identity and channel; templates and Pirax keep the production trust root", async () => {
   const updates = await Bun.file(join(SOURCE, "includes/updates.php")).text();
   const main = await Bun.file(join(SOURCE, "pirax-form-test.php")).text();
-  expect(updates).toContain(`const UPDATE_RELEASES_ROOT = '${PRODUCTION_ROOT}';`);
-  expect(updates).toContain(`const UPDATE_PUBLIC_KEY = '${PRODUCTION_KEY}';`);
-  expect(main).toMatch(/^ \* Version: {11}(\d+\.\d+\.\d+)$[\s\S]*^const VERSION = '\1';$/m);
-  expect(main).toMatch(/^ \* Update URI: {8}https:\/\/github\.com\/CastrumS\/pirax-castrum-maintenance$/m);
+  // The templates hold the channel and key as deployment tokens only, and nothing can replace them at runtime.
+  expect(updates).toContain("\nconst UPDATE_RELEASES_ROOT = '{{php:channel.releasesRoot}}';\n");
+  expect(updates).toContain("\nconst UPDATE_PUBLIC_KEY = '{{php:channel.publicKey}}';\n");
+  expect(main).toContain("\n * Update URI:        {{raw:plugin.updateUri}}\n");
   expect(main).toContain("require_once __DIR__ . '/includes/updates.php';");
-  // Nothing in the shipping source can replace the key or channel at runtime.
   expect(updates).not.toMatch(/apply_filters|get_option|getenv|\$_(GET|POST|REQUEST|SERVER|COOKIE)|defined\s*\(\s*'PIRAX/);
+  // Pirax's own data still names the production channel and key.
+  expect([pirax.config.channel.releasesRoot, pirax.config.channel.publicKey, pirax.config.plugin.updateUri]).toEqual([PRODUCTION_ROOT, PRODUCTION_KEY, "https://github.com/CastrumS/pirax-castrum-maintenance"]);
 
-  const staged = await Bun.$`unzip -p ${installed.zip} pirax-form-test/includes/updates.php`.env(withoutSigningKey()).text();
-  expect(staged).toContain(`const UPDATE_RELEASES_ROOT = '${fixture.root}';`);
-  expect(staged).toContain(`const UPDATE_PUBLIC_KEY = '${key.publicKey}';`);
-  expect(staged.replace(fixture.root, PRODUCTION_ROOT).replace(key.publicKey, PRODUCTION_KEY)).toBe(updates);
+  const unzip = (zip: string, file: string) => Bun.$`unzip -p ${zip} ${`${SLUG}/${file}`}`.env(withoutSigningKey()).text();
+  const staged = await unzip(installed.zip, "includes/updates.php");
+  for (const line of [`const UPDATE_RELEASES_ROOT = '${fixture.root}';`, `const UPDATE_PUBLIC_KEY = '${key.publicKey}';`, `const UPDATE_BASENAME = '${B}';`, `const UPDATE_SLUG = '${SLUG}';`, "const UPDATE_ERROR = 'pirax_form_test_update';"])
+    expect(staged).toContain(`\n${line}\n`);
+  expect(staged).not.toContain(PRODUCTION_ROOT);
+  expect(staged).not.toContain(PRODUCTION_KEY);
+  const stagedMain = await unzip(installed.zip, `${SLUG}.php`);
+  expect(stagedMain).toContain("\nnamespace Pirax\\FormTest;\n");
+  expect(stagedMain).not.toMatch(/CastrumS|Pirax Form Test/);
   expect(Object.keys(installed.files).sort()).toEqual(Object.keys(target.files).sort());
   await expectInstalled(installed);
   expect(await sourceDigest()).toBe(sourceBefore);
+
+  // Installed: the configured basename and name, the internal namespace, hooks and error code unchanged, and no
+  // second helper (they would share that namespace).
+  const site = await h.php<any>(`
+    require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    return [
+      'helpers' => array_values(array_filter(get_option('active_plugins'), fn($p) => str_ends_with($p, '/${SLUG}.php') || str_starts_with($p, 'pirax-form-test/'))),
+      'name' => get_plugin_data(WP_PLUGIN_DIR . '/${B}', false, false)['Name'],
+      'hooks' => [10 === has_filter('pre_set_site_transient_update_plugins', 'Pirax\\FormTest\\offer_update'), PHP_INT_MAX === has_filter('upgrader_pre_download', 'Pirax\\FormTest\\download_update')],
+      'error' => ${F}UPDATE_ERROR,
+      'pirax' => is_dir(WP_PLUGIN_DIR . '/pirax-form-test'),
+    ];
+  `);
+  expect(site).toEqual({ helpers: [B], name: NAME, hooks: [true, true], error: "pirax_form_test_update", pirax: false });
 
   // Children that never sign do not receive a (synthetic) seed. The child reports presence only, so a
   // failure cannot print any other variable of this environment.
@@ -178,7 +161,7 @@ test("a verified newer release is offered natively; every invalid feed offers no
   fixture.serve(valid());
   const first = fixture.requests.length;
   const { offer } = await refresh();
-  expect(offer).toMatchObject({ slug: "pirax-form-test", plugin: B, new_version: "0.3.1", package: `${fixture.root}/${packagePath("0.3.1")}` });
+  expect(offer).toMatchObject({ slug: SLUG, plugin: B, new_version: "0.3.1", package: `${fixture.root}/${packagePath("0.3.1")}` });
   // The refresh fetched the signed feed only (once per request), never the package.
   expect(since(first)).toEqual([`200 ${MANIFEST}`, `200 ${SIGNATURE}`]);
   const stale = offer!;
@@ -208,19 +191,21 @@ test("a verified newer release is offered natively; every invalid feed offers no
     ["uppercase sha256", signedFeed(key, m({ sha256: target.sha256.toUpperCase() }))],
     ["short sha256", signedFeed(key, m({ sha256: target.sha256.slice(1) }))],
     ["prerelease version", signedFeed(key, m({ version: "0.3.1-beta", package: `${fixture.root}/${packagePath("0.3.1-beta")}` }))],
-    ["v-prefixed version", signedFeed(key, m({ version: "v0.3.1", package: `${fixture.root}/download/vv0.3.1/pirax-form-test.zip` }))],
+    ["v-prefixed version", signedFeed(key, m({ version: "v0.3.1", package: `${fixture.root}/${packagePath("v0.3.1")}` }))],
     ["numeric version", signedFeed(key, m({ version: 31 }))],
     ["audited as a list", signedFeed(key, m({ audited: Object.values(audited) }))],
     ["audited with a non-string version", signedFeed(key, m({ audited: { ...audited, gravityforms: 3 } }))],
     ["package on another host", pkg(`http://127.0.0.2:${origin.port}${origin.pathname}/${packagePath("0.3.1")}`)],
     ["package on another port", pkg(`http://127.0.0.1:${Number(origin.port) + 1}${origin.pathname}/${packagePath("0.3.1")}`)],
     ["package at the production origin", pkg(`${PRODUCTION_ROOT}/${packagePath("0.3.1")}`)],
+    ["package at the Pirax channel's own package URL", pkg(`${PRODUCTION_ROOT}/download/v0.3.1/${pirax.assets.zip}`)],
+    ["Pirax's asset name on this channel", pkg(`${fixture.root}/download/v0.3.1/${pirax.assets.zip}`)],
     ["package with userinfo", pkg(`http://user@127.0.0.1:${origin.port}${origin.pathname}/${packagePath("0.3.1")}`)],
     ["package with a query", pkg(`${fixture.root}/${packagePath("0.3.1")}?x=1`)],
     ["package with a fragment", pkg(`${fixture.root}/${packagePath("0.3.1")}#x`)],
-    ["package path traversal", pkg(`${fixture.root}/download/v0.3.1/../v0.3.1/pirax-form-test.zip`)],
-    ["package encoded traversal", pkg(`${fixture.root}/download/v0.3.1/%2e%2e/v0.3.1/pirax-form-test.zip`)],
-    ["package in a lookalike repository", pkg(fixture.root.replace("/pirax-castrum-maintenance/", "/pirax-castrum-maintenance-evil/") + `/${packagePath("0.3.1")}`)],
+    ["package path traversal", pkg(`${fixture.root}/download/v0.3.1/../v0.3.1/${SLUG}.zip`)],
+    ["package encoded traversal", pkg(`${fixture.root}/download/v0.3.1/%2e%2e/v0.3.1/${SLUG}.zip`)],
+    ["package in a lookalike repository", pkg(fixture.root.replace(/\/releases$/, "-evil/releases") + `/${packagePath("0.3.1")}`)],
     ["package for another version", pkg(`${fixture.root}/${packagePath("0.3.2")}`)],
     ["package with another asset name", pkg(`${fixture.root}/download/v0.3.1/other.zip`)],
     ["manifest HTTP 500", { ...good, [MANIFEST]: { status: 500 } }],
@@ -252,15 +237,15 @@ test("plugins_api answers only this helper's details, with inert escaped text, a
   fixture.serve({ ...valid(), ...signedFeed(key, manifestFor(fixture.root, "0.3.1", target.bytes, { ...audited, "<b>x</b>": "<script>1</script>" })) });
   const api = await h.php<any>(`
     require_once ABSPATH . 'wp-admin/includes/plugin-install.php';
-    $r = plugins_api('plugin_information', ['slug' => 'pirax-form-test']);
+    $r = plugins_api('plugin_information', ['slug' => '${SLUG}']);
     $sentinel = (object) ['untouched' => true];
     return [
       'ours' => is_wp_error($r) ? $r->get_error_code() : ['name' => $r->name, 'slug' => $r->slug, 'version' => $r->version, 'download_link' => $r->download_link, 'external' => $r->external, 'sections' => $r->sections],
       'otherSlug' => apply_filters('plugins_api', $sentinel, 'plugin_information', (object) ['slug' => 'akismet']) === $sentinel,
-      'otherAction' => apply_filters('plugins_api', false, 'query_plugins', (object) ['slug' => 'pirax-form-test']),
+      'otherAction' => apply_filters('plugins_api', false, 'query_plugins', (object) ['slug' => '${SLUG}']),
     ];
   `);
-  expect(api.ours).toMatchObject({ name: "Pirax Form Test", slug: "pirax-form-test", version: "0.3.1", download_link: `${fixture.root}/${packagePath("0.3.1")}`, external: true });
+  expect(api.ours).toMatchObject({ name: NAME, slug: SLUG, version: "0.3.1", download_link: `${fixture.root}/${packagePath("0.3.1")}`, external: true });
   const sections = JSON.stringify(api.ours.sections);
   expect(sections).not.toMatch(/<script|<b>/);
   expect(sections).toContain("&lt;script&gt;1&lt;/script&gt;");
@@ -268,7 +253,7 @@ test("plugins_api answers only this helper's details, with inert escaped text, a
 
   // An invalid feed is an error for this slug, not `false` (which would ask wordpress.org about a same-named plugin).
   fixture.serve({ ...valid(), [SIGNATURE]: other.sign("x") });
-  expect(await h.php<string>(`require_once ABSPATH . 'wp-admin/includes/plugin-install.php'; $r = plugins_api('plugin_information', ['slug' => 'pirax-form-test']); return is_wp_error($r) ? $r->get_error_code() : 'offered';`)).toBe("pirax_form_test_update");
+  expect(await h.php<string>(`require_once ABSPATH . 'wp-admin/includes/plugin-install.php'; $r = plugins_api('plugin_information', ['slug' => '${SLUG}']); return is_wp_error($r) ? $r->get_error_code() : 'offered';`)).toBe("pirax_form_test_update");
 });
 
 test("auto_update_plugin opts in this exact helper only and preserves every other decision", async () => {
@@ -287,8 +272,8 @@ test("auto_update_plugin opts in this exact helper only and preserves every othe
       'unrelatedFalse' => apply_filters('auto_update_plugin', false, $item('fluentform/fluentform.php')),
       'unrelatedTrue' => apply_filters('auto_update_plugin', true, $item('fluentform/fluentform.php')),
       'unrelatedNull' => apply_filters('auto_update_plugin', null, $item('fluentform/fluentform.php')),
-      'lookalike' => apply_filters('auto_update_plugin', false, $item('pirax-form-test-evil/pirax-form-test.php')),
-      'noPlugin' => apply_filters('auto_update_plugin', false, (object) ['slug' => 'pirax-form-test']),
+      'lookalike' => apply_filters('auto_update_plugin', false, $item('${SLUG}-evil/${SLUG}.php')),
+      'noPlugin' => apply_filters('auto_update_plugin', false, (object) ['slug' => '${SLUG}']),
     ];
   `);
   expect(decisions).toEqual({ nativeHelper: true, nativeUnrelated: false, helperFalse: true, unrelatedFalse: false, unrelatedTrue: true, unrelatedNull: null, lookalike: false, noPlugin: false });
@@ -324,7 +309,7 @@ test("the download boundary refuses unverified helper packages and leaves the in
     ["feed unreachable at install time", async () => fixture.serve({ ...valid(), [MANIFEST]: { status: 500 } })],
     ["feed no longer signed", async () => fixture.serve({ ...valid(), [SIGNATURE]: other.sign("x") })],
     ["package download fails", async () => fixture.serve({ ...valid(), [packagePath("0.3.1")]: "reset" })],
-    ["offer edited to a hostile package", async () => void (await h.php(`$t = get_site_transient('update_plugins'); $t->response['${B}']->package = 'https://example.com/pirax-form-test.zip'; update_option('_site_transient_update_plugins', $t); return true;`))],
+    ["offer edited to a hostile package", async () => void (await h.php(`$t = get_site_transient('update_plugins'); $t->response['${B}']->package = 'https://example.com/${SLUG}.zip'; update_option('_site_transient_update_plugins', $t); return true;`))],
     ["offer edited to another version", async () => void (await h.php(`$t = get_site_transient('update_plugins'); $t->response['${B}']->new_version = '0.3.2'; update_option('_site_transient_update_plugins', $t); return true;`))],
   ];
   for (const [name, change] of attempts) {
@@ -359,7 +344,7 @@ test("the download boundary refuses unverified helper packages and leaves the in
       'unrelatedFalse' => apply_filters('upgrader_pre_download', false, ${lit(UNRELATED)}, $u, ['plugin' => 'fluentform/fluentform.php']),
       'unrelatedReply' => apply_filters('upgrader_pre_download', '/tmp/other.zip', '${fixture.root}/download/v1.0/another-plugin.zip', $u, ['plugin' => 'fluentform/fluentform.php']),
       'unrelatedNoContext' => apply_filters('upgrader_pre_download', false, ${lit(UNRELATED)}, $u, []),
-      'temps' => array_values(array_map('basename', glob(get_temp_dir() . 'pirax-form-test-*.tmp') ?: [])),
+      'temps' => array_values(array_map('basename', glob(get_temp_dir() . '${SLUG}-*.tmp') ?: [])),
     ];
   `);
   expect(direct).toEqual({
@@ -377,6 +362,30 @@ test("the download boundary refuses unverified helper packages and leaves the in
   await expectInstalled(installed);
 }, 600_000);
 
+test("channel isolation: another key's signature over the valid manifest and the Pirax package URL are each refused at refresh and install", async () => {
+  const isolation = await refuseForeign({
+    h,
+    fixture,
+    session,
+    installed,
+    target,
+    key,
+    foreign: { label: "another generated key", signer: other },
+    foreignPackage: { label: "the Pirax package URL", url: `${pirax.config.channel.releasesRoot}/download/v${target.version}/${pirax.assets.zip}` },
+    audited,
+  });
+  expect(isolation.map((c) => c.name)).toEqual([
+    "refresh: same manifest signed by another generated key",
+    "install: same manifest signed by another generated key",
+    "refresh: channel key signs the Pirax package URL",
+    "install: channel key signs the Pirax package URL",
+    "install: offer edited to the Pirax package URL",
+  ]);
+  expect(isolation.every((c) => (c.name.startsWith("refresh:") ? !c.offered : c.installed === installed.version))).toBe(true);
+  cases.push(...isolation);
+  await expectInstalled(installed);
+}, 600_000);
+
 test("an authenticated admin lists, inspects and installs the signed release through native WordPress", async () => {
   const { page } = admin;
   fixture.serve(valid());
@@ -387,16 +396,16 @@ test("an authenticated admin lists, inspects and installs the signed release thr
   await page.goto(`${h.url}/wp-admin/plugins.php`);
   const row = page.locator(`tr.plugin-update-tr[data-plugin="${B}"]`);
   await row.waitFor();
-  expect(await row.innerText()).toMatch(/new version of Pirax Form Test available.*View version 0\.3\.1 details/s);
+  expect(await row.innerText()).toMatch(new RegExp(`new version of ${NAME.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} available.*View version 0\\.3\\.1 details`, "s"));
 
   // The details modal's own URL, rendered from plugins_api().
   const details = await row.locator("a.open-plugin-details-modal").getAttribute("href");
-  expect(details).toContain("plugin-install.php?tab=plugin-information&plugin=pirax-form-test");
+  expect(details).toContain(`plugin-install.php?tab=plugin-information&plugin=${SLUG}`);
   const info = await h.browser("updates-details");
   try {
     await login(info.page);
     await info.page.goto(details!.replace(/&TB_iframe=.*$/, ""));
-    expect(await info.page.locator("#plugin-information-title").innerText()).toContain("Pirax Form Test");
+    expect(await info.page.locator("#plugin-information-title").innerText()).toContain(NAME);
     expect(await info.page.locator(".fyi").innerText()).toMatch(/Version:\s*0\.3\.1/);
     // WordPress 7.1 gives the modal's update button the install id.
     expect(await info.page.locator("#plugin_install_from_iframe").innerText()).toMatch(/Update Now/i);
@@ -404,9 +413,8 @@ test("an authenticated admin lists, inspects and installs the signed release thr
     await h.closeBrowser(info.context);
   }
 
-  await row.locator("a.update-link").click();
-  await row.locator(".update-message.updated-message").waitFor({ timeout: 120_000 });
-  const requests = since(n);
+  // The install re-verifies the signed feed before it downloads the package; target's bytes are then installed.
+  const requests = [...since(n), ...(await browserUpdate(session, page, h, fixture, target))];
   expect(requests).toContain(`200 ${MANIFEST}`);
   expect(requests).toContain(`200 ${SIGNATURE}`);
   expect(requests).toContain(`302 ${packagePath("0.3.1")}`);

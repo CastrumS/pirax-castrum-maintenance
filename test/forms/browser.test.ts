@@ -11,11 +11,16 @@ import { populateForms, scanPageForms } from "../../src/forms/runner.ts";
 import { findSecrets, retainTrace, secretRedactor } from "../../src/forms/evidence.ts";
 import type { FormResult, FormsRunReport } from "../../src/report/model.ts";
 import { pageKey, type Site, type TestForm } from "../../src/sites.ts";
+import { loadDeployment } from "../../src/deployment.ts";
+import { fixtureConfig, fixtureKeys } from "../fixtures/deployment.ts";
 
 // Several fresh Chromium launches plus trace repacking; allow contention with the full plugin suite.
 setDefaultTimeout(60_000);
 const config = { token: "fixture-Private+Token/=123", address: "checker+fixture@example.test" };
 const redact = secretRedactor(config.token, [config.address]);
+// Explicitly selected form texts: Pirax's committed deployment, and the synthetic fixture whose prefix has regex metacharacters.
+const pirax = loadDeployment({ env: { DEPLOYMENT: "pirax" } }).config.forms;
+const acme = fixtureConfig(fixtureKeys().publicKey).forms;
 const runDir = resolve("runs", `forms-browser-${crypto.randomUUID()}`);
 let browser: Browser;
 let writes = 0, traps = 0, sockets = 0, chunkReads = 0, thanks = 0;
@@ -64,6 +69,9 @@ const gfRefusals: Record<string, string> = {
   "/gf-foreign-awaiting": gfRefusal(helperP(awaiting + "FluentSMTP 2.4.2"), "", 2),
   // GF re-renders the selected form with a newly native-invalid (empty required) field beside the awaiting message.
   "/gf-awaiting-invalid": gfRefusal(helperP(awaiting + "FluentSMTP 2.4.2"), '<form id="gform_1" method="post"><input name="input_1" required></form>'),
+  // The fixture deployment's refusal, and text its prefix would match only if read as a regex ("(QA)" a group, "d?" optional).
+  "/gf-acme-awaiting": gfRefusal(helperP(`${acme.refusalPrefix} awaiting audit of FluentSMTP 2.4.2`)),
+  "/gf-acme-unescaped": gfRefusal(helperP("Acme QA test blocke: awaiting audit of FluentSMTP 2.4.2")),
 };
 // FF's stack placement: an alert div holding the message span and a dismiss "×" span.
 const ffStack = (text: string) => `<div class="ff-errors-in-stack"><div class="error text-danger" role="alert"><span class="error-text" data-name="pirax_form_test">${text}</span><span class="error-clear">&times;</span></div></div>`;
@@ -158,7 +166,7 @@ async function watched(site: Site, path: string) {
     context.on("console", m => { if (m.text().startsWith("pirax-event ")) events.push(m.text().slice(12)); });
     return context;
   };
-  try { return { results: await scanPageForms(site, { path, mask: [] }, { runDir, deliveryTimeoutMs: 2_000 }, own), events }; }
+  try { return { results: await scanPageForms(site, { path, mask: [] }, { runDir, texts: pirax, deliveryTimeoutMs: 2_000 }, own), events }; }
   finally { await own.close(); }
 }
 beforeAll(async () => { await mkdir(runDir, { recursive: true }); browser = await chromium.launch(); });
@@ -185,9 +193,10 @@ test("fills basic controls with full random marker, preserving hidden/honeypot d
   expect(ids.size).toBe(100); expect([...ids].every(id => /^[a-z0-9]{12}$/.test(id))).toBe(true);
   await visit("/plain", async (page, policy) => {
     policy.freeze(); const d = (await detectForms(page))[0]!;
-    const prepared = await fillForm(page, d, config, newSubmissionId());
+    const prepared = await fillForm(page, d, config, pirax, newSubmissionId());
     expect(prepared.state).toBe("prepared");
     expect(await page.locator('[name="input_2"]').inputValue()).toBe(config.address);
+    expect(await page.locator('[name="input_1"]').inputValue()).toBe("Pirax Test");
     expect(await page.locator('textarea').inputValue()).toMatch(new RegExp('^'+config.token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')+'-[a-z0-9]{12}$'));
     expect(await page.locator('[name="nonce"]').inputValue()).toBe("untouched");
   });
@@ -205,7 +214,7 @@ test("native required checkbox groups choose one usable option; individual requi
   for (const [markup, expected] of [[gf(1, '<textarea name="input_3"></textarea>' + boxes), [false,false,true,false,true,false,false,true,true]], [ff.replace('<textarea', ffBoxes + '<textarea'), [false,true,false,true,false]]] as const) {
     await visit('/plain', async (page, policy) => {
       policy.freeze(); const before = writes;
-      expect((await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId())).state).toBe('prepared');
+      expect((await fillForm(page, (await detectForms(page))[0]!, config, pirax, newSubmissionId())).state).toBe('prepared');
       expect(await page.locator('input[type=checkbox]').evaluateAll(es => es.map(e => (e as HTMLInputElement).checked))).toEqual([...expected]);
       expect(writes).toBe(before);
     }, markup);
@@ -215,12 +224,12 @@ test("native required checkbox groups choose one usable option; individual requi
 test("HTTP-200 explicit challenges fail discovery, ordinary CAPTCHA/Cloudflare mentions remain empty", async () => {
   const site = { slug: 'local', url: base, form_helper: false, mask: [], max_diff_pixel_ratio: 0.01, pages: [] };
   for (const path of ['/challenge', '/challenge-header', '/firewall']) {
-    const results = await scanPageForms(site, { path, mask: [] }, { runDir });
+    const results = await scanPageForms(site, { path, mask: [] }, { runDir, texts: pirax });
     expect(results).toHaveLength(1);
     expect(results[0]?.selector).toBe('page-scan');
     expect(results[0]?.outcome).toBe('failed');
   }
-  expect(await scanPageForms(site, { path: '/ordinary-mentions', mask: [] }, { runDir })).toEqual([]);
+  expect(await scanPageForms(site, { path: '/ordinary-mentions', mask: [] }, { runDir, texts: pirax })).toEqual([]);
 });
 
 test("preinspects whole form: hidden upload, marker constraints and custom flows never type", async () => {
@@ -233,7 +242,7 @@ test("preinspects whole form: hidden upload, marker constraints and custom flows
     '<textarea name="input_3"></textarea><div class="gform_page"></div>',
   ];
   for (const fields of cases) await visit("/plain", async (page, policy) => {
-    policy.freeze(); const result = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+    policy.freeze(); const result = await fillForm(page, (await detectForms(page))[0]!, config, pirax, newSubmissionId());
     expect(result.state).toBe("unsupported");
     expect(await page.locator('textarea,input:not([type=hidden])').evaluateAll(es => es.every(e => !(e as HTMLInputElement).value))).toBe(true);
   }, gf(1, fields));
@@ -244,7 +253,7 @@ test("no-helper blocks autonomous input/change GET/POST/image/navigation and soc
   const old = { token: process.env.FORM_TEST_TOKEN, address: process.env.FORM_TEST_ADDRESS };
   process.env.FORM_TEST_TOKEN = config.token; process.env.FORM_TEST_ADDRESS = config.address;
   try {
-    const results = await scanPageForms(site, site.pages[0]!, { runDir });
+    const results = await scanPageForms(site, site.pages[0]!, { runDir, texts: pirax });
     expect(results[0]?.outcome).toBe("not-verified");
   } finally { restore("FORM_TEST_TOKEN", old.token); restore("FORM_TEST_ADDRESS", old.address); }
   expect({ writes, traps, sockets }).toEqual(before);
@@ -253,7 +262,7 @@ function restore(name: string, value: string | undefined) { if (value === undefi
 test("specific new GF and associated FF confirmations; errors sanitized; no retry", async () => {
   for (const [path, expected] of [["/plain", "confirmed"], ["/ff", "confirmed"], ["/gf-ajax", "confirmed"], ["/save-trap", "failed"], ["/reject", "rejected"], ["/foreign", "failed"], ["/no-confirmation", "failed"], ["/stale", "failed"], ["/ff-stale", "failed"], ["/ff-foreign", "failed"], ["/ff-redirect", "confirmed"], ["/ff-redirect-no-entry", "failed"]] as const) {
     await visit(path, async (page, policy) => {
-      policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+      policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, pirax, newSubmissionId());
       expect(prepared.state).toBe("prepared"); if (prepared.state !== "prepared") return;
       const before = writes, chunksBefore = chunkReads;
       const result = await submitForm(page, prepared, policy, { timeoutMs: 600, redact });
@@ -286,7 +295,7 @@ test("exact awaiting-audit refusals are classified per message; near matches, ex
   ];
   for (const [path, expected, detail] of cases) {
     await visit(path, async (page, policy) => {
-      policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+      policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, pirax, newSubmissionId());
       expect(prepared.state).toBe("prepared"); if (prepared.state !== "prepared") return;
       const before = writes;
       const result = await submitForm(page, prepared, policy, { timeoutMs: 1_000, redact });
@@ -303,6 +312,25 @@ test("exact awaiting-audit refusals are classified per message; near matches, ex
       if (path.endsWith("-awaiting-invalid")) expect(result.detail).toContain("Pirax test blocked: awaiting audit of FluentSMTP 2.4.2");
     });
   }
+});
+test("selected deployment texts: typed filler and the exact, escaped refusal prefix follow the selection", async () => {
+  await visit("/plain", async (page, policy) => {
+    policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, acme, newSubmissionId());
+    expect(prepared.state).toBe("prepared");
+    expect([await page.locator('[name="input_1"]').inputValue(), await page.locator('[name="input_4"]').inputValue()]).toEqual(["Acme Test", "Acme test message"]);
+    expect(await page.locator('[name="input_3"]').inputValue()).toStartWith(`${config.token}-`);
+  }, gf(1, '<input name="input_1" required><textarea name="input_3"></textarea><textarea name="input_4"></textarea>'));
+  for (const [texts, path, expected] of [
+    [acme, "/gf-acme-awaiting", "awaiting-audit"], [acme, "/gf-awaiting", "rejected"], [acme, "/gf-acme-unescaped", "rejected"],
+    [pirax, "/gf-acme-awaiting", "rejected"], [pirax, "/gf-awaiting", "awaiting-audit"],
+  ] as const) await visit(path, async (page, policy) => {
+    policy.freeze(); const prepared = await fillForm(page, (await detectForms(page))[0]!, config, texts, newSubmissionId());
+    if (prepared.state !== "prepared") throw new Error("not prepared");
+    const before = writes;
+    const result = await submitForm(page, prepared, policy, { timeoutMs: 1_000, redact });
+    expect(`${texts.text} ${path}: ${result.state}`).toBe(`${texts.text} ${path}: ${expected}`);
+    expect(writes - before).toBe(1);
+  });
 });
 test("scanner forwards awaiting-audit without polling the mailbox", async () => {
   // A local service also probes loopback listeners (see imap.test.ts), so a mailbox connection is the checker's
@@ -332,16 +360,20 @@ test("scanner forwards awaiting-audit without polling the mailbox", async () => 
     await withEnv({ ...mailbox, IMAP_PORT: String(listener.port) }, async () => {
       // Positive control: a confirmed submission does connect to this mailbox; an unrelated probe is not counted as that.
       const foreign = await probe();
-      const confirmed = await scanPageForms(local(["/plain"], true, { page: "/plain", plugin: "gravity", id: 1 }), { path: "/plain", mask: [] }, { runDir, deliveryTimeoutMs: 2_000 });
+      const confirmed = await scanPageForms(local(["/plain"], true, { page: "/plain", plugin: "gravity", id: 1 }), { path: "/plain", mask: [] }, { runDir, texts: pirax, deliveryTimeoutMs: 2_000 });
       expect(shape(confirmed)).toEqual(["gravity:failed"]);
       expect(owned()).toBeGreaterThan(0);
       expect(clientPorts.has(foreign)).toBe(false);
-      for (const [path, plugin, id] of [["/gf-awaiting", "gravity", 1], ["/ff-awaiting", "fluent", 2]] as const) {
+      for (const [path, plugin, id, texts, detail] of [
+        ["/gf-awaiting", "gravity", 1, pirax, "Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16"],
+        ["/ff-awaiting", "fluent", 2, pirax, "Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16"],
+        ["/gf-acme-awaiting", "gravity", 1, acme, "Acme (QA) test blocked?: awaiting audit of FluentSMTP 2.4.2"],
+      ] as const) {
         const before = { owned: owned(), writes, traps };
         await probe(); // Unrelated traffic during the awaiting interval must not read as polling.
-        const results = await scanPageForms(local([path], true, { page: path, plugin, id }), { path, mask: [] }, { runDir, deliveryTimeoutMs: 2_000 });
+        const results = await scanPageForms(local([path], true, { page: path, plugin, id }), { path, mask: [] }, { runDir, texts, deliveryTimeoutMs: 2_000 });
         expect(shape(results)).toEqual([`${plugin}:awaiting-audit`]);
-        expect(results[0]!.detail).toContain("Pirax test blocked: awaiting audit of Fluent Forms Pro 6.2.16");
+        expect(results[0]!.detail).toContain(detail);
         expect({ owned: owned(), writes: writes - before.writes, traps }).toEqual({ owned: before.owned, writes: 1, traps: before.traps });
       }
     });
@@ -349,14 +381,14 @@ test("scanner forwards awaiting-audit without polling the mailbox", async () => 
 });
 test("marker changed after preparation is never submitted; native invalidity is rejection", async () => {
   await visit("/plain", async (page, policy) => {
-    policy.freeze(); const p = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+    policy.freeze(); const p = await fillForm(page, (await detectForms(page))[0]!, config, pirax, newSubmissionId());
     if (p.state !== "prepared") throw new Error("not prepared");
     await page.locator('textarea').fill("changed"); const before = writes;
     expect((await submitForm(page, p, policy, { timeoutMs: 500, redact })).state).toBe("failed");
     expect(writes).toBe(before);
   });
   await visit("/plain", async (page, policy) => {
-    policy.freeze(); const p = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+    policy.freeze(); const p = await fillForm(page, (await detectForms(page))[0]!, config, pirax, newSubmissionId());
     if (p.state !== "prepared") throw new Error("not prepared");
     await page.locator('[type=email]').evaluate((el: HTMLInputElement) => el.setCustomValidity("Refused " + el.value));
     const before = writes; const result = await submitForm(page, p, policy, { redact });
@@ -365,22 +397,22 @@ test("marker changed after preparation is never submitted; native invalidity is 
 });
 test("scanner no forms is empty, navigation error is failed, CAPTCHA is not-verified, each designation is filled in its own scan", async () => {
   const site = local([], false, undefined);
-  expect(await scanPageForms(site, { path: "/empty", mask: [] }, { runDir })).toEqual([]);
-  expect((await scanPageForms(site, { path: "/missing", mask: [] }, { runDir }))[0]?.outcome).toBe("failed");
-  expect(shape(await scanPageForms(local(["/captcha"], true, { page: "/captcha", plugin: "fluent", id: 2 }), { path: "/captcha", mask: [] }, { runDir }))).toEqual(["fluent:not-verified"]);
+  expect(await scanPageForms(site, { path: "/empty", mask: [] }, { runDir, texts: pirax })).toEqual([]);
+  expect((await scanPageForms(site, { path: "/missing", mask: [] }, { runDir, texts: pirax }))[0]?.outcome).toBe("failed");
+  expect(shape(await scanPageForms(local(["/captcha"], true, { page: "/captcha", plugin: "fluent", id: 2 }), { path: "/captcha", mask: [] }, { runDir, texts: pirax }))).toEqual(["fluent:not-verified"]);
   await withEnv(fill, async () => {
     for (const [test_form, expected] of [
       [{ page: "/multi", plugin: "gravity", id: 1 }, ["gravity:not-verified", "gravity:skipped", "fluent:skipped", "unknown:skipped"]],
       [{ page: "/multi", plugin: "gravity", id: 3 }, ["gravity:skipped", "gravity:not-verified", "fluent:skipped", "unknown:skipped"]],
       [{ page: "/multi", plugin: "fluent", id: 2 }, ["gravity:skipped", "gravity:skipped", "fluent:not-verified", "unknown:skipped"]],
-    ] as const) expect(shape(await scanPageForms(local(["/multi"], false, test_form), { path: "/multi", mask: [] }, { runDir }))).toEqual([...expected]);
+    ] as const) expect(shape(await scanPageForms(local(["/multi"], false, test_form), { path: "/multi", mask: [] }, { runDir, texts: pirax }))).toEqual([...expected]);
   });
 });
 test("selected submit blocks unrelated same-origin writes/GETs and autonomous native GET submit", async () => {
   const before = traps;
   await visit('/autonomous', async page => { expect(await page.locator('form').count()).toBe(1); });
   await visit('/unrelated', async (page, policy) => {
-    policy.freeze(); const p = await fillForm(page, (await detectForms(page))[0]!, config, newSubmissionId());
+    policy.freeze(); const p = await fillForm(page, (await detectForms(page))[0]!, config, pirax, newSubmissionId());
     if (p.state !== 'prepared') throw new Error('not prepared');
     const beforeWrites = writes;
     expect((await submitForm(page, p, policy, { timeoutMs: 1000, redact })).state).toBe('confirmed');
@@ -397,11 +429,11 @@ test("no-marker/unknown/upload requires no credentials; opted-in IMAP preflight 
   const before = writes;
   try {
     names.forEach(name => delete process.env[name]);
-    expect((await scanPageForms(site('/upload'), { path: '/upload', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
-    expect((await scanPageForms(site('/ambiguous-ff', 'fluent', 2), { path: '/ambiguous-ff', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
+    expect((await scanPageForms(site('/upload'), { path: '/upload', mask: [] }, { runDir, texts: pirax }))[0]?.outcome).toBe('unsupported');
+    expect((await scanPageForms(site('/ambiguous-ff', 'fluent', 2), { path: '/ambiguous-ff', mask: [] }, { runDir, texts: pirax }))[0]?.outcome).toBe('unsupported');
     process.env.FORM_TEST_TOKEN = config.token; process.env.FORM_TEST_ADDRESS = config.address;
-    expect((await scanPageForms(site('/constrained'), { path: '/constrained', mask: [] }, { runDir }))[0]?.outcome).toBe('unsupported');
-    await expect(scanPageForms(site('/plain'), { path: '/plain', mask: [] }, { runDir })).rejects.toThrow('IMAP_HOST');
+    expect((await scanPageForms(site('/constrained'), { path: '/constrained', mask: [] }, { runDir, texts: pirax }))[0]?.outcome).toBe('unsupported');
+    await expect(scanPageForms(site('/plain'), { path: '/plain', mask: [] }, { runDir, texts: pirax })).rejects.toThrow('IMAP_HOST');
     expect(writes).toBe(before);
   } finally { names.forEach((name, i) => restore(name, old[i])); }
 });
@@ -415,7 +447,7 @@ test("omitted designation skips every form, helper true or false, with no creden
     expect(events).toEqual([]);
     const site = local(["/scope-a", "/scope-b"], helper, undefined);
     const report = emptyReport(site);
-    await populateForms([site], report, { runDir: join(runDir, `scope-omitted-${helper}`) });
+    await populateForms([site], report, { runDir: join(runDir, `scope-omitted-${helper}`), texts: pirax });
     expect(report.sites[0]!.pages.map(p => shape(p.forms))).toEqual([allSkipped, allSkipped]);
     // Skips get no browser context at all: only the two discovery traces exist.
     expect((await readdir(join(runDir, `scope-omitted-${helper}`, "traces", "forms"))).map(f => f.replace(/^[0-9a-f]{20}-/, "")).sort()).toEqual(["scan.trace.zip", "scan.trace.zip"]);
@@ -430,7 +462,7 @@ test("the designated form on the second listed page is the only attempt, in eith
     const report = emptyReport(site);
     const dir = join(runDir, `scope-${paths.join("").replaceAll("/", "")}`);
     const before = { writes, traps };
-    await populateForms([site], report, { runDir: dir, deliveryTimeoutMs: 2_000 });
+    await populateForms([site], report, { runDir: dir, texts: pirax, deliveryTimeoutMs: 2_000 });
     const page = (path: string) => report.sites[0]!.pages.find(p => p.path === path)!.forms;
     expect(shape(page("/scope-a"))).toEqual(allSkipped);
     expect(page("/scope-a").every(f => f.detail === notDesignated)).toBe(true);
@@ -480,7 +512,7 @@ test("missing, wrong-plugin, elsewhere-only, GF #0 and empty-page designations f
       // Helper true with no form/mail credentials: nothing selected, so nothing needs them.
       const site = local(["/scope-a", "/plain", "/empty"], true, test_form);
       const report = emptyReport(site);
-      await populateForms([site], report, { runDir });
+      await populateForms([site], report, { runDir, texts: pirax });
       const pages = report.sites[0]!.pages;
       expect(pages.map(p => shape(p.forms))).toEqual(expected);
       const target = pages.find(p => p.path === test_form.page)!.forms;
@@ -489,7 +521,7 @@ test("missing, wrong-plugin, elsewhere-only, GF #0 and empty-page designations f
     }
     for (const path of ["/challenge", "/missing"]) {
       const site = local([path], true, { page: path, plugin: "gravity", id: 1 });
-      const results = await scanPageForms(site, site.pages[0]!, { runDir });
+      const results = await scanPageForms(site, site.pages[0]!, { runDir, texts: pirax });
       expect(results).toHaveLength(1);
       expect(results[0]).toMatchObject({ selector: "page-scan", outcome: "failed" });
     }
@@ -528,7 +560,7 @@ test("distinct sites and a second invocation each keep their own single attempt"
     for (let invocation = 0; invocation < 2; invocation++) {
       const before = writes;
       const report = emptyReport(...sites);
-      await populateForms(sites, report, { runDir, deliveryTimeoutMs: 2_000 });
+      await populateForms(sites, report, { runDir, texts: pirax, deliveryTimeoutMs: 2_000 });
       expect(report.sites.map(s => shape(s.pages[0]!.forms))).toEqual([["gravity:failed"], ["gravity:failed"]]);
       expect(report.sites.every(s => /Submission [a-z0-9]{12}\./.test(s.pages[0]!.forms[0]!.detail))).toBe(true);
       expect(writes - before).toBe(2);
@@ -545,7 +577,7 @@ test("encoded URLs and browser exceptions are scrubbed from retained action trac
 });
 
 test("direct forms command writes a truthful local report without form credentials or visual/baseline access", async () => {
-  const code = `const {runForms} = await import(${JSON.stringify(resolve('src/commands/forms.ts'))}); const {createStore} = await import(${JSON.stringify(resolve('src/store.ts'))}); const r = await runForms([{slug:'local',url:${JSON.stringify(base)},form_helper:true,mask:[],max_diff_pixel_ratio:0.01,pages:[{path:'/empty',mask:[]}]}],createStore(),{runsDir:${JSON.stringify(join(runDir, 'commands'))},log:()=>{}}); console.log(JSON.stringify({exitCode:r.exitCode,report:r.report,runDir:r.runDir,localPath:r.localPath}));`;
+  const code = `const {runForms} = await import(${JSON.stringify(resolve('src/commands/forms.ts'))}); const {createStore} = await import(${JSON.stringify(resolve('src/store.ts'))}); const r = await runForms([{slug:'local',url:${JSON.stringify(base)},form_helper:true,mask:[],max_diff_pixel_ratio:0.01,pages:[{path:'/empty',mask:[]}]}],createStore(),{runsDir:${JSON.stringify(join(runDir, 'commands'))},log:()=>{},forms:{texts:${JSON.stringify(pirax)}}}); console.log(JSON.stringify({exitCode:r.exitCode,report:r.report,runDir:r.runDir,localPath:r.localPath}));`;
   const child = Bun.spawn([process.execPath, '--no-env-file', '-e', code], { cwd: runDir, env: { PATH: process.env.PATH!, HOME: process.env.HOME! }, stdout: 'pipe', stderr: 'pipe' });
   const [stdout, stderr, exit] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
   expect(exit).toBe(0); expect(stderr).toBe('');

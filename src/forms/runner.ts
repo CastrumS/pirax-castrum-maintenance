@@ -12,10 +12,11 @@ import { reconcileAwaitingAudit } from "./awaiting-audit.ts";
 import { readFormConfig } from "./config.ts";
 import { detectForms, formLocator, sameForm, type FormDescriptor } from "./detect.ts";
 import { retainTrace, secretRedactor } from "./evidence.ts";
-import { fillForm, inspectForm, newSubmissionId } from "./fill.ts";
+import { fillForm, inspectForm, newSubmissionId, type FormTexts } from "./fill.ts";
 import { installFormPolicy, submitForm, type FormPolicy } from "./submit.ts";
 
-export type FormsOptions = { runDir: string; navigationTimeoutMs?: number; submissionTimeoutMs?: number; deliveryTimeoutMs?: number };
+/** `texts`: the selected deployment's form texts, resolved once by the command for every attempt. */
+export type FormsOptions = { runDir: string; texts: FormTexts; navigationTimeoutMs?: number; submissionTimeoutMs?: number; deliveryTimeoutMs?: number };
 const isConfig = (e: unknown) => e instanceof EnvError || e instanceof EnvFormatError;
 const scanFailure = (detail: string): FormResult => ({ selector: 'page-scan', plugin: 'unknown', outcome: 'failed', detail });
 const identity = (s: Site, p: SitePage) => createHash('sha256').update(s.slug + '\n' + s.url + p.path).digest('hex').slice(0, 20);
@@ -65,12 +66,12 @@ export async function scanPageForms(site: Site, listedPage: SitePage, options: F
         results.push(await visit(`form-${index + 1}`, async (page, policy) => {
           if (!await sameForm(page, descriptor)) return result('failed', 'Form identity changed since discovery; not submitted.');
           policy.freeze(); // Before even the first input/change event: all GET/POST serialization blocked.
-          const preflight = await inspectForm(formLocator(page, descriptor));
+          const preflight = await inspectForm(formLocator(page, descriptor), options.texts);
           if (preflight.state !== 'ready') return result(preflight.state, preflight.detail);
           const config = readFormConfig();
           const id = newSubmissionId();
           let prepared;
-          try { prepared = await fillForm(page, descriptor, config, id); }
+          try { prepared = await fillForm(page, descriptor, config, options.texts, id); }
           catch { return result(site.form_helper ? 'failed' : 'not-verified', 'Browser filling failed; no submission or delivery verification.'); }
           if (prepared.state !== 'prepared') return result(prepared.state, prepared.detail);
           if (!site.form_helper) return result('not-verified', `Helper not enabled; filled without submission. ${prepared.validation} Delivery not verified.`);

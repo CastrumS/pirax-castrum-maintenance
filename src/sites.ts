@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { loadDeployment } from "./deployment.ts";
 
 /** `hide`: optional CSS selectors removed (display: none) before the screenshot. */
 export type Page = { path: string; mask: string[]; hide?: string[] };
@@ -51,7 +52,8 @@ export function pageKey(path: string): string {
     .join("-");
 }
 
-export function loadSites(path = "sites.yaml"): Site[] {
+/** Omitted path: the selected deployment's sites.yaml (DEPLOYMENT is required). An explicit path is read as given. */
+export function loadSites(path = loadDeployment().paths.sites): Site[] {
   const fail = (site: string, field: string, detail: string): never => {
     throw new SitesConfigError(site, field, detail, path);
   };

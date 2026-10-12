@@ -6,6 +6,7 @@ import { runBaseline } from "../src/commands/baseline.ts";
 import { runCheck } from "../src/commands/check.ts";
 import { runApprove, completedRunIds } from "../src/commands/approve.ts";
 import type { CommandResult } from "../src/commands/common.ts";
+import { DeploymentConfigError, loadDeployment, type Deployment } from "../src/deployment.ts";
 import { readR2Config, EnvError } from "../src/env.ts";
 import { createStore, type Store } from "../src/store.ts";
 import { pageKey, type Site } from "../src/sites.ts";
@@ -14,7 +15,7 @@ import { startHttpsFixture } from "../test/fixtures/https.ts";
 
 class Failure extends Error {}
 function assert(ok: unknown, message: string): asserts ok { if (!ok) throw new Failure(message); }
-const safe = (e: unknown) => e instanceof Failure || e instanceof EnvError ? e.message : e instanceof Error ? e.name : "unknown error";
+const safe = (e: unknown) => e instanceof Failure || e instanceof EnvError || e instanceof DeploymentConfigError ? e.message : e instanceof Error ? e.name : "unknown error";
 const same = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((n, i) => n === b[i]);
 const stamp = new Date().toISOString().replaceAll(":", "-");
 const root = `test/visual-${stamp}-${crypto.randomUUID().slice(0, 8)}/`;
@@ -25,13 +26,14 @@ const checks: { name: string; ok: boolean; error?: string }[] = [];
 const commands: { label: string; exitCode: number; runDir?: string; report?: string; traces: string[] }[] = [];
 const cleanup = { remote: false, remaining: null as number | null, deleted: 0, wordpress: false, https: false, errors: [] as string[] };
 let store: Store | undefined;
+let deployment: Deployment | undefined;
 let writes = 0;
 let wp: Awaited<ReturnType<typeof startWordPress>> | undefined;
 let tls: ReturnType<typeof startHttpsFixture> | undefined;
 let passed = false, prerequisite = false;
 let lastId = Date.now();
 const id = () => new Date(lastId = Math.max(Date.now(), lastId + 1)).toISOString().replaceAll(":", "-");
-const options = () => ({ runsDir, runId: id(), log: () => {} });
+const options = () => ({ runsDir, runId: id(), log: () => {}, forms: { texts: deployment!.config.forms } });
 async function check(name: string, fn: () => Promise<void>) {
   console.log(`run  ${name}`);
   try { await fn(); checks.push({ name, ok: true }); console.log(`ok   ${name}`); }
@@ -95,7 +97,7 @@ async function renderRemote(r: CommandResult, text: string[]) {
 async function cli(command: string, args: string[], sites: Site[], expected: number) {
   const file = join(workspace, `sites-${crypto.randomUUID()}.json`);
   await Bun.write(file, JSON.stringify({ sites })); // JSON is valid YAML; isolated fixture list only.
-  const child = Bun.spawn([process.execPath, "--no-env-file", "test/fixtures/cli.ts", root, runsDir, command, ...args, "--sites", file], { stdout: "ignore", stderr: "ignore" });
+  const child = Bun.spawn([process.execPath, "--no-env-file", "test/fixtures/cli.ts", root, runsDir, command, ...args, "--sites", file], { env: { ...process.env, DEPLOYMENT: deployment!.name }, stdout: "ignore", stderr: "ignore" });
   const exit = await child.exited;
   commands.push({ label: `CLI ${command} ${args.join(" ")}`, exitCode: exit, traces: [] });
   assert(exit === expected, `CLI ${command}: expected ${expected}, got ${exit}`);
@@ -148,6 +150,7 @@ async function startWordPress() {
 
 console.log(`visual:selftest root ${root}`);
 try {
+  await check("DEPLOYMENT selects a valid deployment", async () => { deployment = loadDeployment(); });
   await check("R2 credentials available by required names", async () => { const real = createStore({ config: readR2Config(), root }); store = { ...real, async put(key, data) { writes++; await real.put(key, data); } }; });
   await check("real Node Playground boots and seeds WordPress via same-instance WP-CLI", async () => {
     wp = await startWordPress();
@@ -321,7 +324,7 @@ try {
   });
   passed = true;
 } catch (e) {
-  prerequisite = e instanceof EnvError;
+  prerequisite = e instanceof EnvError || e instanceof DeploymentConfigError;
   if (!checks.some(c => !c.ok)) checks.push({ name: "selftest setup/operation", ok: false, error: safe(e) });
 } finally {
   try { if (wp) await wp.stop(); cleanup.wordpress = true; } catch (e) { cleanup.errors.push(`WordPress shutdown: ${safe(e)}`); }

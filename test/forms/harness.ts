@@ -5,10 +5,13 @@ import { FF_VERSION, GF_VERSION, startHarness, type Harness } from '../plugin/ha
 import { readFormConfig } from '../../src/forms/config.ts';
 import { readImapConfig } from '../../src/mail/config.ts';
 import { readR2Config } from '../../src/env.ts';
+import { loadDeployment } from '../../src/deployment.ts';
 import { findSecrets, retainTrace, sanitizeTrace, secretRedactor } from '../../src/forms/evidence.ts';
 import type { Site, TestForm } from '../../src/sites.ts';
 
 export const ROOT = resolve(import.meta.dir, '../..');
+/** The forms suite installs and drives the Pirax helper build, so it selects the Pirax deployment explicitly. */
+const PIRAX = { env: { DEPLOYMENT: 'pirax' } };
 export const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', true)`;
 export type Fixtures = { ids: Record<'gf'|'ff'|'ajax'|'upload'|'nomarker'|'client'|'server'|'requiredgf'|'requiredff'|'scope', number>; pages: Record<'primary'|'ajax'|'negative'|'required'|'scopeA'|'scopeB', string> };
 export const safe = secretRedactor();
@@ -59,7 +62,7 @@ export async function startFormsHarness(workspace: string): Promise<{ h: Harness
         await page.fill('#user_login', h.users.admin.login);
         await page.fill('#user_pass', h.users.admin.password);
         await page.click('#wp-submit'); await page.waitForURL(/\/wp-admin\/?/);
-        await h.uploadPlugin(page, join(ROOT, 'dist/pirax-form-test.zip'));
+        await h.uploadPlugin(page, join(ROOT, 'dist', loadDeployment(PIRAX).assets.zip));
         await page.goto(h.url + '/wp-admin/options-general.php?page=pirax-form-test');
         await page.fill('#pirax_form_test_token', config.token);
         await page.fill('#pirax_form_test_redirect', config.address);
@@ -105,7 +108,7 @@ export async function cli(workspace: string, root: string, site: Site, scenario:
   } }));
   const argv = [process.execPath, 'run', 'forms', 'local', '--sites', list];
   const started = performance.now();
-  const child = Bun.spawn(argv, { cwd, stdout: 'pipe', stderr: 'pipe' });
+  const child = Bun.spawn(argv, { cwd, env: { ...process.env, ...PIRAX.env }, stdout: 'pipe', stderr: 'pipe' });
   const [out, err, exitCode] = await Promise.all([new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited]);
   await Bun.write(join(dir, 'cli.log'), safe(out + err));
   const ids = (await readdir(runsDir)).filter(n => /^\d{4}-/.test(n));

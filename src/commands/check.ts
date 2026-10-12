@@ -5,18 +5,18 @@ import type { Site } from "../sites.ts";
 import type { Store } from "../store.ts";
 import { artifactPath, ReportError } from "../report/manifest.ts";
 import { publishReport, saveArtifact, writeLocalReport } from "../report/writer.ts";
-import { captureSelection, configurationError, dispatch, safeError, type CommandResult, type RunOptions } from "./common.ts";
+import { captureSelection, configurationError, dispatch, safeError, type CommandResult, type FormsRunOptions } from "./common.ts";
 import { populateForms } from "../forms/runner.ts";
 import { secretRedactor } from "../forms/evidence.ts";
 import { reportStatus } from "../report/html.ts";
 
-export async function runCheck(sites: Site[], store: Store, options: RunOptions = {}): Promise<CommandResult> {
+export async function runCheck(sites: Site[], store: Store, options: FormsRunOptions): Promise<CommandResult> {
   const redact = secretRedactor();
   const log = (message: string) => (options.log ?? console.log)(redact(message));
   try { return await executeCheck(sites, store, { ...options, log }); }
   catch (error) { log(`check: ${safeError(error)}`); return { exitCode: configurationError(error) ? 2 : 1 }; }
 }
-async function executeCheck(sites: Site[], store: Store, options: RunOptions): Promise<CommandResult> {
+async function executeCheck(sites: Site[], store: Store, options: FormsRunOptions): Promise<CommandResult> {
   if (!sites.length) return { exitCode: 0 };
   const log = options.log!;
   const result: CommandResult = await captureSelection(sites, options, async (site, key, capture, v, runDir) => {

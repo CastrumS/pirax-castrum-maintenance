@@ -4,7 +4,9 @@ import { resolve, join } from "node:path";
 import { dispatch, parseArgs, selectSites } from "../src/commands/common.ts";
 import { completedRunIds, newestSiteCheck, runApprove } from "../src/commands/approve.ts";
 import { loadSites } from "../src/sites.ts";
+import { loadDeployment } from "../src/deployment.ts";
 import { createStore } from "../src/store.ts";
+import { fixtureConfig, fixtureKeys, FIXTURE_VERSIONS, writeDeployment } from "../test/fixtures/deployment.ts";
 
 const dir = resolve("runs", `command-tests-${crypto.randomUUID()}`);
 mkdirSync(dir, { recursive: true });
@@ -12,6 +14,11 @@ afterAll(() => rmSync(dir, { recursive: true, force: true }));
 const sitesFile = join(dir, "sites.yaml");
 await Bun.write(sitesFile, 'sites:\n  - slug: acme\n    url: https://example.test\n    form_helper: false\n    pages: [/, /about/]\n');
 const sites = loadSites(sitesFile);
+// Explicit selections: the repository's Pirax deployment, or a fixture deployment in a disposable root.
+const pirax = { env: { DEPLOYMENT: "pirax" } };
+const fixtureRoot = join(dir, "fixture-root");
+const fixture = { root: fixtureRoot, env: { DEPLOYMENT: "fixture" } };
+writeDeployment(fixtureRoot, "fixture", { config: fixtureConfig(fixtureKeys().publicKey), versions: FIXTURE_VERSIONS });
 
 describe("command preflight without browser or storage", () => {
   test("parses selection, optional sites and approve page; retains list order", () => {
@@ -29,21 +36,45 @@ describe("command preflight without browser or storage", () => {
   test("exit 2 for configuration before work; empty all is zero with no credentials", async () => {
     const logs: string[] = [];
     const log = (s: string) => logs.push(s);
-    expect(await dispatch("check", ["unknown", "--sites", sitesFile], { log })).toBe(2);
-    expect(await dispatch("approve", ["acme", "/unlisted", "--sites", sitesFile], { log })).toBe(2);
+    expect(await dispatch("check", ["unknown", "--sites", sitesFile], { log, selection: pirax })).toBe(2);
+    expect(await dispatch("approve", ["acme", "/unlisted", "--sites", sitesFile], { log, selection: pirax })).toBe(2);
     const empty = join(dir, "empty.yaml"); await Bun.write(empty, "sites: []\n");
-    expect(await dispatch("check", ["all", "--sites", empty], { log })).toBe(0);
-    expect(await dispatch("forms", ["all", "--sites", empty], { log })).toBe(0);
-    expect(await dispatch("forms", ["acme", "extra", "--sites", sitesFile], { log })).toBe(2);
+    expect(await dispatch("check", ["all", "--sites", empty], { log, selection: pirax })).toBe(0);
+    expect(await dispatch("forms", ["all", "--sites", empty], { log, selection: pirax })).toBe(0);
+    expect(await dispatch("forms", ["acme", "extra", "--sites", sitesFile], { log, selection: pirax })).toBe(2);
     const bad = join(dir, "bad.yaml"); await Bun.write(bad, "sites: [{slug: bad}]\n");
-    expect(await dispatch("baseline", ["all", "--sites", bad], { log })).toBe(2);
+    expect(await dispatch("baseline", ["all", "--sites", bad], { log, selection: pirax })).toBe(2);
   });
-  test("CLI imports have no credential reads or exits and missing env is sanitized exit 2", () => {
+  test("valid argv needs a valid deployment even with --sites or an empty list; exit 2 names the field only", async () => {
+    const empty = join(dir, "selection-empty.yaml"); await Bun.write(empty, "sites: []\n");
+    const broken = join(dir, "broken-root");
+    writeDeployment(broken, "broken", { config: { ...fixtureConfig(fixtureKeys().publicKey), forms: { refusalPrefix: "Blocked:", text: "<b>secret-filler</b>", message: "Message" } }, versions: FIXTURE_VERSIONS });
+    const cases: [Record<string, string | undefined>, string, string?][] = [
+      [{}, "DEPLOYMENT is not set"], [{ DEPLOYMENT: "" }, "DEPLOYMENT is not set"],
+      [{ DEPLOYMENT: "Not_A_Name" }, "DEPLOYMENT is not a valid deployment name"], [{ DEPLOYMENT: "absent" }, "DEPLOYMENT names no deployment folder"],
+      [{ DEPLOYMENT: "broken" }, "config.forms.text is invalid", broken],
+    ];
+    for (const [env, message, root] of cases) for (const [command, args] of [["check", ["all", "--sites", empty]], ["forms", ["all"]], ["baseline", ["acme", "--sites", sitesFile]], ["approve", ["acme", "--sites", sitesFile]]] as const) {
+      const logs: string[] = [];
+      expect(await dispatch(command, [...args], { log: (s) => logs.push(s), selection: { root: root ?? fixtureRoot, env } })).toBe(2);
+      expect(logs).toEqual([`${command}: ${message}`]);
+    }
+  });
+  test("usage errors precede selection; the default site list is the selected deployment's", async () => {
+    const logs: string[] = [];
+    expect(await dispatch("check", [], { log: (s) => logs.push(s), selection: { env: {} } })).toBe(2);
+    expect(logs[0]).toContain("usage: check");
+    expect(await dispatch("check", ["all"], { log: (s) => logs.push(s), selection: fixture })).toBe(0);
+    expect(logs.at(-1)).toBe("No sites selected.");
+    expect(await dispatch("check", ["stolarijabanek"], { log: (s) => logs.push(s), selection: fixture })).toBe(2);
+    expect(logs.at(-1)).toBe("check: unknown site slug");
+  });
+  test("CLI imports have no credential or deployment reads or exits and missing env is sanitized exit 2", () => {
     const common = resolve("src/commands/common.ts");
-    const child = (script: string) => Bun.spawnSync([process.execPath, "--no-env-file", "-e", script], { cwd: dir, env: {} });
-    const imported = child(`await import(${JSON.stringify(common)}); await import(${JSON.stringify(resolve("src/commands/check.ts"))});`);
+    const child = (script: string, env: Record<string, string> = { DEPLOYMENT: "pirax" }) => Bun.spawnSync([process.execPath, "--no-env-file", "-e", script], { cwd: dir, env });
+    const imported = child(`await import(${JSON.stringify(common)}); await import(${JSON.stringify(resolve("src/commands/check.ts"))}); await import(${JSON.stringify(resolve("src/forms/runner.ts"))});`, {});
     expect(imported.exitCode).toBe(0);
-    expect(imported.stdout.toString()).toBe("");
+    expect(imported.stdout.toString() + imported.stderr.toString()).toBe("");
     const missing = child(`const {dispatch} = await import(${JSON.stringify(common)}); process.exitCode = await dispatch("check", ["acme", "--sites", ${JSON.stringify(sitesFile)}]);`);
     expect(missing.exitCode).toBe(2);
     expect(missing.stdout.toString() + missing.stderr.toString()).toContain("S3_ACCESS_KEY_ID");
@@ -54,12 +85,15 @@ test("root forms alias invokes production entrypoint; empty/usage need no creden
   const pkg = await Bun.file(resolve('package.json')).json();
   expect(pkg.scripts.forms).toBe('bun src/commands/forms.ts');
   const empty = join(dir, 'root-empty.yaml'); await Bun.write(empty, 'sites: []\n');
-  const child = (args: string[]) => Bun.spawnSync([process.execPath, '--no-env-file', 'run', 'forms', ...args], { cwd: resolve('.'), env: { PATH: process.env.PATH! } });
+  const child = (args: string[], env: Record<string, string> = { DEPLOYMENT: 'pirax' }) => Bun.spawnSync([process.execPath, '--no-env-file', 'run', 'forms', ...args], { cwd: resolve('.'), env: { PATH: process.env.PATH!, ...env } });
   const ok = child(['all', '--sites', empty]);
   expect(ok.exitCode).toBe(0); expect(ok.stdout.toString()).toContain('No sites selected.');
-  const usage = child([]); expect(usage.exitCode).toBe(2); expect(usage.stdout.toString()).toContain('usage: forms');
+  const usage = child([], {}); expect(usage.exitCode).toBe(2); expect(usage.stdout.toString()).toContain('usage: forms');
+  // Empty, not absent: the package script's inner bun may load an env file, which never overrides a set variable.
+  const unselected = child(['all', '--sites', empty], { DEPLOYMENT: '' });
+  expect(unselected.exitCode).toBe(2); expect(unselected.stdout.toString()).toBe('forms: DEPLOYMENT is not set\n');
   const { runForms } = await import('../src/commands/forms.ts');
-  expect(await runForms([], createStore())).toEqual({ exitCode: 0 });
+  expect(await runForms([], createStore(), { forms: { texts: loadDeployment(pirax).config.forms } })).toEqual({ exitCode: 0 });
 });
 
 test("direct forms/check errors sanitize trusted messages and classify config as exit 2", async () => {
@@ -129,7 +163,7 @@ test("newer valid forms-only runs are skipped; a malformed newer forms manifest 
 test("baseline/check entrypoints finish after the lazy command import instead of deadlocking", () => {
   const unreachable = join(dir, "unreachable.yaml");
   require("node:fs").writeFileSync(unreachable, 'sites:\n  - slug: down\n    url: http://127.0.0.1:9\n    form_helper: false\n    pages: [/]\n');
-  const env = { PATH: process.env.PATH!, HOME: process.env.HOME!, S3_ACCESS_KEY_ID: "id", S3_SECRET_ACCESS_KEY: "secret", S3_ENDPOINT: "http://127.0.0.1:9", S3_BUCKET: "bucket" };
+  const env = { PATH: process.env.PATH!, HOME: process.env.HOME!, DEPLOYMENT: "pirax", S3_ACCESS_KEY_ID: "id", S3_SECRET_ACCESS_KEY: "secret", S3_ENDPOINT: "http://127.0.0.1:9", S3_BUCKET: "bucket" };
   for (const command of ["baseline", "check"]) {
     const child = Bun.spawnSync([process.execPath, "--no-env-file", "run", command, "down", "--sites", unreachable], { cwd: resolve("."), env, timeout: 90_000 });
     const out = child.stdout.toString();

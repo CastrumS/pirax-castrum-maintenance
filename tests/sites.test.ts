@@ -91,7 +91,7 @@ describe("loadSites valid input", () => {
   });
 
   test("shipped sites.example.yaml loads", () => {
-    const sites = loadSites(join(import.meta.dir, "..", "sites.example.yaml"));
+    const sites = loadSites(join(import.meta.dir, "..", "deployments", "pirax", "sites.example.yaml"));
     expect(sites.length).toBeGreaterThan(0);
     for (const s of sites) expect(new URL(s.url).hostname).toMatch(/(^|\.)example\.(com|org|net)$|\.example$/);
     const pages = sites.flatMap((s) => s.pages);
@@ -99,13 +99,13 @@ describe("loadSites valid input", () => {
     expect(sites.some((s) => s.test_form)).toBe(true);
   });
 
-  test("committed sites.yaml designates exactly the operator's 12 test forms, offline", () => {
-    const sites = loadSites(join(import.meta.dir, "..", "sites.yaml"));
+  test("committed Pirax sites.yaml designates exactly the operator's 12 test forms, offline", () => {
+    const sites = loadSites(join(import.meta.dir, "..", "deployments", "pirax", "sites.yaml"));
     expect(sites).toHaveLength(13);
     expect(Object.fromEntries(sites.filter((s) => s.test_form).map((s) => [s.slug, s.test_form]))).toEqual({
       suntos: { page: "/kontakt/", plugin: "fluent", id: 4 },
       stolarijabanek: { page: "/kontakt/", plugin: "fluent", id: 1 },
-      "centrum-panda": { page: "/", plugin: "gravity", id: 3 },
+      "centrum-panda": { page: "/", plugin: "gravity", id: 1 },
       "tara-garden": { page: "/about-us/", plugin: "gravity", id: 1 },
       epamalgradnja: { page: "/kontakt/", plugin: "gravity", id: 1 },
       "alu-kon": { page: "/kontakt/", plugin: "gravity", id: 1 },
@@ -283,12 +283,16 @@ describe("loadSites broader validation", () => {
       expect((e as Error).message).toContain(missing);
     }
   });
-  test("default path is sites.yaml in the working directory", () => {
+  test("default path is the selected deployment's sites.yaml, never the working directory", () => {
     const cwd = join(dir, "cwd");
     mkdirSync(cwd);
     writeFileSync(join(cwd, "sites.yaml"), `sites:\n${site()}`);
-    const run = Bun.spawnSync([process.execPath, "--no-env-file", "-e", `const { loadSites } = await import(${JSON.stringify(join(import.meta.dir, "..", "src", "sites.ts"))}); console.log(loadSites()[0].slug)`], { cwd, env: {} });
-    expect(run.stdout.toString().trim()).toBe("acme");
+    const load = (env: Record<string, string>) =>
+      Bun.spawnSync([process.execPath, "--no-env-file", "-e", `const { loadSites } = await import(${JSON.stringify(join(import.meta.dir, "..", "src", "sites.ts"))}); console.log(loadSites().length)`], { cwd, env });
+    expect(load({ DEPLOYMENT: "pirax" }).stdout.toString().trim()).toBe("13");
+    const unselected = load({});
+    expect(unselected.exitCode).not.toBe(0);
+    expect(unselected.stderr.toString()).toContain("DEPLOYMENT is not set");
   });
 });
 

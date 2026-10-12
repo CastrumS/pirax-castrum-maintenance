@@ -9,6 +9,7 @@ import { chromium, type Browser } from "playwright";
 import { runBaseline } from "../../src/commands/baseline.ts";
 import { runCheck } from "../../src/commands/check.ts";
 import { runForms } from "../../src/commands/forms.ts";
+import { loadDeployment } from "../../src/deployment.ts";
 import { awaitingAuditKey } from "../../src/forms/awaiting-audit.ts";
 import { findSecrets, retainTrace, secretRedactor, type Redactor } from "../../src/forms/evidence.ts";
 import { reportStatus } from "../../src/report/html.ts";
@@ -20,6 +21,7 @@ import { createStore } from "../../src/store.ts";
 // Checker behavior evidence only: loopback GF/FF fixtures render the helper's locked refusal text into
 // production commands with a real scoped Store. Not evidence that a released helper emits that text.
 setDefaultTimeout(900_000);
+const texts = loadDeployment({ env: { DEPLOYMENT: "pirax" } }).config.forms; // These fixtures answer with the Pirax helper's refusals.
 const awaiting = "Pirax test blocked: awaiting audit of ";
 const synthetic = { FORM_TEST_TOKEN: "fixture-Commands+Token/=456", FORM_TEST_ADDRESS: "checker+commands@example.test", IMAP_HOST: "127.0.0.1", IMAP_USER: "fixture-imap-user", IMAP_PASSWORD: "fixture-imap-password", IMAP_FOLDER: "Tests", IMAP_SPAM_FOLDER: "Spam" };
 
@@ -100,7 +102,7 @@ test("production forms/check age, escalate, share and clear the awaiting-audit c
     const before = { posts, owned: owned(), clientConnects, peers: peers.length };
     const logs: string[] = [];
     const runsDir = join(dir, `${String(++n).padStart(2, "0")}-${name}`);
-    const options = { runsDir, log: (l: string) => logs.push(l), forms: { submissionTimeoutMs: 10_000, deliveryTimeoutMs: 2_000 } };
+    const options = { runsDir, log: (l: string) => logs.push(l), forms: { texts, submissionTimeoutMs: 10_000, deliveryTimeoutMs: 2_000 } };
     const result = command === "forms" ? await runForms(sites, createStore({ root }), options) : command === "check" ? await runCheck(sites, createStore({ root }), options) : await runBaseline(sites, createStore({ root }), options);
     const facts: Record<string, any> = { command, exitCode: result.exitCode, runDir: result.runDir, posts: posts - before.posts, mailboxConnections: owned() - before.owned, imapClientConnects: clientConnects - before.clientConnects, foreignProbes: peers.length - before.peers - (owned() - before.owned), logs };
     evidence.scenarios[name] = facts; // Never the returned bearer URL.

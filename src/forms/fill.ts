@@ -1,18 +1,21 @@
 import { randomInt } from "node:crypto";
 import type { Locator, Page } from "playwright";
+import type { DeploymentConfig } from "../deployment.ts";
 import type { FormConfig } from "./config.ts";
 import { formLocator, sameForm, type FormDescriptor } from "./detect.ts";
 
 export const newSubmissionId = (): string => Array.from({ length: 12 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[randomInt(36)]).join("");
 export type SubmissionRoute = 'postback' | 'gravity-ajax' | 'fluent-ajax';
-export type PreparedForm = { state: "prepared"; descriptor: FormDescriptor; id: string; marker: string; markerIndex: number; markerName: string; submitIndex: number; action: string; route: SubmissionRoute; validation: string };
+/** The selected deployment's filler and helper refusal prefix; one attempt keeps the same texts throughout. */
+export type FormTexts = DeploymentConfig["forms"];
+export type PreparedForm = { state: "prepared"; descriptor: FormDescriptor; id: string; texts: FormTexts; marker: string; markerIndex: number; markerName: string; submitIndex: number; action: string; route: SubmissionRoute; validation: string };
 export type FillResult = PreparedForm | { state: "unsupported" | "not-verified"; detail: string };
 type Control = { index: number; kind: string; name: string; value: string };
 type Inspection = { state: "ready"; controls: Control[]; markerIndex: number; markerName: string; submitIndex: number; action: string; route: SubmissionRoute; signature: string } | Exclude<FillResult, PreparedForm>;
 
 /** No typing here: inspect the entire form, including hidden uploads and native constraints. */
-export async function inspectForm(form: Locator, marker?: string): Promise<Inspection> {
-  return form.evaluate((node, marker): Inspection => {
+export async function inspectForm(form: Locator, texts: FormTexts, marker?: string): Promise<Inspection> {
+  return form.evaluate((node, { text, message, marker }): Inspection => {
     const f = node as HTMLFormElement;
     const unsupported = (detail: string): Inspection => ({ state: "unsupported", detail });
     const all = [...f.elements] as (HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | HTMLButtonElement)[];
@@ -82,7 +85,7 @@ export async function inspectForm(form: Locator, marker?: string): Promise<Inspe
     for (const [index, e] of all.entries()) {
       if (!writable(e) || e.type === 'hidden' || e.type === 'submit' || e.type === 'button' || e.type === 'reset') continue;
       if (e === candidate) { controls.push({ index, kind: "text", name: e.name, value: marker ?? "" }); continue; }
-      if (e instanceof HTMLTextAreaElement) { controls.push({ index, kind: "text", name: e.name, value: "Pirax test message" }); continue; }
+      if (e instanceof HTMLTextAreaElement) { controls.push({ index, kind: "text", name: e.name, value: message }); continue; }
       if (e instanceof HTMLSelectElement) {
         if (e.multiple) return unsupported("Multi-select/custom choice flow is unsupported.");
         const option = [...e.options].find(o => !o.disabled && !o.parentElement?.matches('optgroup:disabled') && o.value);
@@ -92,14 +95,14 @@ export async function inspectForm(form: Locator, marker?: string): Promise<Inspe
       if (!(e instanceof HTMLInputElement)) return unsupported("Unsupported form control.");
       if (e.type === 'radio') { if (radios.has(e.name)) continue; radios.add(e.name); controls.push({ index, kind: 'check', name: e.name, value: '' }); continue; }
       if (e.type === 'checkbox') { if (checkboxes.has(e)) controls.push({ index, kind: 'check', name: e.name, value: '' }); continue; }
-      const values: Record<string, string> = { text: "Pirax Test", email: "", tel: "+12025550123", url: "https://example.test", number: e.min || String(Math.min(e.max ? Math.floor(Number(e.max) / (Number(e.step) || 1)) * (Number(e.step) || 1) : Infinity, Number(e.step) || 1)), date: e.min || (e.max && e.max < "2026-01-15" ? e.max : "2026-01-15") };
+      const values: Record<string, string> = { text, email: "", tel: "+12025550123", url: "https://example.test", number: e.min || String(Math.min(e.max ? Math.floor(Number(e.max) / (Number(e.step) || 1)) * (Number(e.step) || 1) : Infinity, Number(e.step) || 1)), date: e.min || (e.max && e.max < "2026-01-15" ? e.max : "2026-01-15") };
       if (!(e.type in values)) return unsupported("Only basic text/email/tel/url/number/date and native choice controls are supported.");
       let value = values[e.type]!;
       if (e.type === 'text' || e.type === 'tel') { if (e.maxLength >= 0) value = value.slice(0, e.maxLength); if (e.minLength > value.length) value = value.padEnd(Math.min(e.minLength, 256), 'x'); }
       controls.push({ index, kind: e.type === 'email' ? 'email' : 'text', name: e.name, value });
     }
     return { state: "ready", controls, markerIndex: all.indexOf(candidate), markerName: candidate.name, submitIndex: all.indexOf(submits[0]!), action: action.href, route, signature: JSON.stringify(controls.map(c => [c.index, c.kind, c.name])) };
-  }, marker);
+  }, { text: texts.text, message: texts.message, marker });
 }
 
 export async function nativeValidation(form: Locator): Promise<string> {
@@ -110,13 +113,13 @@ export async function nativeValidation(form: Locator): Promise<string> {
   });
 }
 /** Bounded conditional stabilization; unsupported before submission rather than guessing hidden/custom data. */
-export async function fillForm(page: Page, descriptor: FormDescriptor, config: FormConfig, id: string): Promise<FillResult> {
+export async function fillForm(page: Page, descriptor: FormDescriptor, config: FormConfig, texts: FormTexts, id: string): Promise<FillResult> {
   if (!/^[a-z0-9]{12}$/.test(id)) throw new TypeError("Invalid submission id.");
   if (descriptor.plugin === "unknown" || !descriptor.pluginId) return { state: "unsupported", detail: "Unknown or ambiguous form plugin identity." };
   if (!await sameForm(page, descriptor)) return { state: "unsupported", detail: "Form identity changed since discovery." };
   const form = formLocator(page, descriptor);
   const marker = `${config.token}-${id}`;
-  let inspected = await inspectForm(form, marker);
+  let inspected = await inspectForm(form, texts, marker);
   const filled = new Map<number, string>();
   for (let round = 0; round < 3; round++) {
     if (inspected.state !== "ready") return inspected;
@@ -131,10 +134,10 @@ export async function fillForm(page: Page, descriptor: FormDescriptor, config: F
       filled.set(c.index, `${c.kind}:${value}`);
     }
     await page.waitForTimeout(100);
-    const next = await inspectForm(form, marker);
+    const next = await inspectForm(form, texts, marker);
     if (next.state !== "ready") return next;
     if (next.signature === inspected.signature) {
-      const prepared: PreparedForm = { state: "prepared", descriptor, id, marker, markerIndex: next.markerIndex, markerName: next.markerName, submitIndex: next.submitIndex, action: next.action, route: next.route, validation: await nativeValidation(form) };
+      const prepared: PreparedForm = { state: "prepared", descriptor, id, texts, marker, markerIndex: next.markerIndex, markerName: next.markerName, submitIndex: next.submitIndex, action: next.action, route: next.route, validation: await nativeValidation(form) };
       if (!await intactMarker(page, prepared)) return { state: "unsupported", detail: "Marker changed during filling; no submission." };
       return prepared;
     }

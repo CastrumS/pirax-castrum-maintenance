@@ -8,11 +8,11 @@ import type { FormsRunReport } from "../report/model.ts";
 import { publishReport, writeLocalReport } from "../report/writer.ts";
 import { pageKey, type Site } from "../sites.ts";
 import { isRunId, type Store } from "../store.ts";
-import { configurationError, dispatch, safeError, UsageError, type ExitCode, type RunOptions } from "./common.ts";
+import { configurationError, dispatch, safeError, UsageError, type ExitCode, type FormsRunOptions } from "./common.ts";
 
 export type FormsCommandResult = { exitCode: ExitCode; report?: FormsRunReport; runDir?: string; localPath?: string; url?: string };
 /** No captureSelection, image comparison, baseline access or mobile pass. */
-export async function runForms(sites: Site[], store: Store, options: RunOptions = {}): Promise<FormsCommandResult> {
+export async function runForms(sites: Site[], store: Store, options: FormsRunOptions): Promise<FormsCommandResult> {
   if (!sites.length) return { exitCode: 0 };
   const redact = secretRedactor();
   const log = (message: string) => (options.log ?? console.log)(redact(message));

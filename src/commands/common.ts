@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 import { combineHides, combineMasks, MaskSelectorError, openCaptureSession, type CaptureResult, type CaptureSession, type SessionOptions } from "../capture.ts";
+import { DeploymentConfigError, loadDeployment, type DeploymentOptions } from "../deployment.ts";
 import { EnvError, EnvFormatError, readR2Config } from "../env.ts";
 import { evaluateHealth } from "../health.ts";
 import { loadSites, pageKey, SitesConfigError, type Site } from "../sites.ts";
@@ -15,6 +16,8 @@ import { secretRedactor } from "../forms/evidence.ts";
 export type Command = "baseline" | "check" | "approve" | "forms";
 export type ExitCode = 0 | 1 | 2;
 export type RunOptions = { runsDir?: string; runId?: string; browser?: SessionOptions; forms?: Omit<FormsOptions, "runDir">; log?: (message: string) => void };
+/** check and forms attempt forms, so they need the selected deployment's form texts. */
+export type FormsRunOptions = RunOptions & { forms: Omit<FormsOptions, "runDir"> };
 export type CommandResult = { exitCode: ExitCode; report?: RunReport; runDir?: string; localPath?: string; url?: string };
 export class UsageError extends Error {}
 export type Arguments = { target: string; pagePath?: string; sitesFile?: string };
@@ -46,24 +49,27 @@ export function selectSites(sites: Site[], target: string): Site[] {
 /** Unknown errors never expose storage endpoints, credentials, bucket names or raw SDK messages. */
 export function safeError(error: unknown): string {
   const redact = secretRedactor();
-  if (error instanceof UsageError || error instanceof SitesConfigError || error instanceof EnvError || error instanceof EnvFormatError || error instanceof MaskSelectorError || error instanceof ReportError) return redact(error.message);
+  if (error instanceof UsageError || error instanceof SitesConfigError || error instanceof DeploymentConfigError || error instanceof EnvError || error instanceof EnvFormatError || error instanceof MaskSelectorError || error instanceof ReportError) return redact(error.message);
   const code = (error as { code?: unknown } | null)?.code;
   return redact(typeof code === "string" && /^[A-Za-z0-9_]{1,64}$/.test(code) ? `operation failed (${code})` : "operation failed");
 }
-export const configurationError = (error: unknown) => error instanceof UsageError || error instanceof SitesConfigError || error instanceof EnvError || error instanceof EnvFormatError || error instanceof MaskSelectorError;
+export const configurationError = (error: unknown) => error instanceof UsageError || error instanceof SitesConfigError || error instanceof DeploymentConfigError || error instanceof EnvError || error instanceof EnvFormatError || error instanceof MaskSelectorError;
 
-/** Harness seam: supply a real scoped Store and browser/run options; CLI has no scope/TLS bypass flags. */
-export async function dispatch(command: Command, args: string[], options: RunOptions & { store?: Store } = {}): Promise<ExitCode> {
+/** Harness seam: supply a real scoped Store, deployment selection and browser/run options; CLI has no scope/TLS bypass flags.
+ * Valid arguments always need a valid selected deployment, even with --sites or an empty list; --sites replaces only its site list. */
+export async function dispatch(command: Command, args: string[], options: RunOptions & { store?: Store; selection?: DeploymentOptions } = {}): Promise<ExitCode> {
   const log = options.log ?? console.log;
   try {
     const parsed = parseArgs(command, args);
-    const sites = selectSites(loadSites(parsed.sitesFile), parsed.target);
+    const deployment = loadDeployment(options.selection);
+    const sites = selectSites(loadSites(parsed.sitesFile ?? deployment.paths.sites), parsed.target);
     if (parsed.pagePath !== undefined && !sites[0]!.pages.some(p => p.path === parsed.pagePath)) throw new UsageError("requested page is not in the current site list");
     if (!sites.length) { log("No sites selected."); return 0; }
     const store = options.store ?? createStore({ config: readR2Config() });
-    if (command === "baseline") return (await (await import("./baseline.ts")).runBaseline(sites, store, options)).exitCode;
-    if (command === "check") return (await (await import("./check.ts")).runCheck(sites, store, options)).exitCode;
-    if (command === "forms") return (await (await import("./forms.ts")).runForms(sites, store, options)).exitCode;
+    const run: FormsRunOptions = { ...options, forms: { ...options.forms, texts: deployment.config.forms } };
+    if (command === "baseline") return (await (await import("./baseline.ts")).runBaseline(sites, store, run)).exitCode;
+    if (command === "check") return (await (await import("./check.ts")).runCheck(sites, store, run)).exitCode;
+    if (command === "forms") return (await (await import("./forms.ts")).runForms(sites, store, run)).exitCode;
     return (await (await import("./approve.ts")).runApprove(sites[0]!, store, { pagePath: parsed.pagePath, log })).exitCode;
   } catch (error) {
     log(`${command}: ${safeError(error)}`);

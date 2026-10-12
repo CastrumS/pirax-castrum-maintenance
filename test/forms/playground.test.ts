@@ -11,6 +11,7 @@ import { reportStatus } from '../../src/report/html.ts';
 import { createStore, type Store } from '../../src/store.ts';
 import type { FormResult, FormsManifest } from '../../src/report/model.ts';
 import type { TestForm } from '../../src/sites.ts';
+import { loadDeployment } from '../../src/deployment.ts';
 import { assert, cli, designate, safe, siteFor, startFormsHarness } from './harness.ts';
 
 setDefaultTimeout(180_000);
@@ -22,7 +23,9 @@ const summary: Record<string, unknown> = { workspace, root, cleanup: { ok: false
 const cases = summary.cases as Record<string, unknown>;
 const cliCases: Record<string, Record<string, unknown>> = {};
 cases.cli = cliCases;
-const timing = { deliveryTimeoutMs: 1_000, submissionTimeoutMs: 15_000 };
+// The installed helper is the Pirax build (dist/pirax-form-test.zip), so its form texts are Pirax's.
+const texts = loadDeployment({ env: { DEPLOYMENT: 'pirax' } }).config.forms;
+const timing = { texts, deliveryTimeoutMs: 1_000, submissionTimeoutMs: 15_000 };
 beforeAll(async () => {
   await mkdir(workspace, { recursive: true, mode: 0o700 });
   harness = await startFormsHarness(workspace);
@@ -110,7 +113,7 @@ test('helper false fills only each designated native form without changing mail,
   const { pages, ids } = harness.fixtures;
   // Two independent sites in one invocation, each designating a different form on the same page.
   const sites = [siteFor(pages.primary, false, designate(pages.primary, 'gravity', ids.gf)), { ...siteFor(pages.primary, false, designate(pages.primary, 'fluent', ids.ff)), slug: 'local-fluent' }];
-  const result = await runForms(sites, scoped, { runsDir: join(workspace,'warnings'), log:()=>{} });
+  const result = await runForms(sites, scoped, { runsDir: join(workspace,'warnings'), log:()=>{}, forms: { texts } });
   expect(result.exitCode).toBe(0);
   const forms = result.report!.sites.flatMap(s => s.pages[0]!.forms);
   expect(forms.map(f=>[f.plugin,f.outcome])).toEqual([['gravity','not-verified'],['fluent','skipped'],['gravity','skipped'],['fluent','not-verified']]);

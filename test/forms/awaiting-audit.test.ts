@@ -2,6 +2,7 @@ import { expect, setDefaultTimeout, test } from "bun:test";
 import { mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { runForms } from "../../src/commands/forms.ts";
+import { loadDeployment } from "../../src/deployment.ts";
 import { AWAITING_AUDIT_LIMIT_MS, awaitingAuditKey, reconcileAwaitingAudit } from "../../src/forms/awaiting-audit.ts";
 import { findSecrets, secretRedactor } from "../../src/forms/evidence.ts";
 import type { Site } from "../../src/sites.ts";
@@ -157,7 +158,7 @@ test("awaiting-audit clock persists, ages, clears and degrades against real scop
       await seed(base, other);
       const logs: string[] = [];
       const local: Site = { slug: "acme", url: `http://127.0.0.1:${server.port}`, form_helper: true, mask: [], max_diff_pixel_ratio: 0.01, pages: [{ path: "/", mask: [] }, { path: "/b/", mask: [] }] };
-      const result = await runForms([local], real, { runsDir: join(dir, "command"), log: line => logs.push(line) });
+      const result = await runForms([local], real, { runsDir: join(dir, "command"), log: line => logs.push(line), forms: { texts: loadDeployment({ env: { DEPLOYMENT: "pirax" } }).config.forms } });
       expect(result.exitCode).toBe(0);
       expect(await stored()).toBeNull();
       expect(await stored(other)).toBe(JSON.stringify({ firstSeen: iso(base) }));

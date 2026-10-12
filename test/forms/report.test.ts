@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium } from "playwright";
 import { runForms } from "../../src/commands/forms.ts";
+import { loadDeployment } from "../../src/deployment.ts";
 import { findSecrets, secretRedactor } from "../../src/forms/evidence.ts";
 import { runApprove } from "../../src/commands/approve.ts";
 import { renderHtml, reportStatus } from "../../src/report/html.ts";
@@ -47,7 +48,7 @@ test("production forms command publishes with a nonsecret folder in both run and
   try {
     process.env.IMAP_FOLDER = label;
     const selected: Site = { ...site, slug: 'local', url: `http://127.0.0.1:${server.port}`, form_helper: false, pages: [{ path: `/${label}/`, mask: [] }] };
-    const result = await runForms([selected], real, { runsDir: dir, log: line => logs.push(line) });
+    const result = await runForms([selected], real, { runsDir: dir, log: line => logs.push(line), forms: { texts: loadDeployment({ env: { DEPLOYMENT: 'pirax' } }).config.forms } });
     evidence.exitCode = result.exitCode;
     evidence.logs = logs;
     expect(result.exitCode).toBe(0);

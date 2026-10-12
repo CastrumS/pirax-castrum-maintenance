@@ -110,18 +110,20 @@ export async function installFormPolicy(context: BrowserContext): Promise<FormPo
 }
 
 export type SubmissionResult = { state: 'confirmed' | 'rejected' | 'awaiting-audit' | 'failed'; id: string; detail: string };
-// The helper's version-only refusal: nonempty `<Plugin label> <version>` items joined by `, `. Not a version allowlist.
+// The helper's version-only refusal: the selected deployment's literal prefix, then nonempty `<Plugin label> <version>`
+// items joined by `, `. Not a version allowlist.
 const awaitingItem = String.raw`[^\s,](?:[^,]*[^\s,])? [^\s,]+`;
-const awaitingAudit = new RegExp(`^Pirax test blocked: awaiting audit of ${awaitingItem}(?:, ${awaitingItem})*$`);
+const awaitingAudit = (prefix: string) => new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} awaiting audit of ${awaitingItem}(?:, ${awaitingItem})*$`);
 export type SubmitOptions = { timeoutMs?: number; redact?: Redactor };
 /** Never infers delivery; only one new, form-associated native confirmation starts mailbox polling. */
 export async function submitForm(page: Page, prepared: PreparedForm, policy: FormPolicy, options: SubmitOptions = {}): Promise<SubmissionResult> {
   const redact = options.redact ?? secretRedactor();
   const result = (state: SubmissionResult['state'], detail: string): SubmissionResult => ({ state, id: prepared.id, detail: redact(detail).slice(0, 2000) });
   const timeout = options.timeoutMs ?? 30_000;
+  const awaiting = awaitingAudit(prepared.texts.refusalPrefix);
   const form = formLocator(page, prepared.descriptor);
   try {
-    const inspection = await inspectForm(form, prepared.marker);
+    const inspection = await inspectForm(form, prepared.texts, prepared.marker);
     if (inspection.state !== 'ready' || inspection.markerIndex !== prepared.markerIndex || inspection.submitIndex !== prepared.submitIndex || inspection.route !== prepared.route || inspection.action !== prepared.action || !await intactMarker(page, prepared)) return result('failed', 'Marker/form changed before submission; no submission.');
     const validation = await nativeValidation(form);
     if (validation !== 'Native client validation passed.') return result('rejected', validation);
@@ -184,7 +186,7 @@ export async function submitForm(page: Page, prepared: PreparedForm, policy: For
           // GF's native summary heading only frames the helper's paragraph; any other message is its own refusal.
           // A selected form that is natively invalid at the same time stays a rejection, never a warning.
           const refusals = [...new Set(observed.bad.filter(m => !m.summary).map(m => m.text))];
-          if (!observed.invalid && refusals.length && refusals.every(m => awaitingAudit.test(m))) return result('awaiting-audit', `Plugin refused submission: ${refusals.join('; ')}`);
+          if (!observed.invalid && refusals.length && refusals.every(m => awaiting.test(m))) return result('awaiting-audit', `Plugin refused submission: ${refusals.join('; ')}`);
           return result('rejected', `Plugin refused submission: ${[...new Set(observed.bad.map(m => m.text))].join('; ')}`);
         }
         if (observed.good && policy.submitted()) return result('confirmed', `Native ${gravity ? 'Gravity Forms' : 'Fluent Forms'} confirmation: ${observed.good}`);

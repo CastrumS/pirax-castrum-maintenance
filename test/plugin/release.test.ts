@@ -505,7 +505,7 @@ test("offline: the parent refuses to package a seed found in source, and no priv
   const dir = await checkout("seed-in-source", { publicKey: k.publicKey, edits: { "README.md": (t) => `${t}\n${k.seed}\n` } });
   const r = await cli(dir, "seed-in-source", ["--dry-run"], k.seed);
   expect(r.code).toBe(1);
-  expect(r.stderr).toBe(`release-plugin: ${SLUG}/README.md contains the value of ${KEY}\n`);
+  expect(r.stderr).toBe(`release-plugin: README.md contains the value of ${KEY}\n`);
   expect(r.dist).toEqual([]);
   summary.seedInSource = { exit: r.code, message: r.stderr.trim() };
 

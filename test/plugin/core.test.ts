@@ -39,7 +39,8 @@ const PRODUCTION_FILES = [
 ]
   .map((file) => `${SLUG}/${file}`)
   .sort();
-/** dist/ may also hold signed release assets next to the ZIP, this or another deployment's (<slug>.zip, <slug>-manifest.json[.sig]); nothing else. */
+/** dist/ may hold this or another deployment's release assets. */
+// ponytail: name shape admits an unknown <slug>.zip; selected ZIP contents are checked below. Use isolated output dirs if provenance of every sibling asset is needed.
 const RELEASE_ASSET = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\.zip|-manifest\.json(?:\.sig)?)$/;
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");

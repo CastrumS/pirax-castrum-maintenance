@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { loadDeployment } from "../src/deployment.ts";
@@ -229,6 +229,20 @@ describe("sendFailure", () => {
           expect(JSON.parse(r.out.trim().split("\n").at(-1)!)).toEqual({ smtpAttempts: 0, smtpAccepted: false, error: message });
         }
       }
+      // An Actions run of another repository aborts before the summary, credentials or a transport: zero attempts.
+      const context = "GITHUB_REPOSITORY is not the selected deployment's repository";
+      for (const actions of [{ GITHUB_ACTIONS: "true", GITHUB_REPOSITORY: "other/repo" }, { GITHUB_ACTIONS: "true" }] as Record<string, string>[]) {
+        for (const args of [[good], ["--selftest"], ["--jobs", dir]]) {
+          const r = run(args, { ...offlineEnv, ...actions, DEPLOYMENT: "pirax", IMAP_PASSWORD: SECRET });
+          expect(r.code).toBe(1);
+          expect(r.out).not.toContain("IMAP_USER");
+          expect(r.out.includes(SECRET)).toBe(false);
+          expect(JSON.parse(r.out.trim())).toEqual({ smtpAttempts: 0, smtpAccepted: false, error: context });
+        }
+      }
+      const matching = run([good], { ...offlineEnv, GITHUB_ACTIONS: "true", GITHUB_REPOSITORY: REPO, DEPLOYMENT: "pirax", IMAP_PASSWORD: SECRET });
+      expect(matching.code).toBe(1);
+      expect(matching.out).toContain("IMAP_USER");
       const missing = run([good], { ...offlineEnv, DEPLOYMENT: "pirax", IMAP_PASSWORD: SECRET });
       expect(missing.code).toBe(1);
       expect(missing.out).toContain("IMAP_USER");
@@ -572,6 +586,36 @@ describe("watchdog", () => {
     const result = await runWatchdog({ deployment: PIRAX, now, gh: disabled, notify: failing, env });
     expect(result).toEqual({ healthy: false, reason: "workflow-disabled-inactivity", notice: "failed" });
     expect(attempts).toBe(1);
+  });
+
+  test("an Actions run of another repository is refused before gh or any notifier, --no-notify included", async () => {
+    const context = "watchdog: GITHUB_REPOSITORY is not the selected deployment's repository";
+    const disabled = gh({ "workflows/reaudit.yml/runs": http(200, runs()), "workflows/reaudit.yml": http(200, workflow({ state: "disabled_inactivity" })) });
+    const sent: FailureSummary[] = [];
+    const notify = async (s: FailureSummary) => { sent.push(s); return { accepted: 1, rejected: 0 }; };
+    for (const env of [{ GITHUB_ACTIONS: "true", GITHUB_REPOSITORY: FIXTURE.config.channel.repository }, { GITHUB_ACTIONS: "true" }])
+      for (const n of [notify, null, undefined])
+        await expect(runWatchdog({ deployment: PIRAX, now, gh: disabled, notify: n, env })).rejects.toThrow(context);
+    expect(disabled.calls).toEqual([]);
+    expect(sent).toEqual([]);
+    const own = { GITHUB_ACTIONS: "true", GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: REPO, GITHUB_RUN_ID: "123456789" };
+    expect(await runWatchdog({ deployment: PIRAX, now, gh: disabled, notify, env: own })).toEqual({ healthy: false, reason: "workflow-disabled-inactivity", notice: "sent" });
+
+    const dir = mkdtempSync(join(tmpdir(), "reaudit-watchdog-"));
+    try {
+      const marker = join(dir, "gh-called");
+      mkdirSync(join(dir, "bin"));
+      writeFileSync(join(dir, "bin/gh"), `#!/bin/sh\ntouch '${marker}'\nexit 1\n`, { mode: 0o755 });
+      for (const args of [[], ["--no-notify"]]) {
+        const p = Bun.spawnSync([process.execPath, "--no-env-file", join(ROOT, "scripts/reaudit/watchdog.ts"), ...args], {
+          cwd: dir,
+          env: { ...offlineEnv, PATH: `${join(dir, "bin")}:${offlineEnv.PATH}`, GITHUB_ACTIONS: "true", GITHUB_REPOSITORY: "other/repo", DEPLOYMENT: "pirax", IMAP_USER: "notice-sender@example.com", IMAP_PASSWORD: SECRET },
+          stdout: "pipe", stderr: "pipe", timeout: 30_000,
+        });
+        expect({ code: p.exitCode, out: p.stdout.toString() + p.stderr.toString() }).toEqual({ code: 1, out: `${context}\n` });
+      }
+      expect(existsSync(marker)).toBe(false);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 });
 

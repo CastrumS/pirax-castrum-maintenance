@@ -31,6 +31,8 @@ export async function setup({
   repo = loadDeployment({ env }).config.channel.repository,
   log = console.log,
 }: { env?: Record<string, string | undefined>; source?: string; ciphertext?: string; repo?: string; log?: (line: string) => void } = {}) {
+  // repositoryMismatch() on the target repository itself, which a caller may pass explicitly.
+  if (env.GITHUB_ACTIONS === "true" && env.GITHUB_REPOSITORY !== repo) throw refuse("GITHUB_REPOSITORY", "is not the selected deployment's repository");
   for (const name of SECRET_NAMES) if (!env[name]) throw refuse(name, "is not set");
   const passphrase = env.GPLVAULT_UPDATER_PASSPHRASE!;
   if (passphrase.length < 16) throw refuse("GPLVAULT_UPDATER_PASSPHRASE", "is shorter than 16 characters");

@@ -126,6 +126,19 @@ describe("setup", () => {
     expect(recorded.filter((c) => c.argv[1] === "set")).toEqual([]);
   });
 
+  test("an Actions run of another repository is refused before credentials, source, ciphertext or gh", async () => {
+    const actions = { GITHUB_ACTIONS: "true", GITHUB_REPOSITORY: "other/repo" };
+    const { GITHUB_REPOSITORY: _r, ...noRepository } = actions;
+    // No credentials either: the refusal must come first, not from a missing secret.
+    for (const env of [{ ...ENV, ...actions }, { ...ENV, ...noRepository }, actions]) {
+      const { error, recorded, ciphertext } = await runSetup({ env });
+      expect(error!.message).toBe("setup: GITHUB_REPOSITORY is not the selected deployment's repository");
+      expect(recorded).toEqual([]);
+      expect(await Bun.file(ciphertext).exists()).toBe(false);
+    }
+    expect((await runSetup({ env: { ...ENV, ...actions, GITHUB_REPOSITORY: "example/repo" } })).error).toBeUndefined();
+  });
+
   test("refuses missing or weak inputs by name only", async () => {
     const { IMAP_PASSWORD: _p, ...missing } = ENV;
     expect((await runSetup({ env: missing })).error!.message).toBe("setup: IMAP_PASSWORD is not set");

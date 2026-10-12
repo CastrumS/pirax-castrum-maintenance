@@ -3,7 +3,7 @@
 // IMAP_USER/IMAP_PASSWORD (the dedicated Gmail account and app password). The body is rendered only from a strictly
 // validated FailureSummary: never a raw Error, vendor response or private URL; a run URL must belong to the
 // deployment's repository. Errors name variables or a safe error code, never values. An unusable DEPLOYMENT aborts
-// before any credential or transport. A failed send exits nonzero and never sends again.
+// before any credential or transport, and so does an Actions run of another repository. A failed send exits nonzero and never sends again.
 //
 // Usage (every form needs DEPLOYMENT):
 //   bun --env-file=.env scripts/reaudit/notify.ts --selftest       one clearly labeled harmless notice; prints
@@ -22,6 +22,7 @@ import { DeploymentConfigError, loadDeployment, type Deployment } from "../../sr
 import { EnvError, EnvFormatError, readEnv } from "../../src/env.ts";
 import { addressPattern } from "../../src/forms/config.ts";
 import { subjectTag } from "../../src/mail/imap.ts";
+import { repositoryMismatch } from "./heartbeat.ts";
 
 const SEND_TIMEOUT_MS = 90_000;
 
@@ -253,6 +254,10 @@ if (import.meta.main) {
   } catch (e) {
     if (!(e instanceof DeploymentConfigError)) throw e;
     console.error(JSON.stringify({ smtpAttempts: 0, smtpAccepted: false, error: e.message }));
+    process.exit(1);
+  }
+  if (repositoryMismatch(deployment, process.env)) {
+    console.error(JSON.stringify({ smtpAttempts: 0, smtpAccepted: false, error: "GITHUB_REPOSITORY is not the selected deployment's repository" }));
     process.exit(1);
   }
   const repository = deployment.config.channel.repository;

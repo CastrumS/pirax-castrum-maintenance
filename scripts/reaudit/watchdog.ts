@@ -4,10 +4,10 @@
 // A failed recent audit still proves the scheduler is alive; failed-run notices belong to reaudit.yml itself.
 // Limitation: it runs on the same GitHub Actions scheduler, so a total scheduler outage silences both.
 //
-// Usage: bun --env-file=.env scripts/reaudit/watchdog.ts [--no-notify]   exit 0 healthy, 1 unhealthy (or no DEPLOYMENT)
+// Usage: bun --env-file=.env scripts/reaudit/watchdog.ts [--no-notify]   exit 0 healthy, 1 unhealthy (or no DEPLOYMENT, or an Actions run of another repository)
 // Import-safe: nothing runs on import.
 import { DeploymentConfigError, loadDeployment, type Deployment } from "../../src/deployment.ts";
-import { CLOCK_SKEW_MS, parseInstant, safeChildEnv } from "./heartbeat.ts";
+import { CLOCK_SKEW_MS, parseInstant, repositoryMismatch, safeChildEnv } from "./heartbeat.ts";
 import { runUrlFromEnv, safeError, sendFailure, type FailureSummary } from "./notify.ts";
 
 export const OVERDUE_MS = 48 * 3_600_000;
@@ -19,6 +19,7 @@ export type WatchdogFacts = { state: (typeof STATES)[number]; createdAt: number;
 export type WatchdogReason = "healthy" | "awaiting-first-run" | "audit-overdue" | "no-audit-history" | "workflow-missing" | "actions-query-failed" | "actions-response-invalid" | `workflow-${string}`;
 export type WatchdogDecision = { healthy: boolean; reason: WatchdogReason };
 
+export class WatchdogError extends Error {}
 class InvalidResponse extends Error {}
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 function finiteClock(now: number) {
@@ -88,6 +89,8 @@ export function observe(repository: string, gh: Gh, now: number): WatchdogDecisi
 type WatchdogOptions = { deployment: Deployment; now: number; gh?: Gh; env?: Record<string, string | undefined>; notify?: ((s: FailureSummary) => Promise<unknown>) | null };
 /** One observation of the deployment's repository; unhealthy attempts exactly one notice to its recipient (none when notify is null). */
 export async function runWatchdog({ deployment, now, gh = realGh, env = process.env, notify = (s) => sendFailure(deployment, s, env) }: WatchdogOptions): Promise<WatchdogDecision & { notice: "not-needed" | "sent" | "failed" | "skipped" }> {
+  // Another repository's liveness is not this job's observation, whether or not a notice would follow.
+  if (repositoryMismatch(deployment, env)) throw new WatchdogError("watchdog: GITHUB_REPOSITORY is not the selected deployment's repository");
   const repository = deployment.config.channel.repository;
   const decision = observe(repository, gh, now);
   if (decision.healthy) return { ...decision, notice: "not-needed" };
@@ -116,7 +119,11 @@ if (import.meta.main) {
     console.error(`watchdog: ${e.message}`);
     process.exit(1);
   }
-  const result = await runWatchdog({ deployment, now: Date.now(), notify: args.length ? null : undefined });
+  const result = await runWatchdog({ deployment, now: Date.now(), notify: args.length ? null : undefined }).catch((e) => {
+    if (!(e instanceof WatchdogError)) throw e;
+    console.error(e.message);
+    process.exit(1);
+  });
   console.log(JSON.stringify(result));
   process.exit(result.healthy ? 0 : 1);
 }

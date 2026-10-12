@@ -1,5 +1,6 @@
 # Lessons
 
+- A config-derived output path can itself contain the secret a scanner rejects; diagnose with a fixed allowlisted source filename, not that output path — 2026-10-12 — [case and evidence](history/2026-10-12-secret-in-diagnostic-path.md).
 - Cross-runtime JSON dictionaries can have identical values but different key order; use structural equality for native state/hash assertions, not serialized text equality — 2026-10-12 — [case and evidence](history/2026-10-12-native-dictionary-equality.md).
 - GitHub reruns preserve the run ID and earlier artifacts: bind candidate data and artifact selection to the current attempt, and never use an old cleanup confirmation when current evidence is missing — 2026-10-07 — [case and evidence](history/2026-10-07-workflow-attempt-artifacts.md).
 

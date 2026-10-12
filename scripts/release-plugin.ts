@@ -101,7 +101,7 @@ async function release(dryRun: boolean) {
   // Gate the exact final bytes (ZIP entries included) before any tag/release mutation. Nothing below rebuilds
   // or edits these assets. Reuse the encoded-known-secret scanner and its credential-free archive children.
   try {
-    if ((await scanEvidence(DIST, secretValues(process.env))).length) throw new Error("secret");
+    if ((await scanEvidence(DIST, secretValues(process.env, [], deployment.config.notice.recipient))).length) throw new Error("secret");
   } catch {
     await Promise.all([ZIP, MANIFEST, SIGNATURE].map((file) => rm(file, { force: true })));
     throw new Error("release asset privacy check failed; assets withheld, publication not attempted");

@@ -45,9 +45,9 @@ export async function buildPlugin({ deployment = loadDeployment(), source = SOUR
   if (only(rendered("includes/updates.php"), /^const UPDATE_PUBLIC_KEY = '([^']*)';$/gm, "includes/updates.php", "UPDATE_PUBLIC_KEY") !== deployment.config.channel.publicKey)
     throw new Error("rendered includes/updates.php does not hold the deployment's public key");
   const secrets = SECRETS.filter((name) => process.env[name]);
-  for (const { path, contents } of files) {
+  for (const { file, contents } of files) {
     const leaked = secrets.filter((name) => contents.includes(process.env[name]!));
-    if (leaked.length) throw new Error(`${path} contains the value of ${leaked.join(", ")}`);
+    if (leaked.length) throw new Error(`${file} contains the value of ${leaked.join(", ")}`);
   }
 
   const slug = deployment.config.plugin.slug;

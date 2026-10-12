@@ -281,8 +281,10 @@ describe("build guards", () => {
       }
       // A known secret's value in any rendered byte stops the build; the error names the variable, not the value.
       const leaked = await run({ DEPLOYMENT: "fixture", FORM_TEST_TOKEN: "acme-fixture/acme-form-check-channel" });
-      expect(leaked).toEqual({ stdout: "", stderr: expect.stringMatching(/^build:plugin: acme-form-check\/[\w./-]+ contains the value of FORM_TEST_TOKEN\n$/), exit: 1 });
+      expect(leaked).toEqual({ stdout: "", stderr: expect.stringMatching(/^build:plugin: [\w./-]+ contains the value of FORM_TEST_TOKEN\n$/), exit: 1 });
       expect(leaked.stderr).not.toContain("acme-fixture");
+      const slugLeak = await run({ DEPLOYMENT: "fixture", FORM_TEST_TOKEN: "acme-form-check" });
+      expect(JSON.stringify(slugLeak).includes("acme-form-check")).toBe(false);
       expect(readdirSync(dir).includes("dist")).toBe(false);
 
       const built = await run({ DEPLOYMENT: "fixture" });

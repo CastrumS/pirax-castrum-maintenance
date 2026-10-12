@@ -4,6 +4,7 @@
 // bun --env-file=/home/rudi/Work/Privatni/Pirax-Castrum-Maintenance/.env test test/plugin/review-regressions.test.ts
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { join, resolve } from "node:path";
+import { loadDeployment } from "../../src/deployment";
 import { findSecret } from "./artifacts";
 import { startHarness, type Harness } from "./harness";
 
@@ -11,7 +12,7 @@ import { startHarness, type Harness } from "./harness";
 setDefaultTimeout(180_000);
 
 const ROOT = resolve(import.meta.dir, "../..");
-const ZIP = join(ROOT, "dist/pirax-form-test.zip");
+const ZIP = join(ROOT, "dist", loadDeployment().assets.zip);
 const REDIRECT = "form-tests+pirax@operator.test";
 
 /** A PHP expression decoding a JSON value (single-quoted literal, so `$` and `\` stay literal). */

@@ -7,6 +7,7 @@ import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { appendFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
+import { loadDeployment } from "../../src/deployment";
 import { findSecret } from "./artifacts";
 import { startHarness, type EnvelopeRecord, type Harness, type HttpRecord } from "./harness";
 import { nextPatch, PINS, withAlteredFile as alteredFile } from "./version-fixtures";
@@ -15,13 +16,14 @@ import { nextPatch, PINS, withAlteredFile as alteredFile } from "./version-fixtu
 setDefaultTimeout(180_000);
 
 const ROOT = resolve(import.meta.dir, "../..");
-const ZIP = join(ROOT, "dist/pirax-form-test.zip");
+const { assets, config } = loadDeployment();
+const ZIP = join(ROOT, "dist", assets.zip);
 const REDIRECT = "form-tests+pirax@operator.test";
 const ID = "abc123";
-const BLOCKED = "Pirax test blocked: integrations could not be suppressed";
-const AWAITING = "Pirax test blocked: awaiting audit of ";
-const INVALID_MARKER = "Pirax test blocked: invalid test marker";
-const INVALID_CONFIG = "Pirax test blocked: test configuration is invalid";
+const BLOCKED = `${config.forms.refusalPrefix} integrations could not be suppressed`;
+const AWAITING = `${config.forms.refusalPrefix} awaiting audit of `;
+const INVALID_MARKER = `${config.forms.refusalPrefix} invalid test marker`;
+const INVALID_CONFIG = `${config.forms.refusalPrefix} test configuration is invalid`;
 const SETTINGS = "/wp-admin/options-general.php?page=pirax-form-test";
 const EMAIL_PRECHECK = "/wp-json/cleantalk-antispam/v1/check_email_before_post";
 /** A genuinely different GF version than the pin, for wrong-version cases. */

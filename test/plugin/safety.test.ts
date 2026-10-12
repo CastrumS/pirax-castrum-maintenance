@@ -6,6 +6,7 @@ import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { appendFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
+import { loadDeployment } from "../../src/deployment";
 import { findSecret } from "./artifacts";
 import { startHarness, type Harness, type MailRecord } from "./harness";
 import { exactMatrix, nextPatch, PINS } from "./version-fixtures";
@@ -14,10 +15,11 @@ import { exactMatrix, nextPatch, PINS } from "./version-fixtures";
 setDefaultTimeout(180_000);
 
 const ROOT = resolve(import.meta.dir, "../..");
-const ZIP = join(ROOT, "dist/pirax-form-test.zip");
+const { assets, config } = loadDeployment();
+const ZIP = join(ROOT, "dist", assets.zip);
 const REDIRECT = "form-tests+pirax@operator.test";
 const ID = "abc123";
-const BLOCKED = "Pirax test blocked: integrations could not be suppressed";
+const BLOCKED = `${config.forms.refusalPrefix} integrations could not be suppressed`;
 const DUMMY_CAPTCHA = "pirax-dummy-recaptcha-response";
 /** Genuinely different versions than the pins, for wrong-version cases. */
 const GF_NEXT = nextPatch(PINS.gf);
@@ -276,7 +278,7 @@ test("FF unsupported marked form with reCAPTCHA and failing siteverify is reject
     const ordinary = await ffSubmit(ff, page, ffValues("ordinary message"), { captcha: true });
     expect(ordinary.ok).toBe(false);
     expect(ordinary.text).toContain("reCaptcha verification failed");
-    expect(ordinary.text).not.toContain("Pirax test blocked");
+    expect(ordinary.text).not.toContain(config.forms.refusalPrefix);
     expect((await h.siteverify()).length).toBe(before.siteverify + 1);
     expect((await h.entries()).ff).toBe(before.entries.ff);
   } finally {
@@ -509,7 +511,7 @@ test("version-only diagnosis: reflected source directories decide callback owner
     }
     return $out;
   `);
-  const AWAITING = "Pirax test blocked: awaiting audit of ";
+  const AWAITING = `${config.forms.refusalPrefix} awaiting audit of `;
   await note("version-only diagnosis", result);
   expect(result.owners).toEqual({
     function: "gf",

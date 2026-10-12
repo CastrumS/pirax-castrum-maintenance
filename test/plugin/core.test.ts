@@ -8,6 +8,7 @@ import { readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { withoutSigningKey } from "../../scripts/build-plugin";
+import { loadDeployment } from "../../src/deployment";
 import { findSecret } from "./artifacts";
 import { FF_VERSION, GF_VERSION, startHarness, type Harness } from "./harness";
 import { HELPER_VERSION } from "./version-fixtures";
@@ -16,26 +17,30 @@ import { HELPER_VERSION } from "./version-fixtures";
 setDefaultTimeout(180_000);
 
 const ROOT = resolve(import.meta.dir, "../..");
-const ZIP = join(ROOT, "dist/pirax-form-test.zip");
-const PLUGIN = "pirax-form-test/pirax-form-test.php";
+const { assets, config } = loadDeployment();
+const SLUG = config.plugin.slug;
+const ZIP = join(ROOT, "dist", assets.zip);
+const PLUGIN = assets.basename;
 const F = "\\Pirax\\FormTest\\";
 const REDIRECT = "form-tests+pirax@operator.test";
 const SETTINGS = "/wp-admin/options-general.php?page=pirax-form-test";
 const PRODUCTION_FILES = [
-  "pirax-form-test/README.md",
-  "pirax-form-test/includes/cleanup.php",
-  "pirax-form-test/includes/compatibility.php",
-  "pirax-form-test/includes/fluent-forms.php",
-  "pirax-form-test/includes/gravity-forms.php",
-  "pirax-form-test/includes/mail.php",
-  "pirax-form-test/includes/marker.php",
-  "pirax-form-test/includes/settings.php",
-  "pirax-form-test/includes/updates.php",
-  "pirax-form-test/pirax-form-test.php",
-  "pirax-form-test/uninstall.php",
-];
-/** dist/ may also hold the signed release assets next to the ZIP; nothing else. */
-const RELEASE_ASSETS = ["pirax-form-test-manifest.json", "pirax-form-test-manifest.json.sig", "pirax-form-test.zip"];
+  "README.md",
+  "includes/cleanup.php",
+  "includes/compatibility.php",
+  "includes/fluent-forms.php",
+  "includes/gravity-forms.php",
+  "includes/mail.php",
+  "includes/marker.php",
+  "includes/settings.php",
+  "includes/updates.php",
+  assets.main,
+  "uninstall.php",
+]
+  .map((file) => `${SLUG}/${file}`)
+  .sort();
+/** dist/ may also hold signed release assets next to the ZIP, this or another deployment's (<slug>.zip, <slug>-manifest.json[.sig]); nothing else. */
+const RELEASE_ASSET = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\.zip|-manifest\.json(?:\.sig)?)$/;
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 /** A PHP expression decoding a JSON value (single-quoted literal, so `$` and `\` stay literal). */
@@ -80,23 +85,23 @@ test("build:plugin produces only the allowlisted uploadable ZIP with no tests, s
   const build = await Bun.$`bun run build:plugin`.cwd(ROOT).quiet().nothrow();
   expect(build.exitCode).toBe(0);
   const dist = await readdir(join(ROOT, "dist"));
-  expect(dist).toContain("pirax-form-test.zip");
-  expect(dist.filter((f) => !RELEASE_ASSETS.includes(f))).toEqual([]);
+  expect(dist).toContain(assets.zip);
+  expect(dist.filter((f) => !RELEASE_ASSET.test(f))).toEqual([]);
   const entries = (await Bun.$`unzip -Z1 ${ZIP}`.env(withoutSigningKey()).text()).trim().split("\n");
-  for (const entry of entries) expect(entry.startsWith("pirax-form-test/")).toBe(true);
+  for (const entry of entries) expect(entry.startsWith(`${SLUG}/`)).toBe(true);
   expect(entries.filter((e) => !e.endsWith("/")).sort()).toEqual(PRODUCTION_FILES);
   // Code only: comments may name wp_mail() when documenting what the filters do.
   const source = (await Bun.$`unzip -p ${ZIP} ${"*.php"}`.env(withoutSigningKey()).text()).replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   expect(source).not.toMatch(/register_rest_route|rest_api_init|\bwp_mail\s*\(|PHPMailer|PIRAX_FORM_TEST_HARNESS/);
-  const main = await Bun.$`unzip -p ${ZIP} pirax-form-test/pirax-form-test.php`.env(withoutSigningKey()).text();
+  const main = await Bun.$`unzip -p ${ZIP} ${assets.basename}`.env(withoutSigningKey()).text();
   // The shipping helper's own version (header and constant agree, read by scripts/plugin-source.ts), whatever it is now.
   expect(main.match(/^ \* Version:\s+(\S+)$/m)?.[1]).toBe(HELPER_VERSION);
   expect(main).toContain(`\nconst VERSION = '${HELPER_VERSION}';\n`);
   // A repository-specific Update URI keeps WordPress from matching a same-named wordpress.org plugin.
-  expect(main).toMatch(/^ \* Update URI:\s+https:\/\/github\.com\/CastrumS\/pirax-castrum-maintenance$/m);
-  const updates = await Bun.$`unzip -p ${ZIP} pirax-form-test/includes/updates.php`.env(withoutSigningKey()).text();
-  expect(updates).toContain("const UPDATE_RELEASES_ROOT = 'https://github.com/CastrumS/pirax-castrum-maintenance/releases';");
-  expect(updates).toContain("const UPDATE_PUBLIC_KEY = 'D8BfOn8TZC3jD+Hv5Q+p7SGPNGIYISVcMCqQWU0Dh9w=';");
+  expect(main.match(/^ \* Update URI:\s+(.*)$/m)?.[1]).toBe(config.plugin.updateUri);
+  const updates = await Bun.$`unzip -p ${ZIP} ${SLUG}/includes/updates.php`.env(withoutSigningKey()).text();
+  expect(updates).toContain(`const UPDATE_RELEASES_ROOT = '${config.channel.releasesRoot}';`);
+  expect(updates).toContain(`const UPDATE_PUBLIC_KEY = '${config.channel.publicKey}';`);
   expect(await findSecret(join(ROOT, "dist"), [h.token, process.env.GRAVITY_FORMS_ZIP ?? "", process.env.PIRAX_HELPER_SIGNING_KEY ?? ""])).toEqual([]);
 });
 
@@ -133,12 +138,12 @@ test("generated ZIP uploads and activates through wp-admin without Gravity Forms
   expect(Object.keys(state.options).sort()).toEqual(["pirax_form_test_redirect", "pirax_form_test_token"]);
   for (const row of Object.values(state.options) as any[]) expect(["off", "no"]).toContain(row.autoload);
 
-  // Settings → Pirax Form Test, as the real administrator.
+  // Settings → the helper's configured name, as the real administrator.
   await page.goto(`${h.url}/wp-admin/`);
   await page.hover("#menu-settings");
   await page.click(`#menu-settings a[href$="page=pirax-form-test"]`);
   await page.waitForURL(/page=pirax-form-test/);
-  expect(await page.locator("h1").innerText()).toBe("Pirax Form Test");
+  expect(await page.locator("h1").innerText()).toBe(config.plugin.name);
   expect(await page.locator("#pirax-form-test-token-status").innerText()).toMatch(/not set/i);
   await page.fill("#pirax_form_test_token", h.token);
   await page.fill("#pirax_form_test_redirect", REDIRECT);
@@ -161,7 +166,7 @@ test("generated ZIP uploads and activates through wp-admin without Gravity Forms
   `);
   expect(back).toEqual(expect.arrayContaining([PLUGIN, "gravityforms/gravityforms.php", "fluentform/fluentform.php"]));
   await page.goto(`${h.url}${SETTINGS}`);
-  expect(await page.locator("h1").innerText()).toBe("Pirax Form Test");
+  expect(await page.locator("h1").innerText()).toBe(config.plugin.name);
 }, 300_000);
 
 test("settings mutate only for manage_options with a valid nonce and valid values", async () => {
@@ -565,7 +570,7 @@ test("deactivation unschedules, uninstall is guarded and removes options and own
   expect(reactivated).toBe(1);
 
   // Direct HTTP access to uninstall.php is inert.
-  await (await fetch(`${h.url}/wp-content/plugins/pirax-form-test/uninstall.php`)).text();
+  await (await fetch(`${h.url}/wp-content/plugins/${SLUG}/uninstall.php`)).text();
   expect((await settings()).redirect).toBe(REDIRECT);
 
   const uninstalled = await h.php<any>(`
@@ -582,7 +587,7 @@ test("deactivation unschedules, uninstall is guarded and removes options and own
       'deleted' => $deleted,
       'events' => $n,
       'rows' => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name IN ('pirax_form_test_token', 'pirax_form_test_redirect')"),
-      'dir' => is_dir(WP_PLUGIN_DIR . '/pirax-form-test'),
+      'dir' => is_dir(WP_PLUGIN_DIR . '/${SLUG}'),
     ];
   `);
   expect(uninstalled).toEqual({ deleted: true, events: 0, rows: 0, dir: false });

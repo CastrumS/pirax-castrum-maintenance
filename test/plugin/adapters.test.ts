@@ -5,6 +5,7 @@ import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { appendFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
+import { loadDeployment } from "../../src/deployment";
 import { findSecret } from "./artifacts";
 import { startHarness, type Harness, type MailRecord } from "./harness";
 
@@ -12,12 +13,13 @@ import { startHarness, type Harness, type MailRecord } from "./harness";
 setDefaultTimeout(180_000);
 
 const ROOT = resolve(import.meta.dir, "../..");
-const ZIP = join(ROOT, "dist/pirax-form-test.zip");
+const { assets, config } = loadDeployment();
+const ZIP = join(ROOT, "dist", assets.zip);
 const REDIRECT = "form-tests+pirax@operator.test";
 const ID = "abc123";
-const BLOCKED = "Pirax test blocked: integrations could not be suppressed";
-const MARKER = "Pirax test blocked: invalid test marker";
-const CONFIG = "Pirax test blocked: test configuration is invalid";
+const BLOCKED = `${config.forms.refusalPrefix} integrations could not be suppressed`;
+const MARKER = `${config.forms.refusalPrefix} invalid test marker`;
+const CONFIG = `${config.forms.refusalPrefix} test configuration is invalid`;
 const WRONG = "pirax-wrong-token-00000000";
 const DUMMY_CAPTCHA = "pirax-dummy-recaptcha-response";
 

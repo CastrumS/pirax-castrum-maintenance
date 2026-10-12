@@ -10,6 +10,7 @@
 //                                    native install refused and the installed bytes unchanged, each case separately
 //   browserUpdate(session, page, h, target)  an authenticated admin updates through plugins.php; target is installed
 // Failures throw with versions, hashes and request lines only, never key material.
+import { isDeepStrictEqual } from "node:util";
 import type { Page } from "playwright";
 import type { Harness } from "./harness";
 import { BASENAME, MANIFEST, SIGNATURE, SLUG, manifestFor, packagePath, type Body, type ReleaseFixture, type StagedHelper } from "./update-fixture";
@@ -27,7 +28,7 @@ export interface ScenarioCase { name: string; offered: boolean; installed?: stri
 export const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}', true)`;
 
 const same = (what: string, actual: unknown, expected: unknown) => {
-  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`${what}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+  if (!isDeepStrictEqual(actual, expected)) throw new Error(`${what}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
 };
 
 /**

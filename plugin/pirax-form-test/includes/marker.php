@@ -20,11 +20,11 @@ defined( 'ABSPATH' ) || exit;
 const ID_PATTERN = '[a-z0-9]{6,32}';
 
 /** Adapter rejection texts (literal interface shared with form-check). */
-const BLOCKED_MESSAGE = 'Pirax test blocked: integrations could not be suppressed';
-const MARKER_MESSAGE  = 'Pirax test blocked: invalid test marker';
-const CONFIG_MESSAGE  = 'Pirax test blocked: test configuration is invalid';
+const BLOCKED_MESSAGE = '{{php:forms.refusalPrefix}} integrations could not be suppressed';
+const MARKER_MESSAGE  = '{{php:forms.refusalPrefix}} invalid test marker';
+const CONFIG_MESSAGE  = '{{php:forms.refusalPrefix}} test configuration is invalid';
 /** Version-only block: followed by `<plugin label> <version>[, ...]` (compatibility.php block_message()). */
-const AWAITING_MESSAGE_PREFIX = 'Pirax test blocked: awaiting audit of ';
+const AWAITING_MESSAGE_PREFIX = '{{php:forms.refusalPrefix}} awaiting audit of ';
 
 function id_is_valid( $id ) {
 	return is_string( $id ) && 1 === preg_match( '/^' . ID_PATTERN . '$/D', $id );
@@ -95,7 +95,7 @@ function mark( $id ) {
 /** Enter a worker scope for a stored submission; null for an unmarked one. */
 function push_context( $id ) {
 	if ( null !== $id && ! id_is_valid( $id ) ) {
-		throw new \InvalidArgumentException( 'Invalid Pirax test id' );
+		throw new \InvalidArgumentException( 'Invalid {{php:plugin.author}} test id' );
 	}
 	$state            = &state();
 	$state['stack'][] = $id;

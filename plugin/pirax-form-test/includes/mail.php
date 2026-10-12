@@ -72,7 +72,7 @@ function guard_mail( $short_circuit, $atts ) {
 		if ( $expected['to'] === $atts['to'] && $expected['subject'] === $atts['subject'] && $expected['headers'] === $atts['headers'] ) {
 			return $short_circuit;
 		}
-		$error = new \WP_Error( 'pirax_form_test_mail', 'Pirax test mail was altered after redirection; not sent' );
+		$error = new \WP_Error( 'pirax_form_test_mail', '{{php:plugin.author}} test mail was altered after redirection; not sent' );
 	}
 	do_action( 'wp_mail_failed', $error );
 	return false;

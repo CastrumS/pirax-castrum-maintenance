@@ -1,6 +1,6 @@
 <?php
 /**
- * Settings → Pirax Form Test: the shared marker token, the single redirect mailbox, and a read-only
+ * Settings → {{raw:plugin.name}}: the shared marker token, the single redirect mailbox, and a read-only
  * compatibility panel (versions, verdict and unaudited callbacks per form plugin).
  *
  * Both render and save require manage_options; saving also requires the nonce. The token is never
@@ -52,7 +52,7 @@ function settings_error( $token, $redirect ) {
 add_action(
 	'admin_menu',
 	static function () {
-		add_options_page( 'Pirax Form Test', 'Pirax Form Test', 'manage_options', PAGE, __NAMESPACE__ . '\render_settings' );
+		add_options_page( '{{php:plugin.name}}', '{{php:plugin.name}}', 'manage_options', PAGE, __NAMESPACE__ . '\render_settings' );
 	}
 );
 add_action( 'admin_post_' . SAVE_ACTION, __NAMESPACE__ . '\save_settings' );
@@ -70,7 +70,7 @@ function render_settings() {
 	$code = isset( $_GET['pirax-form-test'] ) ? sanitize_key( wp_unslash( $_GET['pirax-form-test'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- display only.
 	?>
 	<div class="wrap">
-		<h1>Pirax Form Test</h1>
+		<h1>{{html:plugin.name}}</h1>
 		<?php if ( isset( $notices[ $code ] ) ) : ?>
 			<div class="notice notice-<?php echo esc_attr( $notices[ $code ][0] ); ?>"><p><?php echo esc_html( $notices[ $code ][1] ); ?></p></div>
 		<?php endif; ?>

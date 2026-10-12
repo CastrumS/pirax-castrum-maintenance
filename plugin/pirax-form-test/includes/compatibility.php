@@ -23,11 +23,11 @@ defined( 'ABSPATH' ) || exit;
 
 /** Exactly the audited versions; any other, a later patch release included, is rejected until re-audited. */
 const AUDITED_VERSIONS = array(
-	'gf'          => '3.1.3.4',
-	'ff'          => '6.2.15',
-	'ff_pro'      => '6.2.15',
-	'cleantalk'   => '6.89.1',
-	'fluent_smtp' => '2.4.1',
+	'gf'          => '{{php:versions.audited.gf}}',
+	'ff'          => '{{php:versions.audited.ff}}',
+	'ff_pro'      => '{{php:versions.audited.ff_pro}}',
+	'cleantalk'   => '{{php:versions.audited.cleantalk}}',
+	'fluent_smtp' => '{{php:versions.audited.fluent_smtp}}',
 );
 
 const PLUGIN_LABELS = array(

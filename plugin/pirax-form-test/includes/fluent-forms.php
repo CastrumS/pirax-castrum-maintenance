@@ -194,7 +194,7 @@ function ff_finish_notification( $threw ) {
 	}
 	if ( ! empty( $job['feed']['scheduled_action_id'] ) ) {
 		$failed = $threw || $state['failures'] > $job['failures'];
-		do_action( 'fluentform/integration_action_result', $job['feed'], $failed ? 'failed' : 'success', $failed ? 'Pirax test notification failed' : 'Pirax test notification sent' );
+		do_action( 'fluentform/integration_action_result', $job['feed'], $failed ? 'failed' : 'success', $failed ? '{{php:plugin.author}} test notification failed' : '{{php:plugin.author}} test notification sent' );
 	}
 	if ( is_object( $job['entry'] ) && ! empty( $job['entry']->id ) ) {
 		ff_schedule_cleanup( $job['entry']->id, $job['form'] );

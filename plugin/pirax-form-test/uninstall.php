@@ -1,6 +1,6 @@
 <?php
 /**
- * Removes Pirax Form Test's options and scheduled events. WordPress includes this file only when
+ * Removes {{raw:plugin.name}}'s options and scheduled events. WordPress includes this file only when
  * the plugin is deleted; direct requests exit.
  */
 

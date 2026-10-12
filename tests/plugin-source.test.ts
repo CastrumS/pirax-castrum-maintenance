@@ -1,36 +1,25 @@
 import { expect, test } from "bun:test";
-import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { PIN_KEYS, parseAuditedVersions, readAuditedVersions, readHelperVersion } from "../scripts/plugin-source";
+import { PIN_KEYS, parseAuditedVersions, parseHelperVersion, readAuditedVersions, readHelperVersion } from "../scripts/plugin-source";
+import { renderPlugin } from "../scripts/render-plugin";
+import { DeploymentConfigError, loadDeployment } from "../src/deployment";
+import { FIXTURE_VERSIONS, fixtureConfig, fixtureKeys, writeDeployment } from "../test/fixtures/deployment";
 import { nearMisses, nextPatch, pinLine, PINS, withHelperVersion } from "../test/plugin/version-fixtures";
 
 const ROOT = resolve(import.meta.dir, "..");
-const SOURCE = join(ROOT, "plugin/pirax-form-test");
-const COMPATIBILITY = readFileSync(join(SOURCE, "includes/compatibility.php"), "utf8");
-const MAIN = readFileSync(join(SOURCE, "pirax-form-test.php"), "utf8");
+const PIRAX = { env: { DEPLOYMENT: "pirax" } };
+const pirax = loadDeployment(PIRAX);
+/** The rendered Pirax helper, as its ZIP carries it: the strict parsers read built PHP, never templates. */
+const rendered = Object.fromEntries(renderPlugin(pirax).map((f) => [f.path, f.contents]));
+const COMPATIBILITY = rendered[`${pirax.config.plugin.slug}/includes/compatibility.php`]!;
+const MAIN = rendered[pirax.assets.basename]!;
 const STABLE = /^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){1,3}$/;
 /** Planted in rejected source text: no error may repeat it. */
 const SENTINEL = "pirax-sentinel-7f3a";
 /** A credential-shaped unknown key: lowercase and underscores only, so it fits the key pattern itself. */
 const KEY_SENTINEL = "sk_live_pirax_sentinel_secret";
-
-/** A copy of the shipping source with file edits, removed after body. */
-function withSource(edits: Record<string, (text: string) => string>, body: (dir: string) => void) {
-  const dir = mkdtempSync(join(tmpdir(), "plugin-source-test-"));
-  try {
-    cpSync(SOURCE, dir, { recursive: true });
-    for (const [file, edit] of Object.entries(edits)) {
-      const before = readFileSync(join(dir, file), "utf8");
-      const after = edit(before);
-      expect(after).not.toBe(before);
-      writeFileSync(join(dir, file), after);
-    }
-    body(dir);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
 
 const message = (f: () => unknown) => {
   try {
@@ -41,37 +30,47 @@ const message = (f: () => unknown) => {
   throw new Error("expected a refusal");
 };
 
+/** One exact edit (the search must occur once) of rendered text. */
+const edited = (text: string, edit: (text: string) => string) => {
+  const after = edit(text);
+  expect(after).not.toBe(text);
+  return after;
+};
+
 const line = pinLine;
 
-test("the shipping table holds exactly the five known pins as stable numeric versions", () => {
-  const audited = readAuditedVersions();
-  expect(Object.keys(audited).sort()).toEqual([...PIN_KEYS].sort());
+test("the selected deployment holds exactly the five known pins, and the rendered table carries each once", () => {
+  const audited = readAuditedVersions(PIRAX);
+  expect(Object.keys(audited)).toEqual([...PIN_KEYS]);
   for (const key of PIN_KEYS) expect(audited[key]).toMatch(STABLE);
   // Each pin line occurs exactly once, so fixture edits of it are unambiguous.
-  for (const key of PIN_KEYS) expect(COMPATIBILITY.split(line(key)).length).toBe(2);
+  for (const key of PIN_KEYS) expect(COMPATIBILITY.split(line(key, audited[key])).length).toBe(2);
   expect(parseAuditedVersions(COMPATIBILITY)).toEqual(audited);
 });
 
-test("the shipping helper header and VERSION constant agree with the reader", () => {
-  const version = readHelperVersion();
+test("the rendered helper header and VERSION constant agree with the selected helper version", () => {
+  const version = readHelperVersion(PIRAX);
   expect(version).toMatch(STABLE);
   expect(MAIN).toMatch(new RegExp(`^ \\* Version:\\s+${version.replace(/\./g, "\\.")}$`, "m"));
   expect(MAIN).toContain(`const VERSION = '${version}';`);
+  expect(parseHelperVersion(MAIN)).toBe(version);
 });
 
-test("importing the reader is side-effect free and its default source does not depend on the working directory", async () => {
+test("importing the readers is side-effect free and their default repository does not depend on the working directory", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "plugin-source-cwd-"));
   try {
-    const run = async (code: string) => {
-      const proc = Bun.spawn([process.execPath, "--no-env-file", "-e", code], { cwd, stdout: "pipe", stderr: "pipe" });
+    const run = async (code: string, env: Record<string, string>) => {
+      const proc = Bun.spawn([process.execPath, "--no-env-file", "-e", code], { cwd, env: { PATH: process.env.PATH!, ...env }, stdout: "pipe", stderr: "pipe" });
       const [stdout, stderr, exit] = await Promise.all([new Response(proc.stdout).text(), new Response(proc.stderr).text(), proc.exited]);
       return { stdout, stderr, exit };
     };
     const module = JSON.stringify(join(ROOT, "scripts/plugin-source.ts"));
-    expect(await run(`await import(${module})`)).toEqual({ stdout: "", stderr: "", exit: 0 });
-    const read = await run(`const m = await import(${module}); console.log(JSON.stringify([m.readAuditedVersions(), m.readHelperVersion()]))`);
+    expect(await run(`await import(${module})`, {})).toEqual({ stdout: "", stderr: "", exit: 0 });
+    const read = await run(`const m = await import(${module}); console.log(JSON.stringify([m.readAuditedVersions(), m.readHelperVersion()]))`, { DEPLOYMENT: "pirax" });
     expect(read.exit).toBe(0);
-    expect(JSON.parse(read.stdout)).toEqual([readAuditedVersions(), readHelperVersion()]);
+    expect(JSON.parse(read.stdout)).toEqual([readAuditedVersions(PIRAX), readHelperVersion(PIRAX)]);
+    const unselected = await run(`const m = await import(${module}); try { m.readAuditedVersions(); } catch (e) { console.log(e.message); }`, {});
+    expect(unselected.stdout).toBe("DEPLOYMENT is not set\n");
     expect(readdirSync(cwd)).toEqual([]);
   } finally {
     rmSync(cwd, { recursive: true, force: true });
@@ -92,6 +91,7 @@ test("malformed, incomplete, duplicate, unknown or nonliteral pins are refused b
     "prerelease value": [table((t) => t.replace(line("ff_pro"), `\t'ff_pro'      => '${PINS.ff_pro}-beta',`)), /'ff_pro' is not a stable dotted numeric version/],
     "private text as a value": [table((t) => t.replace(line("gf"), `\t'gf'          => '${SENTINEL}',`)), /'gf' is not a stable dotted numeric version/],
     "comment inside the table": [table((t) => t.replace(`${line("gf")}\n`, `${line("gf")}\n\t// ${SENTINEL}\n`)), /not a unique/],
+    "unrendered template token": [table((t) => t.replace(line("gf"), "\t'gf'          => '{{php:versions.audited.gf}}',")), /'gf' is not a stable dotted numeric version/],
     "no table": [table((t) => t.replace("const AUDITED_VERSIONS = array(", "const AUDITED = array(")), /expected exactly one AUDITED_VERSIONS array, found 0/],
     "two tables": [table((t) => t.replace(/^const AUDITED_VERSIONS = array\([^]*?\n\);$/m, (block) => `${block}\n${block}`)), /expected exactly one AUDITED_VERSIONS array, found 2/],
     "empty source": [() => parseAuditedVersions(""), /found 0/],
@@ -105,42 +105,56 @@ test("malformed, incomplete, duplicate, unknown or nonliteral pins are refused b
   }
 });
 
-test("readAuditedVersions reads the given source directory", () => {
-  withSource({ "includes/compatibility.php": (t) => t.replace(line("ff"), `\t'ff'          => '${nextPatch(PINS.ff)}',`) }, (dir) => {
-    expect(readAuditedVersions(dir)).toEqual({ ...PINS, ff: nextPatch(PINS.ff) });
-  });
-  withSource({ "includes/compatibility.php": (t) => t.replace(`${line("gf")}\n`, "") }, (dir) => {
-    expect(() => readAuditedVersions(dir)).toThrow("includes/compatibility.php: AUDITED_VERSIONS is missing gf");
-  });
+test("readers read the selected deployment's versions.json afresh on every call and refuse it by field", () => {
+  const root = mkdtempSync(join(tmpdir(), "plugin-source-root-"));
+  try {
+    const directory = writeDeployment(root, "fixture", { config: fixtureConfig(fixtureKeys().publicKey), versions: FIXTURE_VERSIONS });
+    const selection = { root, env: { DEPLOYMENT: "fixture" } };
+    expect(readAuditedVersions(selection)).toEqual(FIXTURE_VERSIONS.audited);
+    expect(readHelperVersion(selection)).toBe(FIXTURE_VERSIONS.helperVersion);
+    const bumped = { ...FIXTURE_VERSIONS, helperVersion: nextPatch(FIXTURE_VERSIONS.helperVersion), audited: { ...FIXTURE_VERSIONS.audited, ff: nextPatch(FIXTURE_VERSIONS.audited.ff) } };
+    writeFileSync(join(directory, "versions.json"), JSON.stringify(bumped));
+    expect(readAuditedVersions(selection)).toEqual(bumped.audited);
+    expect(readHelperVersion(selection)).toBe(bumped.helperVersion);
+    writeFileSync(join(directory, "versions.json"), JSON.stringify({ ...bumped, audited: { ...bumped.audited, gf: SENTINEL } }));
+    const refusal = (() => {
+      try {
+        readAuditedVersions(selection);
+      } catch (error) {
+        return error;
+      }
+    })();
+    expect(refusal).toBeInstanceOf(DeploymentConfigError);
+    expect(String(refusal)).toBe("DeploymentConfigError: versions.audited.gf is invalid");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("helper version refusals name the field, never the rejected value", () => {
-  const helper = readHelperVersion();
-  const cases: Record<string, [Record<string, (t: string) => string>, string]> = {
-    "header differs from constant": [{ "pirax-form-test.php": (t) => t.replace(`const VERSION = '${helper}';`, `const VERSION = '${nextPatch(helper)}';`) }, "pirax-form-test.php: Version header and VERSION constant differ"],
-    prerelease: [{ "pirax-form-test.php": withHelperVersion(`${helper}-beta`) }, "pirax-form-test.php: VERSION is not a stable dotted numeric version"],
-    "private text as the version": [{ "pirax-form-test.php": withHelperVersion(SENTINEL) }, "pirax-form-test.php: VERSION is not a stable dotted numeric version"],
-    "no constant": [{ "pirax-form-test.php": (t) => t.replace(`const VERSION = '${helper}';`, "") }, "pirax-form-test.php: expected exactly one VERSION constant, found 0"],
-    "two headers": [{ "pirax-form-test.php": (t) => t.replace(/^( \* Version:.*)$/m, "$1\n$1") }, "pirax-form-test.php: expected exactly one Version header, found 2"],
+  const helper = readHelperVersion(PIRAX);
+  const cases: Record<string, [(t: string) => string, string]> = {
+    "header differs from constant": [(t) => t.replace(`const VERSION = '${helper}';`, `const VERSION = '${nextPatch(helper)}';`), "pirax-form-test.php: Version header and VERSION constant differ"],
+    prerelease: [withHelperVersion(`${helper}-beta`, helper), "pirax-form-test.php: VERSION is not a stable dotted numeric version"],
+    "private text as the version": [withHelperVersion(SENTINEL, helper), "pirax-form-test.php: VERSION is not a stable dotted numeric version"],
+    "no constant": [(t) => t.replace(`const VERSION = '${helper}';`, ""), "pirax-form-test.php: expected exactly one VERSION constant, found 0"],
+    "two headers": [(t) => t.replace(/^( \* Version:.*)$/m, "$1\n$1"), "pirax-form-test.php: expected exactly one Version header, found 2"],
   };
-  for (const [name, [edits, expected]] of Object.entries(cases))
-    withSource(edits, (dir) => {
-      const text = message(() => readHelperVersion(dir));
-      expect({ name, text }).toEqual({ name, text: `Error: ${expected}` });
-    });
+  for (const [name, [edit, expected]] of Object.entries(cases)) {
+    const text = message(() => parseHelperVersion(edited(MAIN, edit)));
+    expect({ name, text }).toEqual({ name, text: `Error: ${expected}` });
+  }
 });
 
 test("helper version fixtures survive two successive patch bumps", () => {
-  const first = nextPatch(readHelperVersion());
+  const first = nextPatch(readHelperVersion(PIRAX));
   const second = nextPatch(first);
-  withSource({ "pirax-form-test.php": withHelperVersion(first) }, (dir) => {
-    expect(readHelperVersion(dir)).toBe(first);
-    const bumped = withHelperVersion(second, first)(readFileSync(join(dir, "pirax-form-test.php"), "utf8"));
-    writeFileSync(join(dir, "pirax-form-test.php"), bumped);
-    expect(readHelperVersion(dir)).toBe(second);
-    // A fixture that assumes the old version must refuse, not silently leave the file unchanged.
-    expect(() => withHelperVersion("9.9.9", first)(bumped)).toThrow(/exactly once/);
-  });
+  const once = withHelperVersion(first, readHelperVersion(PIRAX))(MAIN);
+  expect(parseHelperVersion(once)).toBe(first);
+  const bumped = withHelperVersion(second, first)(once);
+  expect(parseHelperVersion(bumped)).toBe(second);
+  // A fixture that assumes the old version must refuse, not silently leave the text unchanged.
+  expect(() => withHelperVersion("9.9.9", first)(bumped)).toThrow(/exactly once/);
 });
 
 test("wrong-version fixtures are genuinely different from every pin, now and after two pin bumps", () => {

@@ -1,13 +1,13 @@
 <?php
 /**
- * Plugin Name:       Pirax Form Test
- * Description:       Redirects marked Pirax test form submissions to the operator's test mailbox and keeps them away from clients.
- * Version:           0.3.5
+ * Plugin Name:       {{raw:plugin.name}}
+ * Description:       {{raw:plugin.description}}
+ * Version:           {{raw:versions.helperVersion}}
  * Requires at least: 6.4
  * Requires PHP:      7.4
- * Author:            Pirax
+ * Author:            {{raw:plugin.author}}
  * License:           GPL-2.0-or-later
- * Update URI:        https://github.com/CastrumS/pirax-castrum-maintenance
+ * Update URI:        {{raw:plugin.updateUri}}
  *
  * Every module is required, so a damaged package fails loudly instead of treating test submissions
  * as ordinary; each adapter guards for its own form plugin being absent.
@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 
 const SWEEP_HOOK = 'pirax_form_test_sweep';
 /** Must equal the Version header: release tooling reads it. Updates compare against the header on disk. */
-const VERSION = '0.3.5';
+const VERSION = '{{php:versions.helperVersion}}';
 
 require_once __DIR__ . '/includes/settings.php';
 require_once __DIR__ . '/includes/marker.php';

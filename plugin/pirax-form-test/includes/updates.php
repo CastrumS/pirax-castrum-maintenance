@@ -2,8 +2,8 @@
 /**
  * Signed self-updates from the repository's GitHub releases.
  *
- * The latest release carries pirax-form-test-manifest.json, {"version","package","sha256","audited"},
- * and pirax-form-test-manifest.json.sig, the base64 of the 64-byte detached Ed25519 signature over the
+ * The latest release carries {{raw:assets.manifest}}, {"version","package","sha256","audited"},
+ * and {{raw:assets.signature}}, the base64 of the 64-byte detached Ed25519 signature over the
  * exact manifest bytes. WordPress is offered an update only from a manifest that verifies against
  * UPDATE_PUBLIC_KEY, is newer than the installed header and names this release's canonical package
  * URL. The package is downloaded again at install time against a freshly verified manifest that must
@@ -17,11 +17,11 @@ namespace Pirax\FormTest;
 
 defined( 'ABSPATH' ) || exit;
 
-const UPDATE_RELEASES_ROOT = 'https://github.com/CastrumS/pirax-castrum-maintenance/releases';
+const UPDATE_RELEASES_ROOT = '{{php:channel.releasesRoot}}';
 /** Base64 of the raw 32-byte Ed25519 public key; the private seed exists only as the PIRAX_HELPER_SIGNING_KEY repository secret. */
-const UPDATE_PUBLIC_KEY = 'D8BfOn8TZC3jD+Hv5Q+p7SGPNGIYISVcMCqQWU0Dh9w=';
-const UPDATE_BASENAME = 'pirax-form-test/pirax-form-test.php';
-const UPDATE_SLUG = 'pirax-form-test';
+const UPDATE_PUBLIC_KEY = '{{php:channel.publicKey}}';
+const UPDATE_BASENAME = '{{php:assets.basename}}';
+const UPDATE_SLUG = '{{php:plugin.slug}}';
 const UPDATE_ERROR = 'pirax_form_test_update';
 
 add_filter( 'pre_set_site_transient_update_plugins', __NAMESPACE__ . '\offer_update' );
@@ -32,7 +32,7 @@ add_filter( 'upgrader_pre_download', __NAMESPACE__ . '\download_update', PHP_INT
 
 /** The canonical package URL of a release version. */
 function package_url( $version ) {
-	return UPDATE_RELEASES_ROOT . '/download/v' . $version . '/pirax-form-test.zip';
+	return UPDATE_RELEASES_ROOT . '/download/v' . $version . '/{{php:assets.zip}}';
 }
 
 /** Strict base64 of exactly $length raw bytes, or null. */
@@ -110,12 +110,12 @@ function fetch_release_file( $url, $limit ) {
 function newer_release( $fresh = false ) {
 	static $release = false;
 	if ( $fresh || false === $release ) {
-		$manifest  = UPDATE_RELEASES_ROOT . '/latest/download/pirax-form-test-manifest.json';
+		$manifest  = UPDATE_RELEASES_ROOT . '/latest/download/{{php:assets.manifest}}';
 		$bytes     = fetch_release_file( $manifest, 65536 );
 		$signature = null === $bytes ? null : fetch_release_file( $manifest . '.sig', 1024 );
 		$release   = null === $signature ? null : verify_release( $bytes, $signature );
 	}
-	$installed = get_file_data( dirname( __DIR__ ) . '/pirax-form-test.php', array( 'Version' => 'Version' ) )['Version'];
+	$installed = get_file_data( dirname( __DIR__ ) . '/{{php:assets.main}}', array( 'Version' => 'Version' ) )['Version'];
 	return $release && '' !== $installed && version_compare( $release['version'], $installed, '>' ) ? $release : null;
 }
 
@@ -151,24 +151,24 @@ function update_details( $result, $action, $args ) {
 	}
 	$release = newer_release();
 	if ( ! $release ) {
-		return new \WP_Error( UPDATE_ERROR, 'No verified Pirax Form Test update is available.' );
+		return new \WP_Error( UPDATE_ERROR, 'No verified {{php:plugin.name}} update is available.' );
 	}
 	$audited = '';
 	foreach ( $release['audited'] as $plugin => $version ) {
 		$audited .= '<li>' . esc_html( $plugin . ' ' . $version ) . '</li>';
 	}
 	return (object) array(
-		'name'          => 'Pirax Form Test',
+		'name'          => '{{php:plugin.name}}',
 		'slug'          => UPDATE_SLUG,
 		'version'       => $release['version'],
-		'author'        => 'Pirax',
+		'author'        => '{{php:plugin.author}}',
 		'homepage'      => UPDATE_RELEASES_ROOT,
 		'requires'      => '6.4',
 		'requires_php'  => '7.4',
 		'external'      => true,
 		'download_link' => $release['package'],
 		'sections'      => array(
-			'description' => '<p>' . esc_html( 'Signed release ' . $release['version'] . ' of the Pirax form test helper.' ) . '</p>',
+			'description' => '<p>' . esc_html( 'Signed release ' . $release['version'] . ' of the {{php:plugin.author}} form test helper.' ) . '</p>',
 			'changelog'   => '<p>Plugin versions audited for this release:</p><ul>' . $audited . '</ul>',
 		),
 	);
@@ -186,7 +186,7 @@ function auto_update( $update, $item ) {
  */
 function download_update( $reply, $package, $upgrader = null, $hook_extra = array() ) {
 	$context = is_array( $hook_extra ) && isset( $hook_extra['plugin'] ) && UPDATE_BASENAME === $hook_extra['plugin'];
-	$ours    = is_string( $package ) && 0 === strpos( $package, UPDATE_RELEASES_ROOT . '/' ) && 'pirax-form-test.zip' === basename( (string) wp_parse_url( $package, PHP_URL_PATH ) );
+	$ours    = is_string( $package ) && 0 === strpos( $package, UPDATE_RELEASES_ROOT . '/' ) && '{{php:assets.zip}}' === basename( (string) wp_parse_url( $package, PHP_URL_PATH ) );
 	if ( ! $context && ! $ours ) {
 		return $reply;
 	}
@@ -194,7 +194,7 @@ function download_update( $reply, $package, $upgrader = null, $hook_extra = arra
 		return $reply;
 	}
 	$refuse = static function ( $why ) {
-		return new \WP_Error( UPDATE_ERROR, 'Pirax Form Test update refused: ' . $why );
+		return new \WP_Error( UPDATE_ERROR, '{{php:plugin.name}} update refused: ' . $why );
 	};
 	if ( false !== $reply ) {
 		return $refuse( 'another download handler answered first.' );

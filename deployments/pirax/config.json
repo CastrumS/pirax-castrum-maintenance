@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "plugin": {
+    "name": "Pirax Form Test",
+    "author": "Pirax",
+    "description": "Redirects marked Pirax test form submissions to the operator's test mailbox and keeps them away from clients.",
+    "slug": "pirax-form-test",
+    "updateUri": "https://github.com/CastrumS/pirax-castrum-maintenance"
+  },
+  "channel": {
+    "repository": "CastrumS/pirax-castrum-maintenance",
+    "releasesRoot": "https://github.com/CastrumS/pirax-castrum-maintenance/releases",
+    "publicKey": "D8BfOn8TZC3jD+Hv5Q+p7SGPNGIYISVcMCqQWU0Dh9w="
+  },
+  "notice": {
+    "recipient": "piraxcastrum@gmail.com",
+    "subjectPrefix": "[pirax-audit]"
+  },
+  "forms": {
+    "refusalPrefix": "Pirax test blocked:",
+    "text": "Pirax Test",
+    "message": "Pirax test message"
+  }
+}

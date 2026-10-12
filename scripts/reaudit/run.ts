@@ -1,18 +1,22 @@
 // Re-audit run (plan D3–D6/D10), the read-only audit job's only step with vendor credentials. In this disposable
-// checkout of the audited main commit it:
+// checkout of the audited main commit, for the deployment DEPLOYMENT selects (its versions.json holds the current
+// pins and helper version; in Actions its repository must be GITHUB_REPOSITORY), it:
 //   1. acquires the five selected packages (fetch.ts; GPL Vault inputs only in that call, private scratch outside
 //      the evidence directory, deactivation confirmed before it returns)
 //   2. unchanged: independently verifies the current helper release (read-only); missing/incomplete fails
 //   3. changed: writes the candidate pins only, runs ALL `bun test test/plugin` with a random per-run
 //      FORM_TEST_TOKEN and the selected paid ZIPs, and checks every new native manifest used exactly the selected
-//      versions and digests; only then the helper patch/doc bump (bump.ts) and typecheck + core/release/pin tests
+//      versions and digests; only then the helper patch bump (bump.ts, the deployment's versions.json only) and
+//      typecheck + core/release/pin tests
 //   4. scans retained native evidence (trace ZIP entries included) and its own output for known secrets
-//   5. always removes private scratch, then writes decision.json, plus candidate.json or summary.json
-// Children get scoped environments and `bun --no-env-file`; their output is sanitized and rescanned line by line.
+//   5. always removes private scratch, then writes decision.json, plus candidate.json (bound to the deployment and
+//      its repository) or summary.json
+// Children get scoped environments, the selection as DEPLOYMENT and `bun --no-env-file`; their output is sanitized
+// and rescanned line by line.
 // No retries, skips or callback-inventory changes: any failed or missing gate is a failed decision.
 //
 // Usage: bun --no-env-file scripts/reaudit/run.ts --out <dir>
-//   needs GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT (digits; Actions sets both), GPLVAULT_LICENSE_KEY, GPLVAULT_PRODUCT_ID,
+//   needs DEPLOYMENT, GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT (digits; Actions sets both), GPLVAULT_LICENSE_KEY, GPLVAULT_PRODUCT_ID,
 //   GPLVAULT_UPDATER_PASSPHRASE and a read-only gh token (GH_TOKEN) for the release lookups. It edits this checkout: run it only in a disposable one.
 //   Writes `outcome=<failed|unchanged|audited-candidate>` to GITHUB_OUTPUT when set. Exit 0 unchanged or candidate,
 //   1 failed, 2 usage.
@@ -22,14 +26,16 @@ import { existsSync } from "node:fs";
 import { appendFile, cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { readAuditedVersions, readHelperVersion, type AuditedVersions } from "../plugin-source.ts";
-import { applyBump, BUMP_FILES, planBump, readBumpSources } from "./bump.ts";
+import { DeploymentConfigError, loadDeployment, type Deployment } from "../../src/deployment.ts";
+import type { AuditedVersions } from "../plugin-source.ts";
+import { applyBump, bumpFiles, planBump, readBumpSources } from "./bump.ts";
 import { decideAudit, parseTestCounts, RUN_ATTEMPT, RUN_ID, verifyManifests, type AuditFacts, type Decision } from "./decide.ts";
 import type { PinKey } from "./detect.ts";
 import { acquirePackages, type Acquisition } from "./fetch.ts";
+import { repositoryMismatch } from "./heartbeat.ts";
 import { loopbackSite, type FailureSummary } from "./notify.ts";
 import { bunCommand, runChild, scanEvidence, scopedEnv, secretValues } from "./privacy.ts";
-import { readPublicKey, verifyRelease } from "./publish.ts";
+import { verifyRelease } from "./publish.ts";
 
 type Env = Record<string, string | undefined>;
 const ROOT = resolve(import.meta.dir, "../..");
@@ -43,12 +49,12 @@ const FINAL_TIMEOUT_MS = 25 * 60_000;
 export type RunDeps = {
   acquire: (options: { pins: AuditedVersions; directory: string; env: Record<string, string> }) => Promise<Acquisition>;
   exec: (cmd: string[], options: { cwd: string; env: Record<string, string>; log: string; secrets: string[]; timeoutMs: number }) => Promise<{ code: number | null; output: string }>;
-  currentRelease: (options: { version: string; pins: AuditedVersions; root: string; env: Env }) => Promise<NonNullable<AuditFacts["currentRelease"]>>;
+  currentRelease: (options: { deployment: Deployment; version: string; pins: AuditedVersions; env: Env }) => Promise<NonNullable<AuditFacts["currentRelease"]>>;
 };
 export const realDeps: RunDeps = {
   acquire: (options) => acquirePackages(options),
   exec: (cmd, options) => runChild(cmd, options),
-  currentRelease: async ({ version, pins, root, env }) => (await verifyRelease({ tag: `v${version}`, version, pins, publicKey: readPublicKey(root), env })).status,
+  currentRelease: async ({ deployment, version, pins, env }) => (await verifyRelease({ deployment, tag: `v${version}`, version, pins, env })).status,
 };
 
 const cleanupState = (lifecycle: unknown): AuditFacts["cleanup"] => {
@@ -82,21 +88,32 @@ export function safeLifecycle(value: unknown) {
   };
 }
 
-/** The whole audit decision for this checkout; writes decision.json and candidate.json/summary.json into out. */
+/** The whole audit decision for this checkout and env.DEPLOYMENT; writes decision.json and candidate.json/summary.json into out. */
 export async function runAudit({ root = ROOT, out, runId, runAttempt, env = process.env, deps = realDeps }: { root?: string; out: string; runId: string; runAttempt: string; env?: Env; deps?: RunDeps }): Promise<Decision> {
-  const source = join(root, "plugin/pirax-form-test");
+  // Read once, before any write: the pins-only and final bumps re-read the file they write.
+  const deployment = loadDeployment({ root, env });
+  if (repositoryMismatch(deployment, env)) throw new Error("run: GITHUB_REPOSITORY is not the selected deployment's repository");
   const git = (...args: string[]) => Bun.spawnSync(["git", "-c", "core.hooksPath=/dev/null", ...args], { cwd: root, env: scopedEnv(env, []), stdout: "pipe", stderr: "pipe" });
   const base = git("rev-parse", "--verify", "HEAD").stdout.toString().trim();
   if (!/^[0-9a-f]{40}$/.test(base) || (env.GITHUB_SHA && env.GITHUB_SHA !== base)) throw new Error("run: HEAD is not the audited event commit");
   if (git("status", "--porcelain", "--untracked-files=no").stdout.toString().trim()) throw new Error("run: the checkout has uncommitted changes");
-  const facts: AuditFacts = { runId, runAttempt, base, helper: readHelperVersion(source), oldPins: readAuditedVersions(source) };
+  const facts: AuditFacts = {
+    deployment: deployment.name,
+    repository: deployment.config.channel.repository,
+    runId,
+    runAttempt,
+    base,
+    helper: deployment.versions.helperVersion,
+    oldPins: { ...deployment.versions.audited },
+  };
+  const recipient = deployment.config.notice.recipient;
   const evidence = join(out, "evidence");
   await mkdir(evidence, { recursive: true });
   const artifacts = join(root, "artifacts/plugin");
   const before = new Set(existsSync(artifacts) ? await readdir(artifacts) : []);
   const scratch = await mkdtemp(join(env.RUNNER_TEMP ?? tmpdir(), "pirax-reaudit-private-"));
   const token = randomBytes(32).toString("base64url");
-  let secrets = secretValues(env, [token, scratch]);
+  let secrets = secretValues(env, [token, scratch], recipient);
   // Cancellation: let the current child end (it gets the signal too) and still run cleanup below.
   let interrupted = false;
   const onSignal = () => void (interrupted = true);
@@ -120,15 +137,15 @@ export async function runAudit({ root = ROOT, out, runId, runAttempt, env = proc
     if (safe?.site) facts.site = safe.site;
     if (acquisition?.status === "unchanged") {
       facts.acquisition = { status: "unchanged", versions: acquisition.versions };
-      facts.currentRelease = await deps.currentRelease({ version: facts.helper, pins: facts.oldPins, root, env }).catch(() => "unknown" as const);
+      facts.currentRelease = await deps.currentRelease({ deployment, version: facts.helper, pins: facts.oldPins, env }).catch(() => "unknown" as const);
     } else if (acquisition?.status === "changed") {
       const packages = acquisition.packages;
       facts.acquisition = { status: "changed", versions: acquisition.versions, packages: Object.fromEntries(Object.entries(packages).map(([k, p]) => [k, { version: p.version, sha256: p.sha256 }])) as Record<PinKey, { version: string; sha256: string }> };
       const plan = planBump(facts.oldPins, acquisition.versions, facts.helper);
-      const baseSources = readBumpSources(root);
-      await applyBump(root, plan, { pinsOnly: true });
-      secrets = secretValues(env, [token, scratch, packages.gf.path, packages.ff_pro.path]);
-      const childEnv = { ...scopedEnv(env, []), ...(env.GH_TOKEN && { GH_TOKEN: env.GH_TOKEN }), FORM_TEST_TOKEN: token, GRAVITY_FORMS_ZIP: packages.gf.path, FLUENT_FORMS_PRO_ZIP: packages.ff_pro.path };
+      const baseSources = readBumpSources(deployment);
+      await applyBump(deployment, plan, { pinsOnly: true });
+      secrets = secretValues(env, [token, scratch, packages.gf.path, packages.ff_pro.path], recipient);
+      const childEnv = { ...scopedEnv(env, []), DEPLOYMENT: deployment.name, ...(env.GH_TOKEN && { GH_TOKEN: env.GH_TOKEN }), FORM_TEST_TOKEN: token, GRAVITY_FORMS_ZIP: packages.gf.path, FLUENT_FORMS_PRO_ZIP: packages.ff_pro.path };
       const exec = (args: string[], log: string, timeoutMs: number) => deps.exec(bunCommand(...args), { cwd: root, env: childEnv, log: join(evidence, log), secrets, timeoutMs });
       const passed = (r: { code: number | null; output: string }, counted: boolean) => {
         const c = parseTestCounts(r.output);
@@ -144,9 +161,9 @@ export async function runAudit({ root = ROOT, out, runId, runAttempt, env = proc
         facts.manifests = verifyManifests(manifests, facts.acquisition.packages);
       }
       if (facts.manifests === "verified") {
-        // Helper patch and current-version docs only after the native gate, from the audited base sources.
-        for (const file of BUMP_FILES) await writeFile(join(root, file), baseSources[file]);
-        facts.changes = { to: plan.to, digest: (await applyBump(root, plan)).digest };
+        // Helper patch only after the native gate, from the audited base data.
+        for (const file of bumpFiles(deployment)) await writeFile(join(deployment.root, file), baseSources[file]!);
+        facts.changes = { to: plan.to, digest: (await applyBump(deployment, plan)).digest };
         facts.final = "passed";
         for (const [i, args] of FINAL.entries())
           if (!passed(await exec(args, `final-${i + 1}.log`, FINAL_TIMEOUT_MS), args[0] === "test")) {
@@ -195,15 +212,16 @@ if (import.meta.main) {
     decision = result.outcome;
     const facts = result.outcome === "failed" ? { stage: result.summary.stage, reason: result.summary.reason } : result.outcome === "unchanged" ? { versions: result.versions } : { newPins: result.candidate.newPins, helper: result.candidate.helper.to };
     console.log(JSON.stringify({ outcome: result.outcome, ...facts }));
-  } catch {
-    // No decision exists (our own precondition or an unexpected error); the text is fixed, never the error. Whatever
-    // already reached out is scanned like any evidence before the workflow may upload it.
+  } catch (error) {
+    // No decision exists (our own precondition or an unexpected error); the text is fixed (or a configuration error's
+    // field and reason), never the error. Whatever already reached out is scanned like any evidence before the
+    // workflow may upload it.
     const summary: FailureSummary = { stage: "unknown", reason: "run-error", cleanup: "unknown", publication: "not-attempted" };
     await mkdir(out, { recursive: true });
     await scanEvidence(out, secretValues(process.env)).catch(() => rm(out, { recursive: true, force: true }));
     await mkdir(out, { recursive: true });
     await writeFile(join(out, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
-    console.error("run: no decision was reached; see the summary");
+    console.error(error instanceof DeploymentConfigError ? `run: ${error.message}; no decision was reached` : "run: no decision was reached; see the summary");
   }
   if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT, `outcome=${decision}\n`);
   process.exit(decision === "failed" ? 1 : 0);

@@ -1,5 +1,6 @@
 // Re-audit privacy boundary (plan D5/D10), shared by run.ts and publish.ts:
-//   secretValues(env, extra?)      every known credential value (plus run-private values such as ZIP paths)
+//   secretValues(env, extra?, publicRecipient?)  every known credential value (plus run-private values such as ZIP
+//                                  paths); IMAP_USER is exempt only when it is the explicitly passed public recipient
 //   scopedEnv(env, names, extra?)  a child's whole environment: a small base allowlist plus the named inputs
 //   bunCommand(...args)            Bun with --no-env-file, so a local .env can never refill a filtered environment
 //   sanitizeLine(line, secrets)    redact secrets (raw/URL/JSON forms) and URL credentials/queries, then rescan
@@ -27,12 +28,14 @@ export const SECRET_NAMES = [
   "GH_TOKEN",
   "GITHUB_TOKEN",
 ] as const;
-/** The fixed notice recipient (notify.ts RECIPIENT) is public task data, not a secret username. */
-const PUBLIC_ADDRESS = "piraxcastrum@gmail.com";
 const BASE_ENV = ["PATH", "HOME", "USER", "LANG", "LC_ALL", "TMPDIR", "XDG_CONFIG_HOME", "XDG_CACHE_HOME", "CI", "GITHUB_ACTIONS", "PLAYWRIGHT_BROWSERS_PATH"];
 
-export function secretValues(env: Env, extra: string[] = []): string[] {
-  const values = SECRET_NAMES.flatMap((name) => (env[name] && !(name === "IMAP_USER" && env[name] === PUBLIC_ADDRESS) ? [env[name]!] : []));
+/**
+ * publicRecipient: the selected deployment's notice recipient (config notice.recipient), public task data. A mailbox
+ * account that is that address is not a secret username; without the argument nothing is exempt.
+ */
+export function secretValues(env: Env, extra: string[] = [], publicRecipient?: string): string[] {
+  const values = SECRET_NAMES.flatMap((name) => (env[name] && !(name === "IMAP_USER" && env[name] === publicRecipient) ? [env[name]!] : []));
   return [...new Set([...values, ...extra.filter(Boolean)])];
 }
 

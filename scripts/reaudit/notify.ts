@@ -1,9 +1,11 @@
-// Re-audit failure notice: one bounded SMTP attempt to the fixed operator mailbox over Gmail implicit TLS,
-// authenticated with IMAP_USER/IMAP_PASSWORD (the dedicated Gmail account and app password). The body is
-// rendered only from a strictly validated FailureSummary: never a raw Error, vendor response or private URL.
-// Errors name variables or a safe error code, never values. A failed send exits nonzero and never sends again.
+// Re-audit failure notice: one bounded SMTP attempt over Gmail implicit TLS to the selected deployment's
+// configured recipient (config notice.recipient, subject prefix notice.subjectPrefix), authenticated with
+// IMAP_USER/IMAP_PASSWORD (the dedicated Gmail account and app password). The body is rendered only from a strictly
+// validated FailureSummary: never a raw Error, vendor response or private URL; a run URL must belong to the
+// deployment's repository. Errors name variables or a safe error code, never values. An unusable DEPLOYMENT aborts
+// before any credential or transport. A failed send exits nonzero and never sends again.
 //
-// Usage:
+// Usage (every form needs DEPLOYMENT):
 //   bun --env-file=.env scripts/reaudit/notify.ts --selftest       one clearly labeled harmless notice; prints
 //                                                                    its subject tag ID for a separate arrival check
 //   bun --env-file=.env scripts/reaudit/notify.ts <summary.json>   send that summary; an invalid summary sends a
@@ -16,12 +18,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import nodemailer from "nodemailer";
+import { DeploymentConfigError, loadDeployment, type Deployment } from "../../src/deployment.ts";
 import { EnvError, EnvFormatError, readEnv } from "../../src/env.ts";
 import { addressPattern } from "../../src/forms/config.ts";
 import { subjectTag } from "../../src/mail/imap.ts";
 
-export const RECIPIENT = "piraxcastrum@gmail.com";
-const REPO = "CastrumS/pirax-castrum-maintenance";
 const SEND_TIMEOUT_MS = 90_000;
 
 /** Structurally the five AUDITED_VERSIONS keys; the shared pin reader is not imported here. */
@@ -38,7 +39,7 @@ export type FailureSummary = {
   reason: string;
   oldVersions?: VersionMap;
   candidateVersions?: VersionMap;
-  /** This repository's official Actions run URL. */
+  /** The deployment repository's official Actions run URL. */
   runUrl?: string;
   cleanup?: (typeof CLEANUP)[number];
   publication?: (typeof PUBLICATION)[number];
@@ -57,7 +58,9 @@ const REASON = /^[a-z][a-z0-9-]{0,63}$/;
 const COMMIT = /^[0-9a-f]{40}$/;
 const TAG = new RegExp(`^v${VERSION.source.slice(1)}`);
 const ATTEMPT = /^[1-9][0-9]{0,3}$/;
-const RUN_URL = new RegExp(`^https://github\\.com/${REPO}/actions/runs/[1-9][0-9]{0,19}(?:/attempts/${ATTEMPT.source.slice(1, -1)})?$`);
+const literal = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+/** Official run URLs of repository only; its name is matched literally. */
+const runUrlPattern = (repository: string) => new RegExp(`^https://github\\.com/${literal(repository)}/actions/runs/[1-9][0-9]{0,19}(?:/attempts/${ATTEMPT.source.slice(1, -1)})?$`);
 const LOOPBACK = /^http:\/\/(?:127\.0\.0\.1|localhost|\[::1\]):([1-9][0-9]{0,4})$/;
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
@@ -74,8 +77,8 @@ function versions(value: unknown, field: string): VersionMap {
   return Object.fromEntries(PIN_KEYS.map((k) => [k, value[k]])) as VersionMap;
 }
 
-/** Strict: unknown keys or any unsafe value throw a NoticeError naming the field only. */
-export function parseFailureSummary(value: unknown): FailureSummary {
+/** Strict: unknown keys or any unsafe value (a run URL of another repository included) throw a NoticeError naming the field only. */
+export function parseFailureSummary(repository: string, value: unknown): FailureSummary {
   if (!isObject(value)) throw invalid("not an object");
   const allowed = ["stage", "reason", "oldVersions", "candidateVersions", "runUrl", "cleanup", "publication", "commit", "tag", "site"];
   // Fixed message: a key's name is caller data and may be secret-shaped however harmless its characters look.
@@ -91,7 +94,7 @@ export function parseFailureSummary(value: unknown): FailureSummary {
   if (value.oldVersions !== undefined) summary.oldVersions = versions(value.oldVersions, "oldVersions");
   if (value.candidateVersions !== undefined) summary.candidateVersions = versions(value.candidateVersions, "candidateVersions");
   if (value.runUrl !== undefined) {
-    if (typeof value.runUrl !== "string" || !RUN_URL.test(value.runUrl)) throw invalid("runUrl");
+    if (typeof value.runUrl !== "string" || !runUrlPattern(repository).test(value.runUrl)) throw invalid("runUrl");
     summary.runUrl = value.runUrl;
   }
   if (value.cleanup !== undefined) summary.cleanup = oneOf(CLEANUP, "cleanup");
@@ -110,11 +113,11 @@ export function parseFailureSummary(value: unknown): FailureSummary {
   return summary;
 }
 
-/** The official run URL from the Actions environment, or undefined outside this repository's runs. */
-export function runUrlFromEnv(env: Record<string, string | undefined> = process.env): string | undefined {
-  if (env.GITHUB_SERVER_URL !== "https://github.com" || env.GITHUB_REPOSITORY !== REPO) return undefined;
-  const url = `https://github.com/${REPO}/actions/runs/${env.GITHUB_RUN_ID}${env.GITHUB_RUN_ATTEMPT && env.GITHUB_RUN_ATTEMPT !== "1" ? `/attempts/${env.GITHUB_RUN_ATTEMPT}` : ""}`;
-  return RUN_URL.test(url) ? url : undefined;
+/** The official run URL from the Actions environment, or undefined outside repository's runs. */
+export function runUrlFromEnv(repository: string, env: Record<string, string | undefined> = process.env): string | undefined {
+  if (env.GITHUB_SERVER_URL !== "https://github.com" || env.GITHUB_REPOSITORY !== repository) return undefined;
+  const url = `https://github.com/${repository}/actions/runs/${env.GITHUB_RUN_ID}${env.GITHUB_RUN_ATTEMPT && env.GITHUB_RUN_ATTEMPT !== "1" ? `/attempts/${env.GITHUB_RUN_ATTEMPT}` : ""}`;
+  return runUrlPattern(repository).test(url) ? url : undefined;
 }
 
 const PUBLICATION_TEXT: Record<(typeof PUBLICATION)[number], string> = {
@@ -126,9 +129,9 @@ const PUBLICATION_TEXT: Record<(typeof PUBLICATION)[number], string> = {
   published: "The release was published and verified.",
 };
 
-/** Renders already-validated facts; the optional selftest tag lets a read-only mailbox lookup find this message. */
-export function formatFailure(input: FailureSummary, selftestId?: string): { subject: string; text: string } {
-  const s = parseFailureSummary(input);
+/** Renders already-validated facts for deployment; the optional selftest tag lets a read-only mailbox lookup find this message. */
+export function formatFailure(deployment: Deployment, input: FailureSummary, selftestId?: string): { subject: string; text: string } {
+  const s = parseFailureSummary(deployment.config.channel.repository, input);
   const publication = s.publication ?? "unknown";
   const table = (map: VersionMap | undefined) => (map ? PIN_KEYS.map((k) => `  ${k}: ${map[k]}`).join("\n") : "  not available");
   const label = selftestId ? `SELFTEST harmless notice, not a real failure ${subjectTag(selftestId)}` : `re-audit failed at ${s.stage}: ${s.reason}`;
@@ -150,7 +153,7 @@ export function formatFailure(input: FailureSummary, selftestId?: string): { sub
     "",
     "Details stay in the run's sanitized logs; this notice carries no credentials or vendor output.",
   ].join("\n").trimStart();
-  return { subject: `[pirax-audit] ${label}`, text: `${text}\n` };
+  return { subject: `${deployment.config.notice.subjectPrefix} ${label}`, text: `${text}\n` };
 }
 
 // Finite allowlists: a name or code set by arbitrary code is caller data, whatever its characters look like.
@@ -168,15 +171,15 @@ export function safeError(e: unknown): string {
 
 type SendOptions = { selftestId?: string; createTransport?: typeof nodemailer.createTransport; timeoutMs?: number };
 
-/** Exactly one bounded send to RECIPIENT; throws a NoticeError with safe facts on any failure. */
-export async function sendFailure(summary: FailureSummary, env: Record<string, string | undefined> = process.env, { selftestId, createTransport = nodemailer.createTransport, timeoutMs = SEND_TIMEOUT_MS }: SendOptions = {}): Promise<{ accepted: number; rejected: number }> {
-  const { subject, text } = formatFailure(summary, selftestId);
+/** Exactly one bounded send to the deployment's recipient; throws a NoticeError with safe facts on any failure. */
+export async function sendFailure(deployment: Deployment, summary: FailureSummary, env: Record<string, string | undefined> = process.env, { selftestId, createTransport = nodemailer.createTransport, timeoutMs = SEND_TIMEOUT_MS }: SendOptions = {}): Promise<{ accepted: number; rejected: number }> {
+  const { subject, text } = formatFailure(deployment, summary, selftestId);
   const creds = readEnv(env, { IMAP_USER: (v) => addressPattern.test(v), IMAP_PASSWORD: (v) => !/[\u0000-\u001f\u007f]/.test(v) });
   const transport = createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: creds.IMAP_USER, pass: creds.IMAP_PASSWORD }, logger: false, debug: false, connectionTimeout: 20_000, greetingTimeout: 20_000, socketTimeout: 45_000 });
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const info = await Promise.race([
-      transport.sendMail({ from: creds.IMAP_USER, to: RECIPIENT, subject, text }),
+      transport.sendMail({ from: creds.IMAP_USER, to: deployment.config.notice.recipient, subject, text }),
       new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new NoticeError(`notice: SMTP send timed out after ${timeoutMs} ms`)), timeoutMs); }),
     ]);
     const accepted = Array.isArray(info?.accepted) ? info.accepted.length : 0;
@@ -200,13 +203,13 @@ const JOB_FALLBACK: Record<(typeof NOTICE_JOBS)[number], Omit<FailureSummary, "r
   heartbeat: { stage: "heartbeat", cleanup: "not-applicable", publication: "unknown" },
 };
 /** The failed job's own valid summary, else fixed safe text for that job; never a raw or partially valid summary. */
-export function chooseNotice(needs: unknown, summaries: Partial<Record<string, unknown>>, runUrl?: string): FailureSummary {
+export function chooseNotice(repository: string, needs: unknown, summaries: Partial<Record<string, unknown>>, runUrl?: string): FailureSummary {
   const url = runUrl ? { runUrl } : {};
   for (const job of NOTICE_JOBS) {
     const result = (needs as Record<string, { result?: unknown } | undefined> | null)?.[job]?.result;
     if (result !== "failure" && result !== "cancelled") continue;
     try {
-      const summary = parseFailureSummary(summaries[job]);
+      const summary = parseFailureSummary(repository, summaries[job]);
       return { ...url, ...summary };
     } catch {
       return { ...JOB_FALLBACK[job], reason: `${job}-job-${result}`, ...url };
@@ -244,7 +247,16 @@ if (import.meta.main) {
     console.error("usage: bun scripts/reaudit/notify.ts --selftest | <summary.json> | --jobs <summary-dir>");
     process.exit(2);
   }
-  const runUrl = runUrlFromEnv();
+  let deployment: Deployment;
+  try {
+    deployment = loadDeployment();
+  } catch (e) {
+    if (!(e instanceof DeploymentConfigError)) throw e;
+    console.error(JSON.stringify({ smtpAttempts: 0, smtpAccepted: false, error: e.message }));
+    process.exit(1);
+  }
+  const repository = deployment.config.channel.repository;
+  const runUrl = runUrlFromEnv(repository);
   let summary: FailureSummary;
   let exitCode = 0;
   let selftestId: string | undefined;
@@ -255,13 +267,13 @@ if (import.meta.main) {
     } catch {
       console.error("notify: REAUDIT_NEEDS is not JSON; sending the fixed fallback notice");
     }
-    summary = chooseNotice(needs, readSummaries(args[1]!, process.env.GITHUB_RUN_ATTEMPT), runUrl);
+    summary = chooseNotice(repository, needs, readSummaries(args[1]!, process.env.GITHUB_RUN_ATTEMPT), runUrl);
   } else if (args[0] === "--selftest") {
     selftestId = newId();
     summary = { stage: "notify-selftest", reason: "selftest", cleanup: "not-applicable", publication: "not-attempted", ...(runUrl && { runUrl }) };
   } else {
     try {
-      summary = parseFailureSummary(JSON.parse(readFileSync(args[0]!, "utf8")));
+      summary = parseFailureSummary(repository, JSON.parse(readFileSync(args[0]!, "utf8")));
     } catch (e) {
       console.error(`notify: ${e instanceof NoticeError ? e.message : "summary file unreadable or not JSON"}; sending the fixed fallback notice`);
       summary = { stage: "unknown", reason: "invalid-summary", cleanup: "unknown", publication: "unknown", ...(runUrl && { runUrl }) };
@@ -269,7 +281,7 @@ if (import.meta.main) {
     }
   }
   try {
-    const facts = await sendFailure(summary, process.env, { selftestId });
+    const facts = await sendFailure(deployment, summary, process.env, { selftestId });
     console.log(JSON.stringify({ smtpAttempts: 1, smtpAccepted: true, ...facts, stage: summary.stage, ...(selftestId && { selftestId }) }));
   } catch (e) {
     console.error(JSON.stringify({ smtpAttempts: e instanceof EnvError || e instanceof EnvFormatError ? 0 : 1, smtpAccepted: false, stage: summary.stage, error: safeError(e) }));

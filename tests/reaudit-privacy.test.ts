@@ -28,12 +28,18 @@ const ENV = {
   UNRELATED: "kept-out",
 };
 
-test("secretValues names every credential class; the public recipient address is not a secret", () => {
+test("secretValues names every credential class; only an explicitly passed public recipient is exempt, and only as IMAP_USER", () => {
   const values = secretValues(ENV);
   for (const name of ["GPLVAULT_LICENSE_KEY", "GPLVAULT_PRODUCT_ID", "GPLVAULT_UPDATER_PASSPHRASE", "IMAP_USER", "IMAP_PASSWORD", "PIRAX_HELPER_SIGNING_KEY", "FORM_TEST_TOKEN", "GH_TOKEN"] as const)
     expect(values).toContain(ENV[name]);
   expect(values).not.toContain("kept-out");
-  expect(secretValues({ IMAP_USER: "piraxcastrum@gmail.com" })).toEqual([]);
+  const recipient = "notices@example.invalid";
+  expect(secretValues({ IMAP_USER: recipient }, [], recipient)).toEqual([]);
+  // No exemption without the argument (fail-closed), none for another address, none for another variable.
+  expect(secretValues({ IMAP_USER: recipient })).toEqual([recipient]);
+  expect(secretValues({ IMAP_USER: "piraxcastrum@gmail.com" })).toEqual(["piraxcastrum@gmail.com"]);
+  expect(secretValues({ IMAP_USER: ENV.IMAP_USER }, [], recipient)).toEqual([ENV.IMAP_USER]);
+  expect(secretValues({ IMAP_PASSWORD: recipient }, [], recipient)).toEqual([recipient]);
   expect(secretValues(ENV, ["/private/scratch/gf.zip", ""])).toContain("/private/scratch/gf.zip");
 });
 

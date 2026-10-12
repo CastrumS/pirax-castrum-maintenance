@@ -2,6 +2,9 @@
 # audit (read-only, vendor credentials, runs vendor code) -> publish (write, signing key, no vendor code, only this
 # run's validated candidate) -> heartbeat (write, fresh main, independent) -> notify (always, one email on failure).
 # Expressions never reach shell code: every value a step needs arrives through its own `env:`.
+# The repository variable DEPLOYMENT selects deployments/<name>/ for every step. There is no repository literal and no
+# skip: a missing or invalid selection fails the job, and the scripts refuse a selection whose configured repository
+# is not this one before any remote or vendor effect.
 # A rerun keeps the run ID and earlier attempts' artifacts, so every artifact name carries github.run_attempt and the
 # scripts accept only this attempt's (Actions sets GITHUB_RUN_ATTEMPT): a rerun never inherits an earlier candidate or
 # cleanup-confirmed summary. A failed-publish-only rerun has no current candidate; rerunning a failed audit can
@@ -15,13 +18,16 @@ on:
 
 permissions: {}
 
+env:
+  DEPLOYMENT: ${{ vars.DEPLOYMENT }}
+
 concurrency:
-  group: pirax-reaudit
+  group: reaudit
   cancel-in-progress: false
 
 jobs:
   audit:
-    if: github.repository == 'CastrumS/pirax-castrum-maintenance' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     # Acquisition and cleanup take minutes, the full plugin suite about an hour (run.ts bounds it at 105 minutes).
     timeout-minutes: 150
@@ -87,7 +93,7 @@ jobs:
 
   publish:
     needs: audit
-    if: needs.audit.result == 'success' && needs.audit.outputs.outcome == 'audited-candidate' && github.repository == 'CastrumS/pirax-castrum-maintenance' && github.ref == 'refs/heads/main'
+    if: needs.audit.result == 'success' && needs.audit.outputs.outcome == 'audited-candidate' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -128,7 +134,7 @@ jobs:
   heartbeat:
     needs: [audit, publish]
     # Independent of the audit outcome, so weeks of failing gates cannot let the schedule be disabled.
-    if: always() && github.repository == 'CastrumS/pirax-castrum-maintenance' && github.ref == 'refs/heads/main'
+    if: always() && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -149,7 +155,7 @@ jobs:
 
   notify:
     needs: [audit, publish, heartbeat]
-    if: always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && github.repository == 'CastrumS/pirax-castrum-maintenance' && github.ref == 'refs/heads/main'
+    if: always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

@@ -1,5 +1,5 @@
 // Workflow contracts (plan D8/D9): the parsed YAML of reaudit.yml and reaudit-watchdog.yml, not a grep. Triggers,
-// main/fixed-repository guards, least privilege per job, secret placement per step, no expression interpolation in
+// deployment selection (vars.DEPLOYMENT) and main-only guards, least privilege per job, secret placement per step, no expression interpolation in
 // shell, pinned actions and explicit toolchain; plus the documented CLIs' usage/fallback paths, run offline. Actual
 // scheduling, Actions permissions enforcement and a main-only run are post-merge evidence, not proven here.
 import { afterAll, expect, test } from "bun:test";
@@ -9,16 +9,17 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseInstant } from "../scripts/reaudit/heartbeat";
 import { chooseNotice, formatFailure, readSummaries, type FailureSummary } from "../scripts/reaudit/notify";
-import { readAuditedVersions } from "../scripts/plugin-source";
+import { loadDeployment } from "../src/deployment";
 
 const ROOT = resolve(import.meta.dir, "..");
 const REPO = "CastrumS/pirax-castrum-maintenance";
+const PIRAX = loadDeployment({ env: { DEPLOYMENT: "pirax" } });
 const scratch = await mkdtemp(join(tmpdir(), "reaudit-workflow-"));
 afterAll(() => rm(scratch, { recursive: true, force: true }));
 
 type Step = { name?: string; uses?: string; run?: string; if?: string; id?: string; "continue-on-error"?: boolean; with?: Record<string, unknown>; env?: Record<string, string> };
 type Job = { if?: string; needs?: string | string[]; permissions?: Record<string, string>; "timeout-minutes"?: number; "runs-on"?: string; steps: Step[]; outputs?: Record<string, string> };
-type Workflow = { on: Record<string, unknown>; permissions?: unknown; concurrency?: { group: string; "cancel-in-progress": boolean }; jobs: Record<string, Job> };
+type Workflow = { on: Record<string, unknown>; env?: Record<string, string>; permissions?: unknown; concurrency?: { group: string; "cancel-in-progress": boolean }; jobs: Record<string, Job> };
 const load = async (name: string) => Bun.YAML.parse(await readFile(join(ROOT, ".github/workflows", name), "utf8")) as Workflow;
 const audit = await load("reaudit.yml");
 const watchdog = await load("reaudit-watchdog.yml");
@@ -31,18 +32,24 @@ const step = (job: Job, match: (s: Step) => boolean) => {
 };
 const runs = (job: Job) => job.steps.flatMap((s) => (s.run ? [s.run] : []));
 
-test("triggers: daily off-the-hour UTC schedule and manual dispatch only; fixed repository-wide concurrency, never cancelled", () => {
+test("triggers: daily off-the-hour UTC schedule and manual dispatch only; repository-wide concurrency, never cancelled", () => {
   expect(Object.keys(audit.on).sort()).toEqual(["schedule", "workflow_dispatch"]);
   const cron = (audit.on.schedule as { cron: string }[])[0]!.cron;
   expect(cron).toMatch(/^([1-9]|[1-5]\d) ([0-9]|1\d|2[0-3]) \* \* \*$/);
-  expect(audit.concurrency).toEqual({ group: "pirax-reaudit", "cancel-in-progress": false });
+  expect(audit.concurrency).toEqual({ group: "reaudit", "cancel-in-progress": false });
   expect(audit.permissions).toEqual({});
   expect(Object.keys(audit.jobs).sort()).toEqual(["audit", "heartbeat", "notify", "publish"]);
 });
 
-test("every job is guarded to main of the fixed repository, bounded and explicitly permissioned", () => {
+test("both workflows select vars.DEPLOYMENT; every job is guarded to main, never skipped by a repository literal or missing selection", () => {
+  for (const wf of [audit, watchdog]) {
+    expect(wf.env).toEqual({ DEPLOYMENT: "${{ vars.DEPLOYMENT }}" });
+    const text = JSON.stringify(wf);
+    expect(text).not.toContain("github.repository");
+    expect(text).not.toContain("CastrumS");
+    expect(text.match(/vars\.DEPLOYMENT/g)).toHaveLength(1);
+  }
   for (const [name, job] of [...Object.entries(audit.jobs), ...Object.entries(watchdog.jobs)]) {
-    expect(job.if, name).toContain(`github.repository == '${REPO}'`);
     expect(job.if, name).toContain("github.ref == 'refs/heads/main'");
     expect(job["runs-on"], name).toBe("ubuntu-24.04");
     expect(job["timeout-minutes"], name).toBeGreaterThan(0);
@@ -162,7 +169,7 @@ test("watchdog: separate daily/manual workflow with actions:read, Gmail secrets 
   expect(Object.keys(watchdog.on).sort()).toEqual(["schedule", "workflow_dispatch"]);
   expect((watchdog.on.schedule as { cron: string }[])[0]!.cron).not.toBe((audit.on.schedule as { cron: string }[])[0]!.cron);
   expect(watchdog.permissions).toEqual({});
-  expect(watchdog.concurrency).toEqual({ group: "pirax-reaudit-watchdog", "cancel-in-progress": false });
+  expect(watchdog.concurrency).toEqual({ group: "reaudit-watchdog", "cancel-in-progress": false });
   const job = Object.values(watchdog.jobs)[0]!;
   expect(job.permissions).toEqual({ actions: "read", contents: "read" });
   const run = step(job, (s) => !!s.run?.includes("scripts/reaudit/watchdog.ts"));
@@ -171,11 +178,12 @@ test("watchdog: separate daily/manual workflow with actions:read, Gmail secrets 
   expect(run.env!.GH_TOKEN).toBe("${{ github.token }}");
 });
 
-test("every referenced script exists; the initial heartbeat payload is a valid instant", async () => {
+test("every referenced script exists; Pirax's heartbeat moved into its deployment folder and is a valid instant", async () => {
   for (const wf of [audit, watchdog])
     for (const job of Object.values(wf.jobs))
       for (const script of runs(job).join("\n").match(/scripts\/[\w/.-]+\.ts/g) ?? []) expect(existsSync(join(ROOT, script)), script).toBe(true);
-  const heartbeat = await readFile(join(ROOT, ".github/audit/heartbeat.txt"), "utf8");
+  expect(existsSync(join(ROOT, ".github/audit/heartbeat.txt"))).toBe(false);
+  const heartbeat = await readFile(join(ROOT, "deployments/pirax/heartbeat.txt"), "utf8");
   expect(heartbeat).toMatch(/^\S+\n$/);
   expect(Number.isFinite(parseInstant(heartbeat.trim()))).toBe(true);
 });
@@ -205,9 +213,16 @@ test("documented CLIs refuse unknown arguments with usage (exit 2) and do nothin
     expect(r.code, script).toBe(2);
     expect(r.stderr, script).toContain("usage:");
   }
-  const r = await cli([join(ROOT, "scripts/reaudit/publish.ts"), "--candidate", join(scratch, "none.json"), "--summary", join(scratch, "s.json")]);
+  const r = await cli([join(ROOT, "scripts/reaudit/publish.ts"), "--candidate", join(scratch, "none.json"), "--summary", join(scratch, "s.json")], { DEPLOYMENT: "pirax" });
   expect(r.code).toBe(1);
   expect(JSON.parse(await readFile(join(scratch, "s.json"), "utf8"))).toMatchObject({ stage: "publication", reason: "candidate-invalid", publication: "not-attempted" });
+  // A missing selection fails before the candidate is read; it is never a silent skip.
+  for (const [script, args] of [["publish.ts", ["--candidate", join(scratch, "none.json"), "--summary", join(scratch, "s.json")]], ["heartbeat.ts", ["--run"]], ["watchdog.ts", ["--no-notify"]], ["run.ts", ["--out", join(scratch, "run-out")]]] as const) {
+    const unset = await cli([join(ROOT, "scripts/reaudit", script), ...args], { GITHUB_RUN_ID: "1", GITHUB_RUN_ATTEMPT: "1" });
+    expect(unset.code, script).toBe(1);
+    expect(unset.stderr, script).toContain("DEPLOYMENT is not set");
+  }
+  expect(JSON.parse(await readFile(join(scratch, "s.json"), "utf8"))).toMatchObject({ stage: "publication", reason: "deployment-invalid", publication: "not-attempted" });
 });
 
 test("notify --jobs picks the failed job's summary and, without mail credentials, fails safely before any SMTP attempt", async () => {
@@ -215,22 +230,22 @@ test("notify --jobs picks the failed job's summary and, without mail credentials
   await mkdir(join(dir, "reaudit-summary-1-audit"), { recursive: true });
   await writeFile(join(dir, "reaudit-summary-1-audit/summary.json"), JSON.stringify({ stage: "audit", reason: "native-suite-failed", cleanup: "confirmed", publication: "not-attempted" }));
   const needs = JSON.stringify({ audit: { result: "failure", outputs: {} }, publish: { result: "skipped", outputs: {} }, heartbeat: { result: "success", outputs: {} } });
-  const r = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { REAUDIT_NEEDS: needs, GITHUB_RUN_ATTEMPT: "1" });
+  const r = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { DEPLOYMENT: "pirax", REAUDIT_NEEDS: needs, GITHUB_RUN_ATTEMPT: "1" });
   expect(r.code).toBe(1);
   expect(JSON.parse(r.stderr.trim().split("\n").at(-1)!)).toMatchObject({ smtpAttempts: 0, smtpAccepted: false, stage: "audit" });
   // Attempt 2 of the same run left no summary: the fixed audit fallback (cleanup unknown), never attempt 1's.
   for (const attempt of [{ GITHUB_RUN_ATTEMPT: "2" }, {}] as Record<string, string>[]) {
-    const rerun = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { REAUDIT_NEEDS: needs, ...attempt });
+    const rerun = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { DEPLOYMENT: "pirax", REAUDIT_NEEDS: needs, ...attempt });
     expect(rerun.code).toBe(1);
     expect(JSON.parse(rerun.stderr.trim().split("\n").at(-1)!)).toMatchObject({ smtpAttempts: 0, stage: "setup" });
   }
-  const bad = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { REAUDIT_NEEDS: "{not json", GITHUB_RUN_ATTEMPT: "1" });
+  const bad = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { DEPLOYMENT: "pirax", REAUDIT_NEEDS: "{not json", GITHUB_RUN_ATTEMPT: "1" });
   expect(bad.code).toBe(1);
   expect(JSON.parse(bad.stderr.trim().split("\n").at(-1)!)).toMatchObject({ smtpAttempts: 0, stage: "unknown" });
 });
 
 test("pinned download action's flat single-match/named extraction reaches the real summary loader and CLI", async () => {
-  const pins = readAuditedVersions();
+  const pins = { ...PIRAX.versions.audited };
   const versions = { oldVersions: pins, candidateVersions: { ...pins, ff: `${pins.ff}.1` } };
   const summaries: FailureSummary[] = [
     { stage: "audit", reason: "native-suite-failed", cleanup: "confirmed", publication: "not-attempted", ...versions },
@@ -261,26 +276,33 @@ test("pinned download action's flat single-match/named extraction reaches the re
     }
     const dir = expand(step(audit.jobs.notify!, (s) => !!s.run?.includes("scripts/reaudit/notify.ts")).env!.SUMMARIES);
     const needs = { [job]: { result: "failure" } };
-    const notice = chooseNotice(needs, readSummaries(dir, "1"));
+    const notice = chooseNotice(REPO, needs, readSummaries(dir, "1"));
     expect(notice).toEqual(summary); // Every stage/reason/version/cleanup/site/partial-publication fact survives.
-    expect(formatFailure(notice)).toEqual(formatFailure(summary));
-    const r = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { REAUDIT_NEEDS: JSON.stringify(needs), GITHUB_RUN_ATTEMPT: "1" });
+    expect(formatFailure(PIRAX, notice)).toEqual(formatFailure(PIRAX, summary));
+    const r = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { DEPLOYMENT: "pirax", REAUDIT_NEEDS: JSON.stringify(needs), GITHUB_RUN_ATTEMPT: "1" });
     expect(r.code).toBe(1);
     expect(JSON.parse(r.stderr.trim().split("\n").at(-1)!)).toMatchObject({ smtpAttempts: 0, stage: summary.stage });
     expect(readSummaries(dir, "2")).toEqual({});
-    expect(chooseNotice(needs, readSummaries(dir, "2")).reason).toBe(`${job}-job-failure`);
+    expect(chooseNotice(REPO, needs, readSummaries(dir, "2")).reason).toBe(`${job}-job-failure`);
   }
 });
 
-test("publish and heartbeat jobs install nothing: their scripts load without node_modules", async () => {
+test("publish and heartbeat jobs install nothing: their scripts and the deployment loader load without node_modules", async () => {
   const dir = join(scratch, "no-deps");
   await mkdir(join(dir, "test/plugin"), { recursive: true });
+  await mkdir(join(dir, "src/forms"), { recursive: true });
+  await mkdir(join(dir, "deployments"), { recursive: true });
   expect(Bun.spawnSync(["cp", "-r", join(ROOT, "scripts"), join(dir, "scripts")]).exitCode).toBe(0);
-  expect(Bun.spawnSync(["cp", join(ROOT, "test/plugin/artifacts.ts"), join(dir, "test/plugin/artifacts.ts")]).exitCode).toBe(0);
+  expect(Bun.spawnSync(["cp", "-r", join(ROOT, "deployments/pirax"), join(dir, "deployments/pirax")]).exitCode).toBe(0);
+  for (const file of ["test/plugin/artifacts.ts", "src/deployment.ts", "src/forms/config.ts", "src/env.ts"]) expect(Bun.spawnSync(["cp", join(ROOT, file), join(dir, file)]).exitCode).toBe(0);
   for (const [script, arg] of [["scripts/reaudit/publish.ts", "--bogus"], ["scripts/reaudit/heartbeat.ts", "--bogus"]] as const) {
     // --no-install: without it Bun would silently auto-install a missing package and hide the dependency.
     const r = await cli(["--no-install", join(dir, script), arg]);
     expect(r.stderr, script).toContain("usage:");
     expect(r.code, script).toBe(2);
   }
+  // Past usage: the selection loads and the publisher reaches its candidate check.
+  const r = await cli(["--no-install", join(dir, "scripts/reaudit/publish.ts"), "--candidate", join(scratch, "none.json"), "--summary", join(scratch, "no-deps.json")], { DEPLOYMENT: "pirax" });
+  expect(r.code).toBe(1);
+  expect(JSON.parse(await readFile(join(scratch, "no-deps.json"), "utf8"))).toMatchObject({ reason: "candidate-invalid" });
 });

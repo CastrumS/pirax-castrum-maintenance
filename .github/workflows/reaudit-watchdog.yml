@@ -1,6 +1,7 @@
 # Same-host liveness check of reaudit.yml (plan D9; README "Automatic re-audit"): emails when the audit workflow is
 # disabled, missing or has not started for more than 48 hours. It runs on the same GitHub Actions scheduler, so it
-# cannot report a platform-wide scheduler outage or its own disabling.
+# cannot report a platform-wide scheduler outage or its own disabling. The repository variable DEPLOYMENT selects the
+# deployment whose repository is watched and whose recipient is notified; a missing selection fails the job.
 name: reaudit-watchdog
 
 on:
@@ -10,13 +11,16 @@ on:
 
 permissions: {}
 
+env:
+  DEPLOYMENT: ${{ vars.DEPLOYMENT }}
+
 concurrency:
-  group: pirax-reaudit-watchdog
+  group: reaudit-watchdog
   cancel-in-progress: false
 
 jobs:
   watchdog:
-    if: github.repository == 'CastrumS/pirax-castrum-maintenance' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

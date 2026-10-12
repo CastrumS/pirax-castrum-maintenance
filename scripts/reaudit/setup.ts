@@ -2,7 +2,8 @@
 //   bun --env-file=<registered repository>/.env scripts/reaudit/setup.ts [--source <official updater ZIP>]
 // Encrypts the operator's official GPL Vault updater ZIP (default ~/Downloads/gplvault-updater.zip) with the
 // existing GPLVAULT_UPDATER_PASSPHRASE into .github/audit/gplvault-updater.zip.gpg, verifies the round trip,
-// then streams that passphrase and the GPL Vault/Gmail values to repository secrets via `gh secret set` stdin.
+// then streams that passphrase and the GPL Vault/Gmail values to the selected deployment's repository
+// (config channel.repository; needs DEPLOYMENT) as secrets via `gh secret set` stdin.
 // Never generates or rotates the passphrase, never overwrites a ciphertext it cannot reproduce, never sets the
 // signing secret (it only checks that its name exists), and prints names and results only. No import side effects.
 import { createHash } from "node:crypto";
@@ -10,10 +11,10 @@ import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rename, rm } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
+import { DeploymentConfigError, loadDeployment } from "../../src/deployment";
 import { ReauditError } from "./detect";
 import { CIPHERTEXT, decryptUpdater, gpg, zipVersion } from "./fetch";
 
-export const REPO = "CastrumS/pirax-castrum-maintenance";
 /** Set by this script, each from the same-named environment variable. */
 export const SECRET_NAMES = ["GPLVAULT_UPDATER_PASSPHRASE", "GPLVAULT_LICENSE_KEY", "GPLVAULT_PRODUCT_ID", "IMAP_USER", "IMAP_PASSWORD"] as const;
 const SIGNING_SECRET = "PIRAX_HELPER_SIGNING_KEY";
@@ -27,7 +28,7 @@ export async function setup({
   env = process.env,
   source = join(homedir(), "Downloads/gplvault-updater.zip"),
   ciphertext = CIPHERTEXT,
-  repo = REPO,
+  repo = loadDeployment({ env }).config.channel.repository,
   log = console.log,
 }: { env?: Record<string, string | undefined>; source?: string; ciphertext?: string; repo?: string; log?: (line: string) => void } = {}) {
   for (const name of SECRET_NAMES) if (!env[name]) throw refuse(name, "is not set");
@@ -90,7 +91,7 @@ export async function setup({
 if (import.meta.main) {
   const at = process.argv.indexOf("--source");
   await setup(at === -1 ? {} : { source: resolve(process.argv[at + 1] ?? "") }).catch((error) => {
-    console.error(error instanceof ReauditError ? error.message : "setup: failed");
+    console.error(error instanceof ReauditError ? error.message : error instanceof DeploymentConfigError ? `setup: ${error.message}` : "setup: failed");
     process.exit(1);
   });
 }

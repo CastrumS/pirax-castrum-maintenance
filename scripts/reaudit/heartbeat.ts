@@ -1,20 +1,31 @@
 // Keep-alive heartbeat against the 60-day scheduled-workflow inactivity disable. On a clean checkout whose
-// HEAD is fresh main, when main's last commit is at least 30 days old, rewrite only HEARTBEAT_PATH, commit
-// it, recheck that main has not moved and push HEAD to main normally: no force, tag or release. Not due
-// means no commit. Failures carry a fixed stage, never git stderr, paths or URLs.
+// HEAD is fresh main of the selected deployment's repository, when main's last commit is at least 30 days old,
+// rewrite only that deployment's heartbeat file (deployments/<name>/heartbeat.txt), commit it, recheck that main
+// has not moved and push HEAD to main normally: no force, tag or release. Not due means no commit. Failures carry a
+// fixed stage, never git stderr, paths or URLs.
 //
-// Usage: bun scripts/reaudit/heartbeat.ts --run   (in the workflow's disposable main checkout)
+// Usage: DEPLOYMENT=<name> bun scripts/reaudit/heartbeat.ts --run   (in the workflow's disposable main checkout)
 //   needs GH_TOKEN for the push: the checkout persists no credentials, and git asks gh (GIT_AUTH).
+// Also shared by the other operations: repositoryMismatch() (an Actions run of another repository), GIT_AUTH, safeChildEnv().
 // Import-safe: nothing runs on import, and tests pass a local file:// remote.
-import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { writeFileSync } from "node:fs";
+import { join, relative } from "node:path";
+import { DeploymentConfigError, loadDeployment, type Deployment } from "../../src/deployment.ts";
 
-export const HEARTBEAT_PATH = ".github/audit/heartbeat.txt";
 export const HEARTBEAT_DUE_MS = 30 * 86_400_000;
 /** Committer/runner clocks drift; a timestamp up to this far ahead counts as now rather than as malformed. */
 export const CLOCK_SKEW_MS = 5 * 60_000;
-const REMOTE = "https://github.com/CastrumS/pirax-castrum-maintenance.git";
 const CHILD_TIMEOUT_MS = 120_000;
+
+/** The repository-relative heartbeat file of a deployment: the only file a heartbeat writes. */
+export const heartbeatPath = (deployment: Deployment) => relative(deployment.root, join(deployment.directory, "heartbeat.txt"));
+
+/**
+ * Whether this is a GitHub Actions run (GITHUB_ACTIONS=true) of a repository other than the selected deployment's.
+ * Operations refuse that before any remote or vendor effect: a copy's selection must never act on another's channel.
+ */
+export const repositoryMismatch = (deployment: Deployment, env: Record<string, string | undefined>) =>
+  env.GITHUB_ACTIONS === "true" && env.GITHUB_REPOSITORY !== deployment.config.channel.repository;
 
 export class HeartbeatError extends Error {}
 
@@ -53,12 +64,15 @@ export function safeChildEnv(env: Record<string, string | undefined> = process.e
   return { ...out, GIT_TERMINAL_PROMPT: "0", GH_PROMPT_DISABLED: "1" };
 }
 
-type HeartbeatOptions = { cwd: string; now: number; remoteUrl?: string; env?: Record<string, string | undefined>; beforeRecheck?: () => void };
+type HeartbeatOptions = { deployment: Deployment; now: number; remoteUrl?: string; env?: Record<string, string | undefined>; beforeRecheck?: () => void };
 export type HeartbeatResult = { outcome: "not-due" | "pushed"; base: string; commit?: string };
 
-/** The operation for the final independent workflow job. Throws HeartbeatError with a fixed stage message. */
-export function runHeartbeat({ cwd, now, remoteUrl = REMOTE, env = process.env, beforeRecheck }: HeartbeatOptions): HeartbeatResult {
+/** The operation for the final independent workflow job, in the deployment's checkout. Throws HeartbeatError with a fixed stage message. */
+export function runHeartbeat({ deployment, now, remoteUrl = deployment.remote, env = process.env, beforeRecheck }: HeartbeatOptions): HeartbeatResult {
+  if (repositoryMismatch(deployment, env)) throw new HeartbeatError("heartbeat: GITHUB_REPOSITORY is not the selected deployment's repository");
   if (!Number.isFinite(now)) throw new HeartbeatError("heartbeat: refusing a nonfinite clock");
+  const cwd = deployment.root;
+  const path = heartbeatPath(deployment);
   const childEnv = safeChildEnv(env);
   const git = (stage: string, args: string[]) => {
     const p = Bun.spawnSync(["git", ...GIT_AUTH, "-c", "core.hooksPath=/dev/null", ...args], { cwd, env: childEnv, stdout: "pipe", stderr: "pipe", timeout: CHILD_TIMEOUT_MS });
@@ -78,12 +92,10 @@ export function runHeartbeat({ cwd, now, remoteUrl = REMOTE, env = process.env, 
   catch (e) { throw e instanceof HeartbeatError ? e : new HeartbeatError("heartbeat: main's last commit time is malformed or in the future"); }
   if (!due) return { outcome: "not-due", base };
 
-  const file = join(cwd, HEARTBEAT_PATH);
-  mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, `${new Date(now).toISOString()}\n`);
+  writeFileSync(join(cwd, path), `${new Date(now).toISOString()}\n`);
   const changed = status().split("\n").map((line) => line.slice(3));
-  if (changed.length !== 1 || changed[0] !== HEARTBEAT_PATH) throw new HeartbeatError("heartbeat: refusing changes outside the heartbeat file");
-  git("add", ["add", "--", HEARTBEAT_PATH]);
+  if (changed.length !== 1 || changed[0] !== path) throw new HeartbeatError("heartbeat: refusing changes outside the heartbeat file");
+  git("add", ["add", "--", path]);
   const identity = ["-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com", "-c", "commit.gpgsign=false"];
   git("commit", [...identity, "commit", "--quiet", "--no-verify", "-m", "chore: audit schedule heartbeat"]);
   const commit = git("rev-parse", ["rev-parse", "HEAD"]);
@@ -100,9 +112,9 @@ if (import.meta.main) {
     process.exit(2);
   }
   try {
-    console.log(JSON.stringify(runHeartbeat({ cwd: process.cwd(), now: Date.now() })));
+    console.log(JSON.stringify(runHeartbeat({ deployment: loadDeployment(), now: Date.now() })));
   } catch (e) {
-    console.error(e instanceof HeartbeatError ? e.message : "heartbeat: failed");
+    console.error(e instanceof HeartbeatError ? e.message : e instanceof DeploymentConfigError ? `heartbeat: ${e.message}` : "heartbeat: failed");
     process.exit(1);
   }
 }

@@ -1,16 +1,16 @@
-// Same-host schedule watchdog for reaudit.yml: read-only gh GET lookups of the workflow's state and its
-// latest started main schedule/manual run. Disabled, overdue (>48h since the last start), missing history after
+// Same-host schedule watchdog for reaudit.yml: read-only gh GET lookups, in the selected deployment's repository,
+// of the workflow's state and its latest started main schedule/manual run. Disabled, overdue (>48h since the last start), missing history after
 // the install grace, or any missing/malformed/failed Actions fact is unhealthy and attempts one safe notice.
 // A failed recent audit still proves the scheduler is alive; failed-run notices belong to reaudit.yml itself.
 // Limitation: it runs on the same GitHub Actions scheduler, so a total scheduler outage silences both.
 //
-// Usage: bun --env-file=.env scripts/reaudit/watchdog.ts [--no-notify]   exit 0 healthy, 1 unhealthy
+// Usage: bun --env-file=.env scripts/reaudit/watchdog.ts [--no-notify]   exit 0 healthy, 1 unhealthy (or no DEPLOYMENT)
 // Import-safe: nothing runs on import.
+import { DeploymentConfigError, loadDeployment, type Deployment } from "../../src/deployment.ts";
 import { CLOCK_SKEW_MS, parseInstant, safeChildEnv } from "./heartbeat.ts";
 import { runUrlFromEnv, safeError, sendFailure, type FailureSummary } from "./notify.ts";
 
 export const OVERDUE_MS = 48 * 3_600_000;
-const API = "repos/CastrumS/pirax-castrum-maintenance/actions/workflows/reaudit.yml";
 const WORKFLOW_PATH = ".github/workflows/reaudit.yml";
 const STATES = ["active", "disabled_manually", "disabled_inactivity", "disabled_fork", "deleted"] as const;
 
@@ -71,25 +71,28 @@ function get(gh: Gh, path: string): { status: number; body: unknown } | Watchdog
   catch { return "actions-response-invalid"; }
 }
 
-export function observe(gh: Gh, now: number): WatchdogDecision {
-  const workflow = get(gh, API);
+/** One observation of repository's reaudit.yml. */
+export function observe(repository: string, gh: Gh, now: number): WatchdogDecision {
+  const api = `repos/${repository}/actions/workflows/reaudit.yml`;
+  const workflow = get(gh, api);
   if (typeof workflow === "string") return { healthy: false, reason: workflow };
   if (workflow.status === 404) return { healthy: false, reason: "workflow-missing" };
   if (workflow.status !== 200) return { healthy: false, reason: "actions-query-failed" };
-  const runs = get(gh, `${API}/runs?branch=main&per_page=50`);
+  const runs = get(gh, `${api}/runs?branch=main&per_page=50`);
   if (typeof runs === "string") return { healthy: false, reason: runs };
   if (runs.status !== 200) return { healthy: false, reason: "actions-query-failed" };
   try { return decideWatchdog(normalizeWatchdogFacts(workflow.body, runs.body, now), now); }
   catch { return { healthy: false, reason: "actions-response-invalid" }; }
 }
 
-type WatchdogOptions = { now: number; gh?: Gh; notify?: ((s: FailureSummary) => Promise<unknown>) | null; env?: Record<string, string | undefined> };
-/** One observation; unhealthy attempts exactly one notice (none when notify is null). */
-export async function runWatchdog({ now, gh = realGh, notify = sendFailure, env = process.env }: WatchdogOptions): Promise<WatchdogDecision & { notice: "not-needed" | "sent" | "failed" | "skipped" }> {
-  const decision = observe(gh, now);
+type WatchdogOptions = { deployment: Deployment; now: number; gh?: Gh; env?: Record<string, string | undefined>; notify?: ((s: FailureSummary) => Promise<unknown>) | null };
+/** One observation of the deployment's repository; unhealthy attempts exactly one notice to its recipient (none when notify is null). */
+export async function runWatchdog({ deployment, now, gh = realGh, env = process.env, notify = (s) => sendFailure(deployment, s, env) }: WatchdogOptions): Promise<WatchdogDecision & { notice: "not-needed" | "sent" | "failed" | "skipped" }> {
+  const repository = deployment.config.channel.repository;
+  const decision = observe(repository, gh, now);
   if (decision.healthy) return { ...decision, notice: "not-needed" };
   if (!notify) return { ...decision, notice: "skipped" };
-  const runUrl = runUrlFromEnv(env);
+  const runUrl = runUrlFromEnv(repository, env);
   try {
     await notify({ stage: "watchdog", reason: decision.reason, ...(runUrl && { runUrl }), cleanup: "not-applicable", publication: "not-attempted" });
     return { ...decision, notice: "sent" };
@@ -105,7 +108,15 @@ if (import.meta.main) {
     console.error("usage: bun scripts/reaudit/watchdog.ts [--no-notify]");
     process.exit(2);
   }
-  const result = await runWatchdog({ now: Date.now(), notify: args.length ? null : sendFailure });
+  let deployment: Deployment;
+  try {
+    deployment = loadDeployment();
+  } catch (e) {
+    if (!(e instanceof DeploymentConfigError)) throw e;
+    console.error(`watchdog: ${e.message}`);
+    process.exit(1);
+  }
+  const result = await runWatchdog({ deployment, now: Date.now(), notify: args.length ? null : undefined });
   console.log(JSON.stringify(result));
   process.exit(result.healthy ? 0 : 1);
 }

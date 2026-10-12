@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { PHP_VERSION, WP_VERSION } from "../../test/plugin/harness";
+import { PHP_VERSION, WP_VERSION } from "../../test/plugin/platform";
 import {
   assembleLatest,
   compareMatrix,

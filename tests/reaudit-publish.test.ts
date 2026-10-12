@@ -1,4 +1,5 @@
-// Publisher (plan D7) against a disposable checkout of the shipping scripts/helper source with a TEST signing key,
+// Publisher (plan D7) against a disposable checkout of the shipping scripts, templates and Pirax's deployment data
+// (its public key replaced by a TEST key, plus a second deployment that must stay untouched),
 // a local bare git remote standing in for origin/main, and a gh wrapper on PATH. The wrapper forwards only exact
 // read-only lookups to the real authenticated gh while no fake remote state exists; every mutation (ref claim,
 // release create) is intercepted and recorded, and later reads of that synthetic release are answered from it.
@@ -8,19 +9,22 @@ import { afterAll, expect, setDefaultTimeout, test } from "bun:test";
 import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { loadDeployment } from "../src/deployment";
 import { buildPlugin, FILES, withoutSigningKey } from "../scripts/build-plugin";
-import { readAuditedVersions, readHelperVersion } from "../scripts/plugin-source";
-import { bumpSources, changesDigest, planBump, readBumpSources, BUMP_FILES } from "../scripts/reaudit/bump";
-import { decideAudit, type Candidate } from "../scripts/reaudit/decide";
+import { readAuditedVersions } from "../scripts/plugin-source";
+import { bumpSources, changesDigest, planBump, readBumpSources } from "../scripts/reaudit/bump";
+import { decideAudit, type AuditFacts, type Candidate } from "../scripts/reaudit/decide";
 import { GIT_AUTH } from "../scripts/reaudit/heartbeat";
 import { parseFailureSummary } from "../scripts/reaudit/notify";
 import { publish, PublishError, verifyRelease } from "../scripts/reaudit/publish";
+import { FIXTURE_VERSIONS, fixtureConfig, fixtureKeys, writeDeployment } from "../test/fixtures/deployment";
 import { testKey } from "../test/plugin/update-fixture";
 
 setDefaultTimeout(120_000);
 const ROOT = resolve(import.meta.dir, "..");
 const REPO = "CastrumS/pirax-castrum-maintenance";
-const PRODUCTION_KEY = "D8BfOn8TZC3jD+Hv5Q+p7SGPNGIYISVcMCqQWU0Dh9w=";
+const PIRAX = loadDeployment({ env: { DEPLOYMENT: "pirax" } });
+const SELECT = { DEPLOYMENT: "pirax" };
 const REAL_GH = Bun.which("gh")!;
 const RUN = "4242424242";
 const ATTEMPT = "3";
@@ -76,17 +80,23 @@ echo "unexpected gh call" >&2; exit 1
 
 let count = 0;
 /** A committed checkout whose origin/main is a local bare remote, plus its gh wrapper state; test signing key. */
-async function fixture(encodedSeed = false) {
+async function fixture(encodedSeed = false, facts: Partial<AuditFacts> = {}) {
   const id = ++count;
   const dir = join(scratch, `checkout-${id}`);
-  const files = ["scripts/build-plugin.ts", "scripts/plugin-source.ts", "scripts/release-plugin.ts", "scripts/reaudit/privacy.ts", "test/plugin/artifacts.ts", ...FILES.map((f) => `plugin/pirax-form-test/${f}`)];
+  // The release CLI and everything it loads: build, renderer, readers, loader (with its two imports), privacy scanner.
+  const files = [
+    "scripts/build-plugin.ts", "scripts/plugin-source.ts", "scripts/release-plugin.ts", "scripts/render-plugin.ts", "scripts/reaudit/privacy.ts", "test/plugin/artifacts.ts",
+    "src/deployment.ts", "src/forms/config.ts", "src/env.ts",
+    "deployments/pirax/versions.json", "deployments/pirax/sites.yaml",
+    ...FILES.map((f) => `plugin/pirax-form-test/${f}`),
+  ];
   for (const file of files) {
     await mkdir(dirname(join(dir, file)), { recursive: true });
     await cp(join(ROOT, file), join(dir, file));
   }
   const key = testKey();
-  const updates = join(dir, "plugin/pirax-form-test/includes/updates.php");
-  await writeFile(updates, (await readFile(updates, "utf8")).replace(PRODUCTION_KEY, key.publicKey));
+  await writeFile(join(dir, "deployments/pirax/config.json"), `${JSON.stringify({ ...PIRAX.config, channel: { ...PIRAX.config.channel, publicKey: key.publicKey } }, null, 2)}\n`);
+  writeDeployment(dir, "fixture", { config: fixtureConfig(fixtureKeys().publicKey), versions: FIXTURE_VERSIONS });
   if (encodedSeed) {
     const doc = join(dir, "plugin/pirax-form-test/README.md");
     await writeFile(doc, (await readFile(doc, "utf8")) + "\n" + encodeURIComponent(key.secrets()[0]!) + "\n");
@@ -110,11 +120,14 @@ async function fixture(encodedSeed = false) {
   await writeFile(join(bin, "git"), `#!/bin/sh\nprintf '%s|token=%s\\n' "$*" "\${GH_TOKEN:+yes}" >> '${gitLog}'\ncase "$*" in *" rev-parse --verify HEAD") [ -f '${join(state, "unreadable-commit")}' ] && grep -q " commit --quiet " '${gitLog}' && exit 128;; esac\nexec '${Bun.which("git")}' "$@"\n`);
   await chmod(join(bin, "git"), 0o755);
   const base = git(dir, "rev-parse", "HEAD");
-  const pins = readAuditedVersions(join(dir, "plugin/pirax-form-test"));
-  const helper = readHelperVersion(join(dir, "plugin/pirax-form-test"));
+  const deployment = loadDeployment({ root: dir, env: SELECT });
+  const pins = { ...deployment.versions.audited };
+  const helper = deployment.versions.helperVersion;
   const next = { ...pins, ff: pins.ff.replace(/\d+$/, (x) => String(Number(x) + 1)), cleantalk: pins.cleantalk.replace(/\d+$/, (x) => String(Number(x) + 1)) };
   const plan = planBump(pins, next, helper);
   const decision = decideAudit({
+    deployment: "pirax",
+    repository: REPO,
     runId: RUN,
     runAttempt: ATTEMPT,
     base,
@@ -126,14 +139,15 @@ async function fixture(encodedSeed = false) {
     manifests: "verified",
     final: "passed",
     privacy: "passed",
-    changes: { to: plan.to, digest: changesDigest(bumpSources(readBumpSources(dir), plan)) },
+    changes: { to: plan.to, digest: changesDigest(bumpSources(deployment, readBumpSources(deployment), plan)) },
+    ...facts,
   });
   if (decision.outcome !== "audited-candidate") throw new Error("fixture candidate");
   const candidatePath = join(state, "candidate.json");
   await writeFile(candidatePath, JSON.stringify(decision.candidate));
-  const env = { ...withoutSigningKey(), PATH: `${bin}:${process.env.PATH}`, PIRAX_HELPER_SIGNING_KEY: key.secrets()[0]!, GH_TOKEN: process.env.GH_TOKEN ?? "synthetic-unused-gh-token" };
+  const env = { ...withoutSigningKey(), ...SELECT, PATH: `${bin}:${process.env.PATH}`, PIRAX_HELPER_SIGNING_KEY: key.secrets()[0]!, GH_TOKEN: process.env.GH_TOKEN ?? "synthetic-unused-gh-token" };
   const calls = async () => (await readFile(join(state, "calls"), "utf8").catch(() => "")).split("---\n").filter(Boolean).map((c) => c.trimEnd().split("\n"));
-  return { dir, remote, state, env, base, plan, candidate: decision.candidate as Candidate, candidatePath, calls, publicKey: key.publicKey, key, seed: key.secrets()[0]! };
+  return { dir, remote, state, env, base, plan, deployment, candidate: decision.candidate as Candidate, candidatePath, calls, publicKey: key.publicKey, key, seed: key.secrets()[0]! };
 }
 
 const remoteMain = (remote: string) => git(scratch, "--git-dir", remote, "rev-parse", "refs/heads/main");
@@ -141,11 +155,11 @@ const mutations = (calls: string[][]) => calls.filter((c) => (c[0] === "api" && 
 async function failure(run: Promise<unknown>) {
   const error = await run.then(() => undefined, (e: unknown) => e);
   expect(error).toBeInstanceOf(PublishError);
-  return parseFailureSummary((error as PublishError).summary);
+  return parseFailureSummary(REPO, (error as PublishError).summary);
 }
 
 test("real read-only lookup: an absent release is reported missing, never healthy", async () => {
-  const r = await verifyRelease({ tag: "v999.0.0", version: "999.0.0", pins: readAuditedVersions(), publicKey: PRODUCTION_KEY, env: withoutSigningKey() });
+  const r = await verifyRelease({ deployment: PIRAX, tag: "v999.0.0", version: "999.0.0", pins: PIRAX.versions.audited, env: withoutSigningKey() });
   expect(r).toEqual({ status: "missing", reason: "release-missing" });
 });
 
@@ -156,8 +170,9 @@ test("publishes this run's candidate: reconstructed allowlisted commit, normal p
   expect(result).toMatchObject({ outcome: "published", tag, base: f.base });
   expect(remoteMain(f.remote)).toBe(result.commit);
   expect(git(f.dir, "rev-parse", `${result.commit}^`)).toBe(f.base);
-  expect(git(f.dir, "diff", "--name-only", f.base, result.commit).split("\n").sort()).toEqual([...BUMP_FILES].sort());
-  expect(readAuditedVersions(join(f.dir, "plugin/pirax-form-test"))).toEqual(f.plan.newPins);
+  // Exactly the selected versions.json: no template, guide or other deployment.
+  expect(git(f.dir, "diff", "--name-only", f.base, result.commit)).toBe("deployments/pirax/versions.json");
+  expect(readAuditedVersions({ root: f.dir, env: SELECT })).toEqual(f.plan.newPins);
   const calls = await f.calls();
   const muts = mutations(calls);
   expect(muts).toHaveLength(2);
@@ -183,6 +198,32 @@ test("encoded signing seed in final ZIP is withheld before any tag or release mu
   expect(s).toMatchObject({ stage: "publication", reason: "release-cli-failed", publication: "main-pushed", commit: remoteMain(f.remote), tag: `v${f.plan.to}` });
   expect(await Bun.file(join(f.state, "assets/pirax-form-test.zip")).exists()).toBe(false);
   expect(await Bun.file(join(f.dir, "dist/pirax-form-test.zip")).exists()).toBe(false);
+});
+
+test("another deployment's candidate, even with identical pins and digest inputs, and a foreign Actions repository publish nothing", async () => {
+  const foreign = await fixture(false, { deployment: "fixture" });
+  expect(foreign.candidate.deployment).toBe("fixture");
+  expect((await failure(publish({ root: foreign.dir, candidatePath: foreign.candidatePath, runId: RUN, runAttempt: ATTEMPT, env: foreign.env, remoteUrl: foreign.remote }))).reason).toBe("candidate-invalid");
+  const fork = await fixture(false, { repository: "someone/fork" });
+  expect((await failure(publish({ root: fork.dir, candidatePath: fork.candidatePath, runId: RUN, runAttempt: ATTEMPT, env: fork.env, remoteUrl: fork.remote }))).reason).toBe("candidate-invalid");
+  const f = await fixture();
+  const s = await failure(publish({ root: f.dir, candidatePath: f.candidatePath, runId: RUN, runAttempt: ATTEMPT, env: { ...f.env, GITHUB_ACTIONS: "true", GITHUB_REPOSITORY: "someone/fork" }, remoteUrl: f.remote }));
+  expect(s).toMatchObject({ stage: "publication", reason: "repository-mismatch", publication: "not-attempted" });
+  for (const x of [foreign, fork, f]) {
+    expect(remoteMain(x.remote)).toBe(x.base);
+    expect(git(x.dir, "status", "--porcelain")).toBe("");
+    expect(mutations(await x.calls())).toEqual([]);
+  }
+});
+
+test("an unusable selection publishes nothing and reads no candidate", async () => {
+  const f = await fixture();
+  for (const DEPLOYMENT of ["", "absent", "fixture-x"]) {
+    const s = await failure(publish({ root: f.dir, candidatePath: f.candidatePath, runId: RUN, runAttempt: ATTEMPT, env: { ...f.env, DEPLOYMENT }, remoteUrl: f.remote }));
+    expect(s).toMatchObject({ stage: "publication", reason: "deployment-invalid", publication: "not-attempted" });
+  }
+  expect(remoteMain(f.remote)).toBe(f.base);
+  expect(mutations(await f.calls())).toEqual([]);
 });
 
 test("main advanced since the audit: nothing is committed, pushed, claimed or released", async () => {
@@ -297,21 +338,28 @@ test("a signed, hash-consistent release whose plugin Version header disagrees is
   const results: Record<string, unknown> = {};
   for (const header of ["matching", "mismatched"] as const) {
     const f = await fixture();
-    const source = join(f.state, "source");
-    await cp(join(f.dir, "plugin/pirax-form-test"), source, { recursive: true });
-    const version = readHelperVersion(source);
+    const version = f.deployment.versions.helperVersion;
     const tag = `v${version}`;
-    const main = join(source, "pirax-form-test.php");
-    if (header === "mismatched") await writeFile(main, (await readFile(main, "utf8")).replace(/^( \* Version:[ \t]*).*$/m, `$1${version}.1`));
     const assets = join(f.state, "assets");
     await mkdir(assets);
-    const { sha256 } = await buildPlugin({ source, zip: join(assets, "pirax-form-test.zip") });
-    const manifest = Buffer.from(`${JSON.stringify({ version, package: `https://github.com/${REPO}/releases/download/${tag}/pirax-form-test.zip`, sha256, audited: readAuditedVersions(source) }, null, 2)}\n`);
+    const zip = join(assets, "pirax-form-test.zip");
+    await buildPlugin({ deployment: f.deployment, zip });
+    if (header === "mismatched") {
+      // The build refuses such bytes, so the signed package is edited after it: unzip, change the header, rezip.
+      const tree = join(f.state, "tree");
+      expect(Bun.spawnSync(["unzip", "-q", zip, "-d", tree]).exitCode).toBe(0);
+      const main = join(tree, "pirax-form-test/pirax-form-test.php");
+      await writeFile(main, (await readFile(main, "utf8")).replace(/^( \* Version:[ \t]*).*$/m, `$1${version}.1`));
+      await rm(zip);
+      expect(Bun.spawnSync(["zip", "-q", "-r", "-X", zip, "pirax-form-test"], { cwd: tree }).exitCode).toBe(0);
+    }
+    const sha256 = new Bun.CryptoHasher("sha256").update(await readFile(zip)).digest("hex");
+    const manifest = Buffer.from(`${JSON.stringify({ version, package: `https://github.com/${REPO}/releases/download/${tag}/pirax-form-test.zip`, sha256, audited: f.deployment.versions.audited }, null, 2)}\n`);
     await writeFile(join(assets, "pirax-form-test-manifest.json"), manifest);
     await writeFile(join(assets, "pirax-form-test-manifest.json.sig"), f.key.sign(manifest));
     await writeFile(join(f.state, "tag"), f.base);
     await writeFile(join(f.state, "release.json"), `{"tag_name":"${tag}","draft":false,"prerelease":false,"assets":[{"name":"pirax-form-test-manifest.json"},{"name":"pirax-form-test-manifest.json.sig"},{"name":"pirax-form-test.zip"}]}\n`);
-    results[header] = await verifyRelease({ tag, version, pins: readAuditedVersions(source), publicKey: f.publicKey, commit: f.base, env: f.env });
+    results[header] = await verifyRelease({ deployment: f.deployment, tag, version, pins: f.deployment.versions.audited, commit: f.base, env: f.env });
   }
   expect(results).toEqual({ matching: { status: "verified" }, mismatched: { status: "incomplete", reason: "release-package" } });
 });

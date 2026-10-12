@@ -1,7 +1,8 @@
 // Re-audit decisions (plan D6): pure functions over explicit facts, no IO.
 //   decideAudit(facts)          failed | unchanged | audited-candidate. Every gate is a literal; a missing or other
 //                               value fails, so no default, `always()` path or partial result can authorize publishing
-//   parseCandidate(value, {runId, runAttempt})  strict candidate handoff (exact keys at every level, this run attempt only)
+//   parseCandidate(value, expected)  strict candidate handoff (exact keys at every level): only the publisher's own
+//                               selected deployment and repository and this run attempt
 //   decidePublication(facts)    the publisher's base/source/reconstruction/main/tag guards
 //   verifyManifests(manifests, packages)  native harness manifests used exactly the selected versions and ZIPs
 //   parseTestCounts(output)     Bun's final pass/fail/skip/todo/ran counts
@@ -10,14 +11,18 @@ import { nextHelperPatch } from "./bump.ts";
 import { compareMatrix, PIN_KEYS, ReauditError, type AuditedVersions, type PinKey } from "./detect.ts";
 import type { FailureSummary } from "./notify.ts";
 
-export const CANDIDATE_SCHEMA = 1;
-export const REPOSITORY = "CastrumS/pirax-castrum-maintenance";
+/** 2: bound to a deployment and its repository (plan D6). */
+export const CANDIDATE_SCHEMA = 2;
 const GATES = { cleanup: "confirmed", native: "passed", manifests: "verified", final: "passed", privacy: "passed" } as const;
 
 export type PackageFact = { version: string; sha256: string };
+/** What the publisher selected itself (DEPLOYMENT and its config) and its own Actions run attempt; never candidate data. */
+export type CandidateContext = { deployment: string; repository: string; runId: string; runAttempt: string };
 export type Candidate = {
   schema: typeof CANDIDATE_SCHEMA;
-  repository: typeof REPOSITORY;
+  /** The audited deployment's name and channel repository; the publisher accepts only its own selection's. */
+  deployment: string;
+  repository: string;
   /** The Actions run that audited it; the publisher accepts only its own run's candidate. */
   runId: string;
   /** That run's attempt: a rerun keeps the run ID and earlier artifacts, so it must not consume an earlier candidate. */
@@ -35,6 +40,9 @@ export type Candidate = {
 };
 
 export type AuditFacts = {
+  /** The selected deployment's name and channel repository. */
+  deployment: string;
+  repository: string;
   runId: string;
   runAttempt: string;
   base: string;
@@ -78,14 +86,18 @@ function pins(value: unknown): AuditedVersions | undefined {
   return Object.fromEntries(PIN_KEYS.map((k) => [k, value[k]])) as AuditedVersions;
 }
 
-/** Strict: throws CandidateError(`candidate: <field>`) for anything but this run attempt's complete, successful candidate. */
-export function parseCandidate(value: unknown, expected: { runId: string; runAttempt: string }): Candidate {
+/**
+ * Strict: throws CandidateError(`candidate: <field>`) for anything but the complete, successful candidate of the
+ * expected deployment, repository and run attempt. Identical pins and digests from another deployment are refused.
+ */
+export function parseCandidate(value: unknown, expected: CandidateContext): Candidate {
   const fail = (field: string) => new CandidateError(`candidate: ${field}`);
   if (!isObject(value)) throw fail("not an object");
-  const top = ["schema", "repository", "runId", "runAttempt", "base", "oldPins", "newPins", "packages", "helper", "changes", "gates"];
+  const top = ["schema", "deployment", "repository", "runId", "runAttempt", "base", "oldPins", "newPins", "packages", "helper", "changes", "gates"];
   if (Object.keys(value).some((k) => !top.includes(k))) throw fail("unknown keys");
   if (value.schema !== CANDIDATE_SCHEMA) throw fail("schema");
-  if (value.repository !== REPOSITORY) throw fail("repository");
+  if (typeof value.deployment !== "string" || value.deployment !== expected.deployment) throw fail("deployment");
+  if (typeof value.repository !== "string" || value.repository !== expected.repository) throw fail("repository");
   if (typeof value.runId !== "string" || !RUN_ID.test(value.runId) || value.runId !== expected.runId) throw fail("runId");
   if (typeof value.runAttempt !== "string" || !RUN_ATTEMPT.test(value.runAttempt) || value.runAttempt !== expected.runAttempt) throw fail("runAttempt");
   if (typeof value.base !== "string" || !HEX40.test(value.base)) throw fail("base");
@@ -112,7 +124,8 @@ export function parseCandidate(value: unknown, expected: { runId: string; runAtt
   if (!isObject(gates) || !keysAre(gates, Object.keys(GATES)) || Object.entries(GATES).some(([k, v]) => gates[k] !== v)) throw fail("gates");
   return {
     schema: CANDIDATE_SCHEMA,
-    repository: REPOSITORY,
+    deployment: value.deployment,
+    repository: value.repository,
     runId: value.runId,
     runAttempt: value.runAttempt,
     base: value.base,
@@ -171,11 +184,11 @@ export function decideAudit(facts: AuditFacts): Decision {
   if (!facts.changes) return fail("bump", "intended-change-missing", audited);
   const packages = Object.fromEntries(PIN_KEYS.map((k) => [k, a.packages[k] && { version: a.packages[k].version, sha256: a.packages[k].sha256 }]));
   const draft = {
-    schema: CANDIDATE_SCHEMA, repository: REPOSITORY, runId: facts.runId, runAttempt: facts.runAttempt, base: facts.base, oldPins: facts.oldPins, newPins: a.versions,
+    schema: CANDIDATE_SCHEMA, deployment: facts.deployment, repository: facts.repository, runId: facts.runId, runAttempt: facts.runAttempt, base: facts.base, oldPins: facts.oldPins, newPins: a.versions,
     packages, helper: { from: facts.helper, to: facts.changes.to }, changes: { digest: facts.changes.digest }, gates: { ...GATES },
   };
   try {
-    return { outcome: "audited-candidate", candidate: parseCandidate(draft, { runId: facts.runId, runAttempt: facts.runAttempt }) };
+    return { outcome: "audited-candidate", candidate: parseCandidate(draft, facts) };
   } catch {
     return fail("bump", "candidate-invalid", audited);
   }

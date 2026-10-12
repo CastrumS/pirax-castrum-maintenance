@@ -3,16 +3,16 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { findSecret } from "../test/plugin/artifacts";
 import { type AuditedVersions, ReauditError } from "../scripts/reaudit/detect";
 import { parseCatalog } from "../scripts/reaudit/detect";
 import { acquirePackages, gpg, openOfficialVault, vaultChildEnv, type Vault } from "../scripts/reaudit/fetch";
-import { BUMP_FILES } from "../scripts/reaudit/bump";
 import { realDeps, runAudit, type RunDeps } from "../scripts/reaudit/run";
 import { readAuditedVersions } from "../scripts/plugin-source";
+import { writeDeployment } from "../test/fixtures/deployment";
 
 const ROOT = resolve(import.meta.dir, "..");
 const PINS: AuditedVersions = { gf: "3.1.2", ff: "6.2.14", ff_pro: "6.2.15", cleantalk: "6.88", fluent_smtp: "2.4.1" };
@@ -555,11 +555,10 @@ test("runAudit's private directory reaches the real official driver; lifecycle e
   const passphrase = "SYNTHETIC-PASSPHRASE-0123456789";
   const ciphertext = join(dir, "updater.zip.gpg");
   await gpg(["--symmetric", "--output", ciphertext, join(dir, "updater.zip")], passphrase, "encrypt");
+  // A checkout whose selected deployment's pins are exactly the ones discovery reports unchanged (T4: never this repository's).
   const root = join(dir, "checkout");
-  for (const file of BUMP_FILES) {
-    await mkdir(dirname(join(root, file)), { recursive: true });
-    await cp(join(ROOT, file), join(root, file));
-  }
+  const pirax = JSON.parse(await readFile(join(ROOT, "deployments/pirax/config.json"), "utf8"));
+  writeDeployment(root, "pirax", { config: pirax, versions: { schemaVersion: 1, helperVersion: "0.3.2", audited: PINS } });
   for (const args of [["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "fixture"]])
     expect(Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t.invalid", "-c", "commit.gpgsign=false", ...args], { cwd: root }).exitCode).toBe(0);
   const temp = join(dir, "runner-temp");
@@ -569,10 +568,11 @@ test("runAudit's private directory reaches the real official driver; lifecycle e
     acquire: (options) => acquirePackages({ ...options, fetch: unchangedDiscovery, openVault: (o) => openOfficialVault({ ...o, ciphertext }) }),
     currentRelease: async () => "verified",
   };
-  const env = { ...SECRETS, GPLVAULT_UPDATER_PASSPHRASE: passphrase, PATH: process.env.PATH, HOME: process.env.HOME, RUNNER_TEMP: temp };
+  const env = { ...SECRETS, GPLVAULT_UPDATER_PASSPHRASE: passphrase, PATH: process.env.PATH, HOME: process.env.HOME, RUNNER_TEMP: temp, DEPLOYMENT: "pirax" };
   const out = join(dir, "out");
   const decision = await runAudit({ root, out, runId: "1234567890", runAttempt: "1", env, deps });
-  expect(decision).toEqual({ outcome: "unchanged", versions: readAuditedVersions(join(root, "plugin/pirax-form-test")) });
+  expect(decision).toEqual({ outcome: "unchanged", versions: readAuditedVersions({ root, env }) });
+  expect(decision).toEqual({ outcome: "unchanged", versions: PINS });
   expect(JSON.parse(await readFile(join(out, "evidence/lifecycle.json"), "utf8"))).toEqual({
     activationAttempted: true,
     activationConfirmed: true,

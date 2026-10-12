@@ -2,9 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { GIT_AUTH, HEARTBEAT_PATH, heartbeatDue, parseInstant, runHeartbeat, safeChildEnv } from "../scripts/reaudit/heartbeat.ts";
-import { RECIPIENT, formatFailure, parseFailureSummary, runUrlFromEnv, safeError, sendFailure, type FailureSummary } from "../scripts/reaudit/notify.ts";
+import { loadDeployment } from "../src/deployment.ts";
+import { GIT_AUTH, heartbeatDue, heartbeatPath, parseInstant, runHeartbeat, safeChildEnv } from "../scripts/reaudit/heartbeat.ts";
+import { formatFailure, parseFailureSummary, runUrlFromEnv, safeError, sendFailure, type FailureSummary } from "../scripts/reaudit/notify.ts";
 import { decideWatchdog, normalizeWatchdogFacts, observe, runWatchdog, type Gh } from "../scripts/reaudit/watchdog.ts";
+import { FIXTURE_VERSIONS, fixtureConfig, fixtureKeys, writeDeployment } from "../test/fixtures/deployment.ts";
 
 // Credential-free: synthetic stand-ins for secrets, injected clocks, a throwing/hanging transport double
 // for error handling only (real SMTP proof is the separate --selftest), and local temp git remotes.
@@ -19,15 +21,24 @@ const SECRET = "synthetic-Secret-9f8e7d";
 const ALPHA_SECRET = "SyntheticTokenQzXwVb";
 const PRIVATE_URL = `https://dl.example.invalid/pkg.zip?key=${SECRET}`;
 const pins = { gf: "3.1.2", ff: "6.2.14", ff_pro: "6.2.15", cleantalk: "6.88", fluent_smtp: "2.4.1" };
-const RUN = "https://github.com/CastrumS/pirax-castrum-maintenance/actions/runs/123456789";
+const REPO = "CastrumS/pirax-castrum-maintenance";
+const RUN = `https://github.com/${REPO}/actions/runs/123456789`;
+const PIRAX = loadDeployment({ env: { DEPLOYMENT: "pirax" } });
+const RECIPIENT = PIRAX.config.notice.recipient;
+/** A second deployment in a disposable root: its own recipient, subject prefix and repository. */
+const FIXTURE = (() => {
+  const root = mkdtempSync(join(tmpdir(), "reaudit-notice-deployment-"));
+  writeDeployment(root, "fixture", { config: fixtureConfig(fixtureKeys().publicKey), versions: FIXTURE_VERSIONS });
+  return loadDeployment({ root, env: { DEPLOYMENT: "fixture" } });
+})();
 const offlineEnv = { PATH: process.env.PATH ?? "/usr/bin:/bin", HOME: process.env.HOME ?? "/tmp" };
 
 describe("failure summary validation", () => {
   const full: FailureSummary = { stage: "audit", reason: "plugin-suite-failed", oldVersions: pins, candidateVersions: { ...pins, ff: "6.2.15" }, runUrl: RUN, cleanup: "confirmed", publication: "not-attempted" };
 
   test("accepts complete safe facts and renders every one", () => {
-    const s = parseFailureSummary(JSON.parse(JSON.stringify(full)));
-    const { subject, text } = formatFailure(s);
+    const s = parseFailureSummary(REPO, JSON.parse(JSON.stringify(full)));
+    const { subject, text } = formatFailure(PIRAX, s);
     expect(subject.startsWith("[pirax-audit] ")).toBe(true);
     expect(subject).toContain("audit");
     for (const fact of ["plugin-suite-failed", RUN, "6.2.14", "6.2.15", "ff_pro", "fluent_smtp", "confirmed"]) expect(text).toContain(fact);
@@ -35,16 +46,31 @@ describe("failure summary validation", () => {
     expect(RECIPIENT).toBe("piraxcastrum@gmail.com");
   });
 
+  test("another deployment's notice uses its own subject prefix and accepts only its own repository's run URLs", () => {
+    const own = `https://github.com/${FIXTURE.config.channel.repository}/actions/runs/123456789`;
+    const { subject, text } = formatFailure(FIXTURE, { ...full, runUrl: own });
+    expect(subject.startsWith("[acme-audit] re-audit failed at audit")).toBe(true);
+    expect(subject).not.toContain("pirax");
+    expect(text).toContain(own);
+    expect(() => formatFailure(FIXTURE, full)).toThrow("invalid failure summary: runUrl");
+    expect(() => parseFailureSummary(REPO, { ...full, runUrl: own })).toThrow("invalid failure summary: runUrl");
+    expect(runUrlFromEnv(FIXTURE.config.channel.repository, { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: FIXTURE.config.channel.repository, GITHUB_RUN_ID: "123456789" })).toBe(own);
+    expect(runUrlFromEnv(FIXTURE.config.channel.repository, { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: REPO, GITHUB_RUN_ID: "123456789" })).toBeUndefined();
+    // A repository name is matched literally: "." is not a wildcard.
+    expect(() => parseFailureSummary("a/b.c", { ...full, runUrl: "https://github.com/a/bxc/actions/runs/1" })).toThrow("invalid failure summary: runUrl");
+    expect(parseFailureSummary("a/b.c", { ...full, runUrl: "https://github.com/a/b.c/actions/runs/1" }).runUrl).toBe("https://github.com/a/b.c/actions/runs/1");
+  });
+
   test("a loopback throwaway site is rendered as recovery guidance; any other site is refused", () => {
     const site = "http://127.0.0.1:41234";
-    const { text } = formatFailure(parseFailureSummary({ ...full, stage: "cleanup", reason: "cleanup-failed", cleanup: "failed", site }));
+    const { text } = formatFailure(PIRAX, parseFailureSummary(REPO, { ...full, stage: "cleanup", reason: "cleanup-failed", cleanup: "failed", site }));
     expect(text).toContain(`Throwaway site: ${site}`);
     for (const bad of [PRIVATE_URL, "http://example.com:80", "http://127.0.0.1:0", "http://127.0.0.1:65536", "http://127.0.0.1:8080/wp-admin", 8080])
-      expect(() => parseFailureSummary({ ...full, site: bad })).toThrow("invalid failure summary: site");
+      expect(() => parseFailureSummary(REPO, { ...full, site: bad })).toThrow("invalid failure summary: site");
   });
 
   test("absent cleanup/publication are explicit unknowns, never 'nothing published'", () => {
-    const { text } = formatFailure(parseFailureSummary({ stage: "unknown", reason: "invalid-summary" }));
+    const { text } = formatFailure(PIRAX, parseFailureSummary(REPO, { stage: "unknown", reason: "invalid-summary" }));
     expect(text).toMatch(/Publication: unknown/);
     expect(text).toMatch(/Cleanup: unknown/);
     expect(text).toMatch(/inspect main, tags and releases/i);
@@ -53,7 +79,7 @@ describe("failure summary validation", () => {
 
   test("partial publication states carry inspection guidance", () => {
     for (const publication of ["main-pushed", "tag-claimed", "release-incomplete"] as const) {
-      expect(formatFailure({ stage: "publication", reason: "release-create-failed", publication }).text).toMatch(/do not retry or delete blindly/);
+      expect(formatFailure(PIRAX, { stage: "publication", reason: "release-create-failed", publication }).text).toMatch(/do not retry or delete blindly/);
     }
   });
 
@@ -70,43 +96,43 @@ describe("failure summary validation", () => {
       { ...full, candidateVersions: { ...pins, extra: "1.0" } }, { ...full, candidateVersions: { gf: "1.0" } }, { ...full, oldVersions: [] },
       { ...full, cleanup: "probably" }, { ...full, publication: "none" }, { ...full, publication: "nothing" },
     ];
-    for (const value of bad) expect(() => parseFailureSummary(value)).toThrow();
+    for (const value of bad) expect(() => parseFailureSummary(REPO, value)).toThrow();
   });
 
   test("validation errors name fields, never the rejected value", () => {
-    try { parseFailureSummary({ ...full, runUrl: PRIVATE_URL }); throw new Error("accepted"); }
+    try { parseFailureSummary(REPO, { ...full, runUrl: PRIVATE_URL }); throw new Error("accepted"); }
     catch (e) { expect((e as Error).message).toContain("runUrl"); expect((e as Error).message.includes(SECRET)).toBe(false); }
   });
 
   test("unknown keys are never echoed, even purely alphabetic ones", () => {
     for (const key of [ALPHA_SECRET, SECRET]) {
-      try { parseFailureSummary({ ...full, [key]: 1 }); throw new Error("accepted"); }
+      try { parseFailureSummary(REPO, { ...full, [key]: 1 }); throw new Error("accepted"); }
       catch (e) { expect((e as Error).message).toBe("invalid failure summary: unknown keys"); }
     }
   });
 
   test("intended commit and tag for partial publication are validated and rendered", () => {
     const commit = "0123456789abcdef0123456789abcdef01234567";
-    const s = parseFailureSummary({ ...full, stage: "publication", publication: "main-pushed", commit, tag: "v1.4.2" });
+    const s = parseFailureSummary(REPO, { ...full, stage: "publication", publication: "main-pushed", commit, tag: "v1.4.2" });
     expect([s.commit, s.tag]).toEqual([commit, "v1.4.2"]);
-    const { text } = formatFailure(s);
+    const { text } = formatFailure(PIRAX, s);
     expect(text).toContain(`Intended commit: ${commit}`);
     expect(text).toContain("Intended tag: v1.4.2");
-    expect(formatFailure(full).text).not.toMatch(/Intended/);
+    expect(formatFailure(PIRAX, full).text).not.toMatch(/Intended/);
     const bad: unknown[] = [
       commit.toUpperCase(), commit.slice(1), `${commit}0`, `${commit}\n`, "g".repeat(40), ` ${commit}`, 1234, null,
     ].map((c) => ({ ...full, commit: c }));
     for (const tag of ["1.4.2", "v1", "v1.4.2-rc1", "v01.4", "V1.4.2", "v1.4.2\nBcc: x@y.z", `v1.4.2 ${SECRET}`, "refs/tags/v1.4.2", "v1.2.3.4.5", "", 1.4]) bad.push({ ...full, tag });
     for (const value of bad) {
-      try { parseFailureSummary(value); throw new Error("accepted"); }
+      try { parseFailureSummary(REPO, value); throw new Error("accepted"); }
       catch (e) { expect((e as Error).message).toMatch(/^invalid failure summary: (commit|tag)$/); }
     }
   });
 
   test("run URL comes only from the fixed official repository", () => {
-    expect(runUrlFromEnv({ GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "CastrumS/pirax-castrum-maintenance", GITHUB_RUN_ID: "123456789" })).toBe(RUN);
-    expect(runUrlFromEnv({ GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "CastrumS/pirax-castrum-maintenance", GITHUB_RUN_ID: "123456789", GITHUB_RUN_ATTEMPT: "2" })).toBe(`${RUN}/attempts/2`);
-    for (const env of [{}, { GITHUB_SERVER_URL: "https://evil.example", GITHUB_REPOSITORY: "CastrumS/pirax-castrum-maintenance", GITHUB_RUN_ID: "1" }, { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "a/b", GITHUB_RUN_ID: "1" }, { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "CastrumS/pirax-castrum-maintenance", GITHUB_RUN_ID: "1?x" }]) expect(runUrlFromEnv(env)).toBeUndefined();
+    expect(runUrlFromEnv(REPO, { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "CastrumS/pirax-castrum-maintenance", GITHUB_RUN_ID: "123456789" })).toBe(RUN);
+    expect(runUrlFromEnv(REPO, { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "CastrumS/pirax-castrum-maintenance", GITHUB_RUN_ID: "123456789", GITHUB_RUN_ATTEMPT: "2" })).toBe(`${RUN}/attempts/2`);
+    for (const env of [{}, { GITHUB_SERVER_URL: "https://evil.example", GITHUB_REPOSITORY: "CastrumS/pirax-castrum-maintenance", GITHUB_RUN_ID: "1" }, { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "a/b", GITHUB_RUN_ID: "1" }, { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "CastrumS/pirax-castrum-maintenance", GITHUB_RUN_ID: "1?x" }]) expect(runUrlFromEnv(REPO, env)).toBeUndefined();
   });
 });
 
@@ -122,7 +148,7 @@ describe("sendFailure", () => {
 
   test("missing credentials fail by name before any transport", async () => {
     const t = fakeTransport(async () => ({ accepted: [RECIPIENT], rejected: [] }));
-    const error = await sendFailure(summary, { IMAP_PASSWORD: SECRET }, { createTransport: t.create }).catch((e: Error) => e);
+    const error = await sendFailure(PIRAX, summary, { IMAP_PASSWORD: SECRET }, { createTransport: t.create }).catch((e: Error) => e);
     expect(error).toBeInstanceOf(Error);
     expect((error as Error).message).toContain("IMAP_USER");
     expect((error as Error).message.includes(SECRET)).toBe(false);
@@ -131,7 +157,7 @@ describe("sendFailure", () => {
 
   test("fixed Gmail implicit TLS, bounded timeouts, no logging, fixed recipient, one attempt", async () => {
     const t = fakeTransport(async () => ({ accepted: [RECIPIENT], rejected: [] }));
-    expect(await sendFailure(summary, creds, { createTransport: t.create })).toEqual({ accepted: 1, rejected: 0 });
+    expect(await sendFailure(PIRAX, summary, creds, { createTransport: t.create })).toEqual({ accepted: 1, rejected: 0 });
     const o = t.calls.create[0]!;
     expect([o.host, o.port, o.secure, o.logger, o.debug]).toEqual(["smtp.gmail.com", 465, true, false, false]);
     for (const k of ["connectionTimeout", "greetingTimeout", "socketTimeout"]) expect(o[k] as number).toBeLessThanOrEqual(60_000);
@@ -141,9 +167,15 @@ describe("sendFailure", () => {
     expect(t.calls.close).toBe(1);
   });
 
+  test("another deployment's notice goes only to its configured recipient", async () => {
+    const t = fakeTransport(async () => ({ accepted: [FIXTURE.config.notice.recipient], rejected: [] }));
+    expect(await sendFailure(FIXTURE, { stage: "download", reason: "download-failed" }, creds, { createTransport: t.create })).toEqual({ accepted: 1, rejected: 0 });
+    expect(t.calls.send.map((m) => [m.to, m.subject.split(" ")[0]])).toEqual([["audit-notices@acme.example", "[acme-audit]"]]);
+  });
+
   test("transport errors become safe codes: no raw message, secret, URL or retry", async () => {
     const t = fakeTransport(async () => { throw Object.assign(new Error(`535 auth failed for ${SECRET} at ${PRIVATE_URL}`), { code: "EAUTH", response: `535 ${SECRET}` }); });
-    const error = (await sendFailure(summary, creds, { createTransport: t.create }).catch((e: Error) => e)) as Error;
+    const error = (await sendFailure(PIRAX, summary, creds, { createTransport: t.create }).catch((e: Error) => e)) as Error;
     expect(error.message).toContain("EAUTH");
     for (const leak of [SECRET, "dl.example", "535"]) expect(error.message.includes(leak)).toBe(false);
     expect(t.calls.send.length).toBe(1);
@@ -152,14 +184,14 @@ describe("sendFailure", () => {
 
   test("unsafe error codes are dropped", async () => {
     const t = fakeTransport(async () => { throw Object.assign(new Error("x"), { code: `E ${SECRET}\n` }); });
-    const error = (await sendFailure(summary, creds, { createTransport: t.create }).catch((e: Error) => e)) as Error;
+    const error = (await sendFailure(PIRAX, summary, creds, { createTransport: t.create }).catch((e: Error) => e)) as Error;
     expect(error.message.includes(SECRET)).toBe(false);
   });
 
   test("only allowlisted public codes and built-in error names are reported", async () => {
     for (const thrown of [Object.assign(new Error("x"), { code: ALPHA_SECRET }), Object.assign(new Error("x"), { code: "E_SYNTHETIC_TOKEN_9f8e" }), Object.assign(new Error("x"), { name: ALPHA_SECRET })]) {
       const t = fakeTransport(async () => { throw thrown; });
-      const error = (await sendFailure(summary, creds, { createTransport: t.create }).catch((e: Error) => e)) as Error;
+      const error = (await sendFailure(PIRAX, summary, creds, { createTransport: t.create }).catch((e: Error) => e)) as Error;
       expect(error.message).toBe("notice: SMTP send failed: Error");
     }
     expect(safeError(Object.assign(new TypeError("x"), { code: "ECONNRESET" }))).toBe("TypeError (ECONNRESET)");
@@ -167,33 +199,43 @@ describe("sendFailure", () => {
 
   test("a hanging send is bounded and closed", async () => {
     const t = fakeTransport(() => new Promise(() => {}));
-    const error = (await sendFailure(summary, creds, { createTransport: t.create, timeoutMs: 50 }).catch((e: Error) => e)) as Error;
+    const error = (await sendFailure(PIRAX, summary, creds, { createTransport: t.create, timeoutMs: 50 }).catch((e: Error) => e)) as Error;
     expect(error.message).toMatch(/timed out/);
     expect(t.calls.close).toBe(1);
   });
 
   test("a recipient not accepted is a failure", async () => {
     const t = fakeTransport(async () => ({ accepted: [], rejected: [RECIPIENT] }));
-    expect(sendFailure(summary, creds, { createTransport: t.create })).rejects.toThrow(/accept/);
+    expect(sendFailure(PIRAX, summary, creds, { createTransport: t.create })).rejects.toThrow(/accept/);
   });
 
   test("CLI: usage, invalid summary and missing credentials exit nonzero by name only", async () => {
     const dir = mkdtempSync(join(tmpdir(), "reaudit-notify-"));
     try {
-      const run = (args: string[], env: Record<string, string> = offlineEnv) => {
+      const run = (args: string[], env: Record<string, string> = { ...offlineEnv, DEPLOYMENT: "pirax" }) => {
         const p = Bun.spawnSync([process.execPath, "--no-env-file", join(ROOT, "scripts/reaudit/notify.ts"), ...args], { cwd: dir, env, stdout: "pipe", stderr: "pipe", timeout: 30_000 });
         return { code: p.exitCode, out: p.stdout.toString() + p.stderr.toString() };
       };
       expect(run([]).code).toBe(2);
       const good = join(dir, "good.json");
       writeFileSync(good, JSON.stringify(summary));
-      const missing = run([good], { ...offlineEnv, IMAP_PASSWORD: SECRET });
+      // An unusable selection aborts before credentials are read or a transport exists: it names DEPLOYMENT only.
+      for (const [selection, message] of [[{}, "DEPLOYMENT is not set"], [{ DEPLOYMENT: "" }, "DEPLOYMENT is not set"], [{ DEPLOYMENT: "absent" }, "DEPLOYMENT names no deployment folder"], [{ DEPLOYMENT: "../pirax" }, "DEPLOYMENT is not a valid deployment name"]] as const) {
+        for (const args of [[good], ["--selftest"], ["--jobs", dir]]) {
+          const r = run(args, { ...offlineEnv, ...selection, IMAP_PASSWORD: SECRET });
+          expect(r.code).toBe(1);
+          expect(r.out).toContain(message);
+          expect(r.out).not.toContain("IMAP_USER");
+          expect(JSON.parse(r.out.trim().split("\n").at(-1)!)).toEqual({ smtpAttempts: 0, smtpAccepted: false, error: message });
+        }
+      }
+      const missing = run([good], { ...offlineEnv, DEPLOYMENT: "pirax", IMAP_PASSWORD: SECRET });
       expect(missing.code).toBe(1);
       expect(missing.out).toContain("IMAP_USER");
       expect(missing.out.includes(SECRET)).toBe(false);
       const bad = join(dir, "bad.json");
       writeFileSync(bad, JSON.stringify({ ...summary, runUrl: PRIVATE_URL }));
-      const invalid = run([bad], { ...offlineEnv, IMAP_PASSWORD: SECRET });
+      const invalid = run([bad], { ...offlineEnv, DEPLOYMENT: "pirax", IMAP_PASSWORD: SECRET });
       expect(invalid.code).toBe(1);
       expect(invalid.out).toMatch(/invalid.*runUrl/i);
       expect(invalid.out).toMatch(/fallback/i);
@@ -268,6 +310,8 @@ describe("heartbeat operation against a local temp remote", () => {
     if (p.exitCode !== 0) throw new Error(`git ${args[0]} failed: ${p.stderr}`);
     return p.stdout.toString().trim();
   };
+  /** The selected (fixture) deployment's heartbeat; the checkout also holds another deployment's. */
+  const HEARTBEAT_PATH = "deployments/fixture/heartbeat.txt";
   function fixture(lastCommitMs: number, trackedHeartbeat = false) {
     const dir = mkdtempSync(join(tmpdir(), "reaudit-heartbeat-"));
     const remote = join(dir, "remote.git");
@@ -275,9 +319,11 @@ describe("heartbeat operation against a local temp remote", () => {
     git(dir, ["init", "--bare", "-b", "main", remote]);
     git(dir, ["init", "-b", "main", seed]);
     writeFileSync(join(seed, "README.md"), "x\n");
-    git(seed, ["add", "README.md"]);
+    writeDeployment(seed, "fixture", { config: fixtureConfig(fixtureKeys().publicKey), versions: FIXTURE_VERSIONS });
+    writeDeployment(seed, "other", { config: fixtureConfig(fixtureKeys().publicKey), versions: FIXTURE_VERSIONS });
+    writeFileSync(join(seed, "deployments/other/heartbeat.txt"), `${iso(lastCommitMs)}\n`);
+    git(seed, ["add", "README.md", "deployments"]);
     if (trackedHeartbeat) {
-      mkdirSync(join(seed, ".github/audit"), { recursive: true });
       writeFileSync(join(seed, HEARTBEAT_PATH), `${iso(lastCommitMs)}\n`);
       git(seed, ["add", HEARTBEAT_PATH]);
     }
@@ -287,13 +333,16 @@ describe("heartbeat operation against a local temp remote", () => {
     const work = join(dir, "work");
     git(dir, ["clone", "-b", "main", remote, work]);
     const url = `file://${remote}`;
-    return { dir, remote, seed, work, url, base: git(remote, ["rev-parse", "main"]), cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+    const deployment = loadDeployment({ root: work, env: { DEPLOYMENT: "fixture" } });
+    return { dir, remote, seed, work, url, deployment, base: git(remote, ["rev-parse", "main"]), cleanup: () => rmSync(dir, { recursive: true, force: true }) };
   }
 
   test("due: commits only the heartbeat file and fast-forwards remote main without tags", () => {
     const f = fixture(now - 31 * DAY);
     try {
-      const result = runHeartbeat({ cwd: f.work, now, remoteUrl: f.url, env: offlineEnv });
+      expect(heartbeatPath(f.deployment)).toBe(HEARTBEAT_PATH);
+      expect(heartbeatPath(PIRAX)).toBe("deployments/pirax/heartbeat.txt");
+      const result = runHeartbeat({ deployment: f.deployment, now, remoteUrl: f.url, env: offlineEnv });
       expect(result.outcome).toBe("pushed");
       const head = git(f.remote, ["rev-parse", "main"]);
       expect(head).toBe(result.commit!);
@@ -311,7 +360,7 @@ describe("heartbeat operation against a local temp remote", () => {
       const log = join(f.dir, "git.log");
       mkdirSync(bin);
       writeFileSync(join(bin, "git"), `#!/bin/sh\nprintf '%s|token=%s\\n' "$*" "\${GH_TOKEN:+yes}" >> '${log}'\nexec '${Bun.which("git")}' "$@"\n`, { mode: 0o755 });
-      expect(runHeartbeat({ cwd: f.work, now, remoteUrl: f.url, env: { ...offlineEnv, PATH: `${bin}:${offlineEnv.PATH}`, GH_TOKEN: SECRET } }).outcome).toBe("pushed");
+      expect(runHeartbeat({ deployment: f.deployment, now, remoteUrl: f.url, env: { ...offlineEnv, PATH: `${bin}:${offlineEnv.PATH}`, GH_TOKEN: SECRET } }).outcome).toBe("pushed");
       const calls = readFileSync(log, "utf8").trim().split("\n");
       for (const op of [" fetch ", " ls-remote ", " push "]) {
         const call = calls.find((c) => c.includes(op))!;
@@ -325,7 +374,7 @@ describe("heartbeat operation against a local temp remote", () => {
   test("due with an already tracked heartbeat: updates only that file and pushes without tags", () => {
     const f = fixture(now - 31 * DAY, true);
     try {
-      const result = runHeartbeat({ cwd: f.work, now, remoteUrl: f.url, env: offlineEnv });
+      const result = runHeartbeat({ deployment: f.deployment, now, remoteUrl: f.url, env: offlineEnv });
       expect(result.outcome).toBe("pushed");
       expect(git(f.remote, ["rev-parse", "main"])).toBe(result.commit!);
       expect(git(f.remote, ["rev-parse", "main^"])).toBe(f.base);
@@ -336,10 +385,22 @@ describe("heartbeat operation against a local temp remote", () => {
     } finally { f.cleanup(); }
   });
 
+  test("an Actions run in a repository other than the selected deployment's is refused before any git operation", () => {
+    const f = fixture(now - 31 * DAY);
+    try {
+      for (const env of [{ ...offlineEnv, GITHUB_ACTIONS: "true", GITHUB_REPOSITORY: REPO }, { ...offlineEnv, GITHUB_ACTIONS: "true" }])
+        expect(() => runHeartbeat({ deployment: f.deployment, now, remoteUrl: f.url, env })).toThrow("heartbeat: GITHUB_REPOSITORY is not the selected deployment's repository");
+      expect(git(f.remote, ["rev-parse", "main"])).toBe(f.base);
+      expect(git(f.work, ["status", "--porcelain"])).toBe("");
+      const own = { ...offlineEnv, GITHUB_ACTIONS: "true", GITHUB_REPOSITORY: f.deployment.config.channel.repository };
+      expect(runHeartbeat({ deployment: f.deployment, now, remoteUrl: f.url, env: own }).outcome).toBe("pushed");
+    } finally { f.cleanup(); }
+  });
+
   test("a nonfinite clock is refused before any commit", () => {
     const f = fixture(now - 31 * DAY, true);
     try {
-      expect(() => runHeartbeat({ cwd: f.work, now: Number.NaN, remoteUrl: f.url, env: offlineEnv })).toThrow(/clock/);
+      expect(() => runHeartbeat({ deployment: f.deployment, now: Number.NaN, remoteUrl: f.url, env: offlineEnv })).toThrow(/clock/);
       expect(git(f.remote, ["rev-parse", "main"])).toBe(f.base);
     } finally { f.cleanup(); }
   });
@@ -347,7 +408,7 @@ describe("heartbeat operation against a local temp remote", () => {
   test("not due: no commit, remote unchanged", () => {
     const f = fixture(now - 29 * DAY);
     try {
-      expect(runHeartbeat({ cwd: f.work, now, remoteUrl: f.url, env: offlineEnv }).outcome).toBe("not-due");
+      expect(runHeartbeat({ deployment: f.deployment, now, remoteUrl: f.url, env: offlineEnv }).outcome).toBe("not-due");
       expect(git(f.remote, ["rev-parse", "main"])).toBe(f.base);
       expect(git(f.work, ["status", "--porcelain"])).toBe("");
     } finally { f.cleanup(); }
@@ -357,16 +418,16 @@ describe("heartbeat operation against a local temp remote", () => {
     const f = fixture(now - 31 * DAY);
     try {
       writeFileSync(join(f.work, "README.md"), "dirty\n");
-      expect(() => runHeartbeat({ cwd: f.work, now, remoteUrl: f.url, env: offlineEnv })).toThrow(/dirty/);
+      expect(() => runHeartbeat({ deployment: f.deployment, now, remoteUrl: f.url, env: offlineEnv })).toThrow(/dirty/);
       git(f.work, ["checkout", "--", "README.md"]);
       git(f.work, ["checkout", "-b", "feature"]);
-      expect(() => runHeartbeat({ cwd: f.work, now, remoteUrl: f.url, env: offlineEnv })).toThrow(/branch/);
+      expect(() => runHeartbeat({ deployment: f.deployment, now, remoteUrl: f.url, env: offlineEnv })).toThrow(/branch/);
       git(f.work, ["checkout", "main"]);
       writeFileSync(join(f.seed, "README.md"), "y\n");
       git(f.seed, ["commit", "-am", "advance"], { GIT_AUTHOR_DATE: iso(now - 31 * DAY), GIT_COMMITTER_DATE: iso(now - 31 * DAY) });
       git(f.seed, ["push", f.remote, "main"]);
       const advanced = git(f.remote, ["rev-parse", "main"]);
-      expect(() => runHeartbeat({ cwd: f.work, now, remoteUrl: f.url, env: offlineEnv })).toThrow(/not fresh main/);
+      expect(() => runHeartbeat({ deployment: f.deployment, now, remoteUrl: f.url, env: offlineEnv })).toThrow(/not fresh main/);
       expect(git(f.remote, ["rev-parse", "main"])).toBe(advanced);
     } finally { f.cleanup(); }
   });
@@ -381,7 +442,7 @@ describe("heartbeat operation against a local temp remote", () => {
         git(f.seed, ["push", f.remote, "main"]);
         advanced = git(f.remote, ["rev-parse", "main"]);
       };
-      expect(() => runHeartbeat({ cwd: f.work, now, remoteUrl: f.url, env: offlineEnv, beforeRecheck })).toThrow(/main advanced/);
+      expect(() => runHeartbeat({ deployment: f.deployment, now, remoteUrl: f.url, env: offlineEnv, beforeRecheck })).toThrow(/main advanced/);
       expect(git(f.remote, ["rev-parse", "main"])).toBe(advanced);
     } finally { f.cleanup(); }
   });
@@ -390,7 +451,7 @@ describe("heartbeat operation against a local temp remote", () => {
     const f = fixture(now - 31 * DAY);
     try {
       const missing = `file://${join(f.dir, `missing-${SECRET}.git`)}`;
-      try { runHeartbeat({ cwd: f.work, now, remoteUrl: missing, env: offlineEnv }); throw new Error("accepted"); }
+      try { runHeartbeat({ deployment: f.deployment, now, remoteUrl: missing, env: offlineEnv }); throw new Error("accepted"); }
       catch (e) { expect((e as Error).message).toMatch(/fetch/); expect((e as Error).message.includes(SECRET)).toBe(false); }
     } finally { f.cleanup(); }
   });
@@ -456,11 +517,20 @@ describe("watchdog", () => {
 
   test("observe uses read-only GET lookups on the fixed repository", () => {
     const g = gh({ "workflows/reaudit.yml/runs": http(200, runs(run("schedule", now - HOUR))), "workflows/reaudit.yml": http(200, workflow()) });
-    expect(observe(g, now)).toEqual({ healthy: true, reason: "healthy" });
+    expect(observe(REPO, g, now)).toEqual({ healthy: true, reason: "healthy" });
     for (const args of g.calls) {
       expect(args[0]).toBe("api");
       expect(args.join(" ")).toContain("repos/CastrumS/pirax-castrum-maintenance/actions/workflows/reaudit.yml");
       expect(args.some((a) => /^(-X|--method|-f|-F|--field|--raw-field|--input)$/.test(a))).toBe(false);
+    }
+  });
+
+  test("another deployment's watchdog observes only its own repository", () => {
+    const g = gh({ "workflows/reaudit.yml/runs": http(200, runs(run("schedule", now - HOUR))), "workflows/reaudit.yml": http(200, workflow()) });
+    expect(observe(FIXTURE.config.channel.repository, g, now)).toEqual({ healthy: true, reason: "healthy" });
+    for (const args of g.calls) {
+      expect(args.join(" ")).toContain("repos/acme-fixture/acme-form-check-channel/actions/workflows/reaudit.yml");
+      expect(args.join(" ")).not.toContain("CastrumS");
     }
   });
 
@@ -472,34 +542,34 @@ describe("watchdog", () => {
       )),
       "workflows/reaudit.yml": http(200, workflow()),
     });
-    expect(observe(g, now)).toEqual({ healthy: false, reason: "audit-overdue" });
+    expect(observe(REPO, g, now)).toEqual({ healthy: false, reason: "audit-overdue" });
     const url = new URL(g.calls[1]!.at(-1)!, "https://api.github.com/");
     expect(url.searchParams.get("branch")).toBe("main");
     const failedMain = gh({ "workflows/reaudit.yml/runs": http(200, runs(run("workflow_dispatch", now - HOUR, "failure"))), "workflows/reaudit.yml": http(200, workflow()) });
-    expect(observe(failedMain, now)).toEqual({ healthy: true, reason: "healthy" });
+    expect(observe(REPO, failedMain, now)).toEqual({ healthy: true, reason: "healthy" });
   });
 
   test("missing workflow, API failure and unparsable output are unhealthy", () => {
-    expect(observe(gh({ "workflows/reaudit.yml": http(404, { message: "Not Found" }) }), now)).toEqual({ healthy: false, reason: "workflow-missing" });
-    expect(observe(gh({}), now)).toEqual({ healthy: false, reason: "actions-query-failed" });
-    expect(observe(gh({ "workflows/reaudit.yml/runs": http(500, {}), "workflows/reaudit.yml": http(200, workflow()) }), now)).toEqual({ healthy: false, reason: "actions-query-failed" });
-    expect(observe(gh({ "workflows/reaudit.yml/runs": { code: 0, stdout: "HTTP/2.0 200 OK\r\n\r\n{not json" }, "workflows/reaudit.yml": http(200, workflow()) }), now)).toEqual({ healthy: false, reason: "actions-response-invalid" });
+    expect(observe(REPO, gh({ "workflows/reaudit.yml": http(404, { message: "Not Found" }) }), now)).toEqual({ healthy: false, reason: "workflow-missing" });
+    expect(observe(REPO, gh({}), now)).toEqual({ healthy: false, reason: "actions-query-failed" });
+    expect(observe(REPO, gh({ "workflows/reaudit.yml/runs": http(500, {}), "workflows/reaudit.yml": http(200, workflow()) }), now)).toEqual({ healthy: false, reason: "actions-query-failed" });
+    expect(observe(REPO, gh({ "workflows/reaudit.yml/runs": { code: 0, stdout: "HTTP/2.0 200 OK\r\n\r\n{not json" }, "workflows/reaudit.yml": http(200, workflow()) }), now)).toEqual({ healthy: false, reason: "actions-response-invalid" });
   });
 
   test("healthy sends nothing; unhealthy sends one safe notice; notice failure is reported without retry", async () => {
     const healthy = gh({ "workflows/reaudit.yml/runs": http(200, runs(run("schedule", now - HOUR))), "workflows/reaudit.yml": http(200, workflow()) });
     const sent: FailureSummary[] = [];
     const notify = async (s: FailureSummary) => { sent.push(s); return { accepted: 1, rejected: 0 }; };
-    expect(await runWatchdog({ now, gh: healthy, notify, env: {} })).toEqual({ healthy: true, reason: "healthy", notice: "not-needed" });
+    expect(await runWatchdog({ deployment: PIRAX, now, gh: healthy, notify, env: {} })).toEqual({ healthy: true, reason: "healthy", notice: "not-needed" });
     expect(sent.length).toBe(0);
     const disabled = gh({ "workflows/reaudit.yml/runs": http(200, runs()), "workflows/reaudit.yml": http(200, workflow({ state: "disabled_inactivity" })) });
     const env = { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "CastrumS/pirax-castrum-maintenance", GITHUB_RUN_ID: "123456789" };
-    expect(await runWatchdog({ now, gh: disabled, notify, env })).toEqual({ healthy: false, reason: "workflow-disabled-inactivity", notice: "sent" });
+    expect(await runWatchdog({ deployment: PIRAX, now, gh: disabled, notify, env })).toEqual({ healthy: false, reason: "workflow-disabled-inactivity", notice: "sent" });
     expect(sent).toEqual([{ stage: "watchdog", reason: "workflow-disabled-inactivity", runUrl: RUN, cleanup: "not-applicable", publication: "not-attempted" }]);
-    expect(() => parseFailureSummary(sent[0])).not.toThrow();
+    expect(() => parseFailureSummary(REPO, sent[0])).not.toThrow();
     let attempts = 0;
     const failing = async () => { attempts++; throw new Error(SECRET); };
-    const result = await runWatchdog({ now, gh: disabled, notify: failing, env });
+    const result = await runWatchdog({ deployment: PIRAX, now, gh: disabled, notify: failing, env });
     expect(result).toEqual({ healthy: false, reason: "workflow-disabled-inactivity", notice: "failed" });
     expect(attempts).toBe(1);
   });

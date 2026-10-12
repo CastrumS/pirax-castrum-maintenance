@@ -1,5 +1,6 @@
 # Lessons
 
+- Cross-runtime JSON dictionaries can have identical values but different key order; use structural equality for native state/hash assertions, not serialized text equality — 2026-10-12 — [case and evidence](history/2026-10-12-native-dictionary-equality.md).
 - GitHub reruns preserve the run ID and earlier artifacts: bind candidate data and artifact selection to the current attempt, and never use an old cleanup confirmation when current evidence is missing — 2026-10-07 — [case and evidence](history/2026-10-07-workflow-attempt-artifacts.md).
 
 - Playground workers can retain a reused backup filename after another worker renames it away: use a unique name per mutation and verify copy/write/rename plus exact readback, rather than trusting `file_exists()` or a lucky green run — 2026-10-06 — [case and evidence](history/2026-10-06-playground-reused-file-names.md).

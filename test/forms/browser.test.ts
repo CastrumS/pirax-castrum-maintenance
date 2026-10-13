@@ -433,7 +433,10 @@ test("no-marker/unknown/upload requires no credentials; opted-in IMAP preflight 
     expect((await scanPageForms(site('/ambiguous-ff', 'fluent', 2), { path: '/ambiguous-ff', mask: [] }, { runDir, texts: pirax }))[0]?.outcome).toBe('unsupported');
     process.env.FORM_TEST_TOKEN = config.token; process.env.FORM_TEST_ADDRESS = config.address;
     expect((await scanPageForms(site('/constrained'), { path: '/constrained', mask: [] }, { runDir, texts: pirax }))[0]?.outcome).toBe('unsupported');
-    await expect(scanPageForms(site('/plain'), { path: '/plain', mask: [] }, { runDir, texts: pirax })).rejects.toThrow('IMAP_HOST');
+    // Settle before matching: Bun's expect().rejects on a pending promise delays Playwright's browser I/O for tens of seconds.
+    const plain = scanPageForms(site('/plain'), { path: '/plain', mask: [] }, { runDir, texts: pirax });
+    await plain.catch(() => undefined);
+    await expect(plain).rejects.toThrow('IMAP_HOST');
     expect(writes).toBe(before);
   } finally { names.forEach((name, i) => restore(name, old[i])); }
 });

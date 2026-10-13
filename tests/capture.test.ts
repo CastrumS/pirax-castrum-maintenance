@@ -132,7 +132,10 @@ function routes(req: Request, origin: () => string): Response | Promise<Response
            const feed = document.getElementById("feed");
            const more = () => { const d = document.createElement("div"); d.style.height = "900px"; d.textContent = "item"; feed.append(d); };
            more(); more();
-           addEventListener("scroll", () => { if (scrollY + innerHeight > document.body.scrollHeight - 500) more(); });
+           // This fixture must stay infinite even when Chromium defers scroll-event dispatch.
+           // Extend synchronously after the real scroll; /tall separately covers asynchronous lazy loading.
+           const nativeScrollBy = window.scrollBy.bind(window);
+           window.scrollBy = (...args) => { nativeScrollBy(...args); if (scrollY + innerHeight > document.body.scrollHeight - 500) more(); };
            setInterval(() => fetch("/tick?" + Math.random()), 100);
          </script>`,
       );

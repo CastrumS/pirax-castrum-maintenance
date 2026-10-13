@@ -81,19 +81,30 @@ describe("command preflight without browser or storage", () => {
   });
 });
 
-test("root forms alias invokes production entrypoint; empty/usage need no credentials or writes", async () => {
-  const pkg = await Bun.file(resolve('package.json')).json();
-  expect(pkg.scripts.forms).toBe('bun src/commands/forms.ts');
-  const empty = join(dir, 'root-empty.yaml'); await Bun.write(empty, 'sites: []\n');
+describe("root forms alias", () => {
   const child = (args: string[], env: Record<string, string> = { DEPLOYMENT: 'pirax' }) => Bun.spawnSync([process.execPath, '--no-env-file', 'run', 'forms', ...args], { cwd: resolve('.'), env: { PATH: process.env.PATH!, ...env } });
-  const ok = child(['all', '--sites', empty]);
-  expect(ok.exitCode).toBe(0); expect(ok.stdout.toString()).toContain('No sites selected.');
-  const usage = child([], {}); expect(usage.exitCode).toBe(2); expect(usage.stdout.toString()).toContain('usage: forms');
-  // Empty, not absent: the package script's inner bun may load an env file, which never overrides a set variable.
-  const unselected = child(['all', '--sites', empty], { DEPLOYMENT: '' });
-  expect(unselected.exitCode).toBe(2); expect(unselected.stdout.toString()).toBe('forms: DEPLOYMENT is not set\n');
-  const { runForms } = await import('../src/commands/forms.ts');
-  expect(await runForms([], createStore(), { forms: { texts: loadDeployment(pirax).config.forms } })).toEqual({ exitCode: 0 });
+  // Independent process contracts get independent default budgets, not one cumulative timeout.
+  test("invokes production entrypoint; empty selection needs no credentials or writes", async () => {
+    const pkg = await Bun.file(resolve('package.json')).json();
+    expect(pkg.scripts.forms).toBe('bun src/commands/forms.ts');
+    const empty = join(dir, 'root-empty.yaml'); await Bun.write(empty, 'sites: []\n');
+    const ok = child(['all', '--sites', empty]);
+    expect(ok.exitCode).toBe(0); expect(ok.stdout.toString()).toContain('No sites selected.');
+  });
+  test("usage needs no credentials or writes", () => {
+    const usage = child([], {});
+    expect(usage.exitCode).toBe(2); expect(usage.stdout.toString()).toContain('usage: forms');
+  });
+  test("empty selection still refuses missing deployment", async () => {
+    const empty = join(dir, 'root-unselected-empty.yaml'); await Bun.write(empty, 'sites: []\n');
+    // Empty, not absent: the package script's inner bun may load an env file, which never overrides a set variable.
+    const unselected = child(['all', '--sites', empty], { DEPLOYMENT: '' });
+    expect(unselected.exitCode).toBe(2); expect(unselected.stdout.toString()).toBe('forms: DEPLOYMENT is not set\n');
+  });
+  test("direct empty run needs no credentials or writes", async () => {
+    const { runForms } = await import('../src/commands/forms.ts');
+    expect(await runForms([], createStore(), { forms: { texts: loadDeployment(pirax).config.forms } })).toEqual({ exitCode: 0 });
+  });
 });
 
 test("direct forms/check errors sanitize trusted messages and classify config as exit 2", async () => {

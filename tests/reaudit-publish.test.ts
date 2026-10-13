@@ -1,10 +1,13 @@
 // Publisher (plan D7) against a disposable checkout of the shipping scripts, templates and Pirax's deployment data
 // (its public key replaced by a TEST key, plus a second deployment that must stay untouched),
-// a local bare git remote standing in for origin/main, and a gh wrapper on PATH. The wrapper forwards only exact
-// read-only lookups to the real authenticated gh while no fake remote state exists; every mutation (ref claim,
-// release create) is intercepted and recorded, and later reads of that synthetic release are answered from it.
-// Nothing here creates a real ref, tag, release or main commit. Remote states seeded by the wrapper are SYNTHETIC.
-// bun --no-env-file test tests/reaudit-publish.test.ts   (needs network and an authenticated gh, like release.test.ts)
+// a local bare git remote standing in for origin/main, and a gh wrapper on PATH. Two separate boundaries:
+//   - Real read-only calibration: only the first test calls the operator's authenticated gh, looking up an absent
+//     v999.0.0 to prove a real 404 reads as missing.
+//   - SYNTHETIC lifecycle fixtures: each fixture's wrapper answers from its own state directory and never reaches the
+//     real gh or GitHub. No state file is an empty remote (tag and release 404, empty listing); a ref claim or release
+//     create is recorded there and read back; any other call fails closed. The real repository's tags and releases
+//     (newer ones included) cannot reach a fixture, and nothing creates a real ref, tag, release or main commit.
+// bun --no-env-file test tests/reaudit-publish.test.ts   (the calibration needs network and an authenticated gh, like release.test.ts)
 import { afterAll, expect, setDefaultTimeout, test } from "bun:test";
 import { chmod, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -17,6 +20,7 @@ import { decideAudit, type AuditFacts, type Candidate } from "../scripts/reaudit
 import { GIT_AUTH } from "../scripts/reaudit/heartbeat";
 import { parseFailureSummary } from "../scripts/reaudit/notify";
 import { publish, PublishError, verifyRelease } from "../scripts/reaudit/publish";
+import { remoteTag } from "../scripts/release-plugin";
 import { FIXTURE_VERSIONS, fixtureConfig, fixtureKeys, writeDeployment } from "../test/fixtures/deployment";
 import { testKey } from "../test/plugin/update-fixture";
 
@@ -25,7 +29,6 @@ const ROOT = resolve(import.meta.dir, "..");
 const REPO = "CastrumS/pirax-castrum-maintenance";
 const PIRAX = loadDeployment({ env: { DEPLOYMENT: "pirax" } });
 const SELECT = { DEPLOYMENT: "pirax" };
-const REAL_GH = Bun.which("gh")!;
 const RUN = "4242424242";
 const ATTEMPT = "3";
 const GIT = ["-c", "user.name=Publish Test", "-c", "user.email=publish@test.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"];
@@ -40,23 +43,23 @@ const git = (cwd: string, ...args: string[]) => {
 
 const WRAPPER = `#!/bin/sh
 S="\${0%/*}/state"
-# Stand-in token for the publisher's git children only; real read-only lookups keep the operator's gh auth.
-[ "$GH_TOKEN" = synthetic-unused-gh-token ] && unset GH_TOKEN
 printf '%s\\n' "$@" --- >> "$S/calls"
 tag_of() { printf '%s' "\${1##*/}"; }
+# gh api --include's real 404 shape: status line and body on stdout, exit 1.
+missing() { printf 'HTTP/2.0 404 Not Found\\n\\n{"message":"Not Found","status":"404"}\\n'; echo 'gh: Not Found (HTTP 404)' >&2; exit 1; }
 if [ "$1" = api ] && [ "$2" = --include ] && [ "$#" = 3 ]; then
   case "$3" in
     repos/${REPO}/git/ref/tags/*)
       if [ -f "$S/tag" ]; then printf 'HTTP/2.0 200 OK\\n\\n{"ref":"refs/tags/%s","object":{"type":"commit","sha":"%s"}}\\n' "$(tag_of "$3")" "$(cat "$S/tag")"; exit 0; fi
-      exec "$REAL_GH" "$@";;
+      missing;;
     repos/${REPO}/releases/tags/*|repos/${REPO}/releases/latest)
       if [ -f "$S/release.json" ]; then printf 'HTTP/2.0 200 OK\\n\\n'; cat "$S/release.json"; exit 0; fi
-      exec "$REAL_GH" "$@";;
+      missing;;
   esac
 fi
-if [ "$1" = api ] && [ "$2" = --paginate ] && [ "$#" = 5 ] && [ "$4" = --jq ] && [ "$5" = '.[].tag_name' ]; then
-  if [ -f "$S/release.json" ]; then sed -n 's/.*"tag_name":"\\([^"]*\\)".*/\\1/p' "$S/release.json"; exit 0; fi
-  exec "$REAL_GH" "$@"
+if [ "$1" = api ] && [ "$2" = --paginate ] && [ "$#" = 5 ] && [ "$3" = "repos/${REPO}/releases?per_page=100" ] && [ "$4" = --jq ] && [ "$5" = '.[].tag_name' ]; then
+  [ -f "$S/release.json" ] && sed -n 's/.*"tag_name":"\\([^"]*\\)".*/\\1/p' "$S/release.json"
+  exit 0
 fi
 if [ "$1" = api ] && [ "$2" = --method ] && [ "$3" = POST ]; then
   for a in "$@"; do case "$a" in sha=*) printf '%s' "\${a#sha=}" > "$S/tag";; esac; done
@@ -112,7 +115,7 @@ async function fixture(encodedSeed = false, facts: Partial<AuditFacts> = {}) {
   const bin = join(scratch, `bin-${id}`);
   const state = join(bin, "state");
   await mkdir(state, { recursive: true });
-  await writeFile(join(bin, "gh"), WRAPPER.replaceAll("$REAL_GH", REAL_GH));
+  await writeFile(join(bin, "gh"), WRAPPER);
   await chmod(join(bin, "gh"), 0o755);
   // Records each publisher git call's argv and whether GH_TOKEN reached it (never its value), then runs real git.
   // With state/unreadable-commit, `rev-parse --verify HEAD` after the local commit answers nothing (a failed read).
@@ -145,7 +148,7 @@ async function fixture(encodedSeed = false, facts: Partial<AuditFacts> = {}) {
   if (decision.outcome !== "audited-candidate") throw new Error("fixture candidate");
   const candidatePath = join(state, "candidate.json");
   await writeFile(candidatePath, JSON.stringify(decision.candidate));
-  const env = { ...withoutSigningKey(), ...SELECT, PATH: `${bin}:${process.env.PATH}`, PIRAX_HELPER_SIGNING_KEY: key.secrets()[0]!, GH_TOKEN: process.env.GH_TOKEN ?? "synthetic-unused-gh-token" };
+  const env = { ...withoutSigningKey(), ...SELECT, PATH: `${bin}:${process.env.PATH}`, PIRAX_HELPER_SIGNING_KEY: key.secrets()[0]!, GH_TOKEN: "synthetic-unused-gh-token" };
   const calls = async () => (await readFile(join(state, "calls"), "utf8").catch(() => "")).split("---\n").filter(Boolean).map((c) => c.trimEnd().split("\n"));
   return { dir, remote, state, env, base, plan, deployment, candidate: decision.candidate as Candidate, candidatePath, calls, publicKey: key.publicKey, key, seed: key.secrets()[0]! };
 }
@@ -276,6 +279,18 @@ test("an existing target tag (synthetic remote state) publishes nothing", async 
   const s = await failure(publish({ root: f.dir, candidatePath: f.candidatePath, runId: RUN, runAttempt: ATTEMPT, env: f.env, remoteUrl: f.remote }));
   expect(s).toMatchObject({ stage: "publication", reason: "tag-exists", publication: "not-attempted" });
   expect(remoteMain(f.remote)).toBe(f.base);
+  expect(mutations(await f.calls())).toEqual([]);
+});
+
+// Boundary regression: v<base helper> is a real published release of REPO, yet a fixture's empty synthetic remote
+// must report it absent, and a call outside the modelled lookups and mutations must fail closed.
+test("fixture remote state is wholly synthetic: a real release is absent there and unmodelled gh calls fail", async () => {
+  const f = await fixture();
+  const version = PIRAX.versions.helperVersion;
+  expect(await remoteTag(REPO, `v${version}`, f.env)).toBe("absent");
+  expect(await verifyRelease({ deployment: f.deployment, tag: `v${version}`, version, pins: PIRAX.versions.audited, env: f.env })).toEqual({ status: "missing", reason: "release-missing" });
+  const other = Bun.spawnSync([join(dirname(f.state), "gh"), "api", `repos/${REPO}/releases`], { env: f.env, stdout: "pipe", stderr: "pipe" });
+  expect([other.exitCode, other.stdout.toString(), other.stderr.toString()]).toEqual([1, "", "unexpected gh call\n"]);
   expect(mutations(await f.calls())).toEqual([]);
 });
 

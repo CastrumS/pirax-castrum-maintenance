@@ -8,7 +8,7 @@
 //   needs GH_TOKEN for the push: the checkout persists no credentials, and git asks gh (GIT_AUTH).
 // Also shared by the other operations: repositoryMismatch() (an Actions run of another repository), GIT_AUTH, safeChildEnv().
 // Import-safe: nothing runs on import, and tests pass a local file:// remote.
-import { writeFileSync } from "node:fs";
+import { closeSync, constants, fstatSync, ftruncateSync, openSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { DeploymentConfigError, loadDeployment, type Deployment } from "../../src/deployment.ts";
 
@@ -92,7 +92,19 @@ export function runHeartbeat({ deployment, now, remoteUrl = deployment.remote, e
   catch (e) { throw e instanceof HeartbeatError ? e : new HeartbeatError("heartbeat: main's last commit time is malformed or in the future"); }
   if (!due) return { outcome: "not-due", base };
 
-  writeFileSync(join(cwd, path), `${new Date(now).toISOString()}\n`);
+  // Never follow a destination link or truncate before checking the opened entry. NONBLOCK also prevents
+  // a FIFO from hanging the job; fstat refuses every non-regular entry before any bytes are written.
+  let fd: number | undefined;
+  try {
+    fd = openSync(join(cwd, path), constants.O_WRONLY | constants.O_CREAT | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    if (!fstatSync(fd).isFile()) throw new Error();
+    ftruncateSync(fd, 0);
+    writeFileSync(fd, `${new Date(now).toISOString()}\n`);
+  } catch {
+    throw new HeartbeatError("heartbeat: destination is not a writable regular file");
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+  }
   const changed = status().split("\n").map((line) => line.slice(3));
   if (changed.length !== 1 || changed[0] !== path) throw new HeartbeatError("heartbeat: refusing changes outside the heartbeat file");
   git("add", ["add", "--", path]);

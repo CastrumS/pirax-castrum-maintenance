@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { loadDeployment } from "../src/deployment.ts";
@@ -326,7 +326,7 @@ describe("heartbeat operation against a local temp remote", () => {
   };
   /** The selected (fixture) deployment's heartbeat; the checkout also holds another deployment's. */
   const HEARTBEAT_PATH = "deployments/fixture/heartbeat.txt";
-  function fixture(lastCommitMs: number, trackedHeartbeat = false) {
+  function fixture(lastCommitMs: number, trackedHeartbeat: boolean | "sibling-link" | "outside-link" | "directory" = false) {
     const dir = mkdtempSync(join(tmpdir(), "reaudit-heartbeat-"));
     const remote = join(dir, "remote.git");
     const seed = join(dir, "seed");
@@ -338,7 +338,15 @@ describe("heartbeat operation against a local temp remote", () => {
     writeFileSync(join(seed, "deployments/other/heartbeat.txt"), `${iso(lastCommitMs)}\n`);
     git(seed, ["add", "README.md", "deployments"]);
     if (trackedHeartbeat) {
-      writeFileSync(join(seed, HEARTBEAT_PATH), `${iso(lastCommitMs)}\n`);
+      const destination = join(seed, HEARTBEAT_PATH);
+      if (trackedHeartbeat === "sibling-link") symlinkSync("../other/heartbeat.txt", destination);
+      else if (trackedHeartbeat === "outside-link") {
+        writeFileSync(join(dir, "outside.txt"), "outside sentinel\n");
+        symlinkSync("../../../outside.txt", destination);
+      } else if (trackedHeartbeat === "directory") {
+        mkdirSync(destination);
+        writeFileSync(join(destination, "sentinel.txt"), "directory sentinel\n");
+      } else writeFileSync(destination, `${iso(lastCommitMs)}\n`);
       git(seed, ["add", HEARTBEAT_PATH]);
     }
     const date = iso(lastCommitMs);
@@ -398,6 +406,30 @@ describe("heartbeat operation against a local temp remote", () => {
       expect(git(f.work, ["status", "--porcelain"])).toBe("");
     } finally { f.cleanup(); }
   });
+
+  for (const kind of ["sibling-link", "outside-link", "directory"] as const) {
+    test(`due: refuses committed ${kind} before changing destination or target`, () => {
+      const f = fixture(now - 31 * DAY, kind);
+      try {
+        const destination = join(f.work, HEARTBEAT_PATH);
+        const target = kind === "sibling-link" ? join(f.work, "deployments/other/heartbeat.txt")
+          : kind === "outside-link" ? join(f.dir, "outside.txt") : join(destination, "sentinel.txt");
+        const before = readFileSync(target);
+        const link = kind === "directory" ? null : readlinkSync(destination);
+        let refusal: unknown;
+        try { runHeartbeat({ deployment: f.deployment, now, remoteUrl: f.url, env: offlineEnv }); }
+        catch (error) { refusal = error; }
+        // Check bytes first: a post-write status refusal is too late to protect the target.
+        expect(readFileSync(target).equals(before)).toBe(true);
+        expect(git(f.remote, ["rev-parse", "HEAD"])).toBe(f.base);
+        expect(git(f.work, ["rev-parse", "HEAD"])).toBe(f.base);
+        expect(git(f.work, ["status", "--porcelain"])).toBe("");
+        if (link !== null) expect(readlinkSync(destination)).toBe(link);
+        expect(refusal).toBeInstanceOf(Error);
+        expect((refusal as Error).message).toBe("heartbeat: destination is not a writable regular file");
+      } finally { f.cleanup(); }
+    });
+  }
 
   test("an Actions run in a repository other than the selected deployment's is refused before any git operation", () => {
     const f = fixture(now - 31 * DAY);

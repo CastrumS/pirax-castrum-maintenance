@@ -13,7 +13,7 @@ The checker captures full-page desktop/mobile screenshots, compares them with ac
 
 From 0.3.0 the helper updates itself through WordPress's normal plugin updates, from signed GitHub releases of this repository. Sites on 0.2.4 or older need one manual upload first. Only the helper updates itself: the checker never updates WordPress or client plugins. See [Updates](plugin/pirax-form-test/README.md#updates) for verification, limits and key recovery. A marked submission blocked only by plugin versions that are not audited yet is rejected with `Pirax test blocked: awaiting audit of <plugin> <version>`; other compatibility blocks keep `Pirax test blocked: integrations could not be suppressed`. Marker and configuration errors retain their own messages. Helper 0.3.0 and newer emit this diagnosis; sites still on 0.2.4 or older keep the generic message, which the checker reports as `rejected`. The checker reports the awaiting message as an `awaiting-audit` warning (exit 0) and as `failed` (exit 1) once the site has been awaiting audit for more than 72 hours; see [Awaiting-audit refusals](#awaiting-audit-refusals). Releases come from the daily [automatic re-audit](#automatic-re-audit); the updater only consumes them.
 
-Building and testing it additionally requires Node, `zip`/`unzip`, and a C++ toolchain for one native dev dependency (see the test README).
+Building and testing it additionally requires Node, `zip`/`unzip`, and a C++ toolchain for one native dev dependency (see the test README). Build, release and native plugin tests require an explicit `DEPLOYMENT` selection (for this repository, `pirax`); there is no default. The build renders the shared templates in `plugin/pirax-form-test/`, including the README's current-version section, from the selected deployment's data without rewriting the templates.
 
 ```sh
 bun run build:plugin           # → dist/pirax-form-test.zip, the uploadable plugin (allowlisted files only)
@@ -24,11 +24,11 @@ bun --no-env-file test test/plugin/release.test.ts   # release CLI with generate
 
 Releases are signed and published with `scripts/release-plugin.ts`, which reads the signing seed only from `PIRAX_HELPER_SIGNING_KEY` in its environment. `--dry-run` only builds and signs into `dist/` and never contacts GitHub; it is for inspection and tests. Without it the script publishes `v<version>` on GitHub after its refusal checks. See [Releasing](plugin/pirax-form-test/README.md#releasing).
 
-The plugin suites need `GRAVITY_FORMS_ZIP`, `FLUENT_FORMS_PRO_ZIP` and `FORM_TEST_TOKEN`. Two of them (`stack-harness`, `compatibility`) run the full audited stack: Gravity Forms, Fluent Forms free and Pro, CleanTalk and FluentSMTP (simulated sending only), each at the exact version pinned in the helper's `AUDITED_VERSIONS` (`plugin/pirax-form-test/includes/compatibility.php`, listed under [Supported versions](plugin/pirax-form-test/README.md#supported-versions-and-behaviour)). That table is the only pin source: the harness, native tests and release manifest read it, and both licensed ZIPs must declare their pinned version. From a worktree, pass the registered repository's environment file with `bun --env-file=<registered-repo>/.env run test:plugin`. `dist/`, `artifacts/` and `.cache/` are generated and ignored by git.
+The plugin suites need `GRAVITY_FORMS_ZIP`, `FLUENT_FORMS_PRO_ZIP` and `FORM_TEST_TOKEN`. Two of them (`stack-harness`, `compatibility`) run the full audited stack: Gravity Forms, Fluent Forms free and Pro, CleanTalk and FluentSMTP (simulated sending only), each at the exact version pinned in `deployments/<name>/versions.json` ([Pirax's pins and helper version](deployments/pirax/versions.json)). That file is the only pin/version authority: the harness, native tests and release manifest read it, the build renders `AUDITED_VERSIONS` from it, and both licensed ZIPs must declare their pinned version. From a worktree, pass the registered repository's environment file with `bun --env-file=<registered-repo>/.env run test:plugin`. `dist/`, `artifacts/` and `.cache/` are generated and ignored by git.
 
 ### Automatic re-audit
 
-`.github/workflows/reaudit.yml` keeps the five vendor pins current without operator steps. It runs daily at 03:17 UTC and on manual dispatch, only on `main` of `CastrumS/pirax-castrum-maintenance`, in one repository-wide concurrency group that never cancels a running audit. A passing audit publishes a new helper release automatically; a failing or incomplete gate publishes nothing. The gate is the native test suites plus their hook-inventory assertions. There is no code-diff review, no retry, no skipped test and no automatic widening of the callback inventory.
+`.github/workflows/reaudit.yml` keeps the five vendor pins current without operator steps. It runs daily at 03:17 UTC and on manual dispatch, only on `main`, in one repository-wide concurrency group that never cancels a running audit. Both re-audit workflows require `vars.DEPLOYMENT` to select `deployments/<name>/`; missing selection fails rather than silently skipping. Operational entry points also require the Actions repository to match the selected configuration's channel repository. A passing audit publishes a new helper release automatically; a failing or incomplete gate publishes nothing. The gate is the native test suites plus their hook-inventory assertions. There is no code-diff review, no retry, no skipped test and no automatic widening of the callback inventory.
 
 | Job | Token | Secrets (on one step only) | Does |
 |---|---|---|---|
@@ -41,18 +41,18 @@ The plugin suites need `GRAVITY_FORMS_ZIP`, `FLUENT_FORMS_PRO_ZIP` and `FORM_TES
 
 1. Resolves all five upstream versions: Fluent Forms, CleanTalk and FluentSMTP from wordpress.org, Gravity Forms and Fluent Forms Pro through GPL Vault's official updater. The updater is decrypted from `.github/audit/gplvault-updater.zip.gpg` into private scratch and runs in a throwaway Playground. It is activated on the license for this run only. Its own update runs first, and deactivation must be confirmed before the run can succeed. An instance that is already active at start is refused without activating or deactivating it, so a seat this run did not take is never released.
 2. **Unchanged** (every version exactly equal to its pin): no suite, commit, tag or release. The run independently verifies the current helper release `v<version>` (read-only, the same checks as after publication). A missing or incomplete release fails the run, so a partial earlier publication is not reported as healthy.
-3. **Changed:** acquires all five selected packages and checks each ZIP's main-file `Version` and SHA-256. It then writes only the candidate pins into `AUDITED_VERSIONS` and runs the whole `bun test test/plugin`. That run gets a random per-run `FORM_TEST_TOKEN`, the selected paid ZIPs as `GRAVITY_FORMS_ZIP`/`FLUENT_FORMS_PRO_ZIP`, and the selected free ZIPs in the harness cache. Any failure, skip or todo fails the gate. Every new native `manifest.json` must report exactly the selected versions and ZIP digests, with at least one full-stack run. Only then does `scripts/reaudit/bump.ts` raise the helper patch version and regenerate the plugin guide's current-version section. Typecheck and the core, release, pin-source and bump tests then run on that final source.
+3. **Changed:** acquires all five selected packages and checks each ZIP's main-file `Version` and SHA-256. It then writes only `deployments/<name>/versions.json`, replacing the candidate pins while retaining the helper version, and runs the whole `bun test test/plugin`. That run gets a random per-run `FORM_TEST_TOKEN`, the selected paid ZIPs as `GRAVITY_FORMS_ZIP`/`FLUENT_FORMS_PRO_ZIP`, and the selected free ZIPs in the harness cache. Any failure, skip or todo fails the gate. Every new native `manifest.json` must report exactly the selected versions and ZIP digests, with at least one full-stack run. Only then does `scripts/reaudit/bump.ts` raise the helper patch version, again writing only the selected `versions.json`. Shared PHP templates and the plugin guide's current-version section render at build time; the bump never edits them. Typecheck and the core, release, pin-source and bump tests then run on that final source.
 4. Scans the retained native evidence (trace ZIP entries included) and its own output for every known secret, and withholds any file with a hit. Private scratch (decrypted updater, paid ZIPs) is always deleted.
 
 On success and failure alike, `evidence/lifecycle.json` keeps the license lifecycle: whether activation and deactivation were attempted and confirmed, the remaining activations before and after, the updater version before and after its own update, and the throwaway site's loopback URL (`http://127.0.0.1:<port>`). A value the client did not report is `null`, never a guess, so unchanged counts (for example 139 and 139) stay distinct from unknown ones.
 
 The result is `decision.json` plus either `summary.json` (failure) or `candidate.json`. The candidate is data, not a patch. It holds the run ID and run attempt, the exact audited `main` commit, old and new pins, package versions and digests (no paths or URLs), the next helper version, a digest of the intended source change and the explicit gate results.
 
-**Publish.** `publish.ts` checks out the triggering commit (never a ref taken from the candidate). It accepts only this run attempt's strictly valid candidate and rebuilds the change with checked-in `bump.ts`; the digest must match. It requires remote `main` to still be the audited commit and `v<next>` to have no tag or release. It then commits exactly the three bump files and pushes them to `main` normally (no force). The release itself comes from the existing [release CLI](plugin/pirax-form-test/README.md#releasing), whose atomic tag claim stays authoritative. Before claiming the tag or uploading assets, that CLI scans the exact final manifest, signature and ZIP entries for raw and encoded known secrets; unsafe assets are withheld, and checked assets are not rebuilt. Afterwards the release is verified independently: published and latest, exactly three assets, the manifest signature against the shipped `UPDATE_PUBLIC_KEY`, the ZIP hash and contents, the main file's `Version` header and `VERSION` constant, the manifest and embedded pins, the tag's commit, and no known secret in any asset. If `main` advanced since the audit, nothing is published and the next run audits the new commit; a tested candidate is never rebased.
+**Publish.** `publish.ts` checks out the triggering commit (never a ref taken from the candidate). It accepts only this run attempt's strictly valid candidate and rebuilds the change with checked-in `bump.ts`; the digest must match. It requires remote `main` to still be the audited commit and `v<next>` to have no tag or release. It then commits only `deployments/<name>/versions.json` and pushes that commit to `main` normally (no force). The release itself comes from the existing [release CLI](plugin/pirax-form-test/README.md#releasing), whose atomic tag claim stays authoritative. Before claiming the tag or uploading assets, that CLI scans the exact final manifest, signature and ZIP entries for raw and encoded known secrets; unsafe assets are withheld, and checked assets are not rebuilt. Afterwards the release is verified independently: published and latest, exactly three assets, the manifest signature against the shipped `UPDATE_PUBLIC_KEY`, the ZIP hash and contents, the main file's `Version` header and `VERSION` constant, the manifest and embedded pins, the tag's commit, and no known secret in any asset. If `main` advanced since the audit, nothing is published and the next run audits the new commit; a tested candidate is never rebased.
 
-**Notice.** On any failure, `scripts/reaudit/notify.ts --jobs` sends exactly one email to piraxcastrum@gmail.com through Gmail SMTP. The subject is `[pirax-audit] re-audit failed at <stage>: <reason>`. The body names the stage, the old and candidate versions, the cleanup state (with the throwaway site's loopback URL when deactivation was not confirmed), the publication state (with the intended commit and tag once a remote change may exist) and the run URL. It never contains credentials, URLs from GPL Vault, vendor responses or exception text. When a job left no summary in this run attempt (for example a failed install), a fixed summary for that job is sent. A failed send leaves the notice job failed with a safe error, and it is not retried.
+**Notice.** On any failure, `scripts/reaudit/notify.ts --jobs` sends exactly one email to the selected deployment's notice recipient through Gmail SMTP (piraxcastrum@gmail.com for Pirax). The subject uses its configured prefix: `[pirax-audit] re-audit failed at <stage>: <reason>` for Pirax. The body names the stage, the old and candidate versions, the cleanup state (with the throwaway site's loopback URL when deactivation was not confirmed), the publication state (with the intended commit and tag once a remote change may exist) and the run URL. It never contains credentials, URLs from GPL Vault, vendor responses or exception text. When a job left no summary in this run attempt (for example a failed install), a fixed summary for that job is sent. A failed send leaves the notice job failed with a safe error, and it is not retried.
 
-**Heartbeat and watchdog.** When `main`'s last commit is at least 30 days old, the heartbeat job commits only `.github/audit/heartbeat.txt` and pushes it to `main`, with no tag or release. This keeps GitHub from disabling the schedule after 60 days without activity. The separate `.github/workflows/reaudit-watchdog.yml` runs daily at 15:43 UTC with `actions: read` and the two mail secrets. It emails when `reaudit.yml` is disabled or missing, or when it has not started on `main` for more than 48 hours. Non-main dispatches skip the audit and do not count. A failed main audit still counts as alive; failed audits are reported by `reaudit.yml` itself.
+**Heartbeat and watchdog.** When `main`'s last commit is at least 30 days old, the heartbeat job commits only `deployments/<name>/heartbeat.txt` and pushes it to `main`, with no tag or release. This keeps GitHub from disabling the schedule after 60 days without activity. The separate `.github/workflows/reaudit-watchdog.yml` runs daily at 15:43 UTC with `actions: read` and the two mail secrets. It emails when `reaudit.yml` is disabled or missing, or when it has not started on `main` for more than 48 hours. Non-main dispatches skip the audit and do not count. A failed main audit still counts as alive; failed audits are reported by `reaudit.yml` itself.
 
 **Secrets.** Six repository secrets, provisioned once from the local `.env`: `GPLVAULT_LICENSE_KEY`, `GPLVAULT_PRODUCT_ID`, `GPLVAULT_UPDATER_PASSPHRASE`, `IMAP_USER`, `IMAP_PASSWORD` and `PIRAX_HELPER_SIGNING_KEY`. `bun --env-file=.env scripts/reaudit/setup.ts` sets the first five and refuses to rotate an existing ciphertext or passphrase. `gh secret list --repo CastrumS/pirax-castrum-maintenance` shows names only. GitHub tokens are each job's own `github.token`, so no personal token is stored. No checkout persists it: the publish and heartbeat steps get it as `GH_TOKEN`, and their git pushes ask `gh` for it as a credential helper (`GIT_AUTH` in `scripts/reaudit/heartbeat.ts`), so it is never on a command line or written to disk. No R2 or checker credentials are used.
 
@@ -79,7 +79,7 @@ Production commands require [Bun](https://bun.sh) 1.4 or newer, Playwright Chrom
 ```sh
 bun install
 bunx playwright install chromium
-cp -n sites.example.yaml sites.yaml   # only creates sites.yaml if missing; then list your real sites
+cp -n deployments/pirax/sites.example.yaml deployments/pirax/sites.yaml   # only creates Pirax's list if missing
 ```
 
 Create `.env` in the repository root with the four names from `.env.example`:
@@ -95,6 +95,8 @@ Create `.env` in the repository root with the four names from `.env.example`:
 
 ## Commands
 
+Local checker commands require `DEPLOYMENT` (for example `DEPLOYMENT=pirax`), even with `--sites` or an empty site list. It selects identity and defaults; `--sites` overrides only the list, not the deployment.
+
 | Command | What it does | Needs R2 |
 | --- | --- | --- |
 | `bun run baseline <slug\|all> [--sites file]` | Capture and replace PNG/raw-health baseline pairs at both widths. | Yes |
@@ -109,13 +111,13 @@ Create `.env` in the repository root with the four names from `.env.example`:
 | `bun run store:selftest` | Real-bucket storage test (see [Storage selftest](#storage-selftest)); runs `bun --env-file=.env scripts/store-selftest.ts`. | Yes |
 | `bun run visual:selftest` | Real WordPress/Chromium/R2 integration (see [Visual selftest](#visual-selftest)); runs `bun --env-file=.env scripts/visual-selftest.ts`. | Yes |
 
-Use a listed slug (for example `acme`) or `all` for baseline/check/forms. `approve all` is unsupported. `--sites path/to/sites.yaml` selects an alternative list and may appear before or after the positional arguments. The default is `sites.yaml`; no command rewrites it. An empty valid list with target `all` returns 0 without accessing R2 or launching a browser.
+Use a listed slug (for example `acme`) or `all` for baseline/check/forms. `approve all` is unsupported. `--sites path/to/sites.yaml` selects an alternative list and may appear before or after the positional arguments. The default is `deployments/<name>/sites.yaml` in the selected repository, not the working directory; an explicit `--sites` path is read as given. No command rewrites the list. An empty valid list with target `all` returns 0 without accessing R2 or launching a browser.
 
 Exit codes for baseline/check/forms/approve:
 
 - `0`: pass or warnings only (including an `awaiting-audit` form for at most 72 hours), successful approval, or an empty selection.
 - `1`: visual, health, rejected/failed form (including an awaiting-audit refusal that has lasted longer than 72 hours), missing/corrupt baseline, blocked capture or operational failure, including report upload/pruning and approval failures.
-- `2`: usage, site-list, CSS-selector or missing/blank/invalid credential configuration error.
+- `2`: usage, deployment selection/schema, site-list, CSS-selector or missing/blank/invalid credential configuration error.
 
 ### Before and after manual updates
 
@@ -163,7 +165,7 @@ The **visual capture** browser blocks service workers, page-originated non-GET H
 
 ## Site list
 
-`sites.yaml` is operator-owned and committed; it holds no secrets. The tool never discovers pages: you list each page you want checked. A useful sample is the home page, one page per template or post type, and every page with a form.
+`deployments/<name>/sites.yaml` is operator-owned and committed; it holds no secrets. The tool never discovers pages: you list each page you want checked. A useful sample is the home page, one page per template or post type, and every page with a form.
 
 ```yaml
 sites:
@@ -186,7 +188,7 @@ sites:
 
 `test_form` designates the one form per site that the form pass may fill (see [Designated test form](#designated-test-form)). It is a mapping with exactly `page`, `plugin` and `id`: `page` must equal one of this site's listed page paths exactly as written (trailing slash included), `plugin` is `gravity` or `fluent`, and `id` is the form id as a YAML number, as rendered in `gform_<id>` or `data-form_id="<id>"`. A quoted `'4'`, a fraction, a missing or extra member, or a page not in `pages` is a `SitesConfigError`. There is no default: a site without `test_form` has every form skipped.
 
-`loadSites(path = "sites.yaml"): Site[]` reads the file synchronously and returns:
+`loadSites(path = loadDeployment().paths.sites): Site[]` reads the file synchronously. Omitting the path requires `DEPLOYMENT` and uses its selected site list; an explicit path is read as given without selecting a deployment in this loader (CLI dispatch still requires selection). It returns:
 
 ```ts
 type Page = { path: string; mask: string[]; hide?: string[] };
@@ -198,11 +200,13 @@ Site and page masks stay separate in the loader; capture combines them. The load
 
 ### Errors
 
-Any problem throws `SitesConfigError` with `.site` and `.field`, and a message `"<file>: <site>: <field>: <detail>"`, for example:
+Site-list problems throw `SitesConfigError` with `.site` and `.field`, and a message `"<file>: <site>: <field>: <detail>"`, for example when passed `deployments/pirax/sites.yaml` explicitly:
 
 ```text
-sites.yaml: acme: url: must not end with "/"
+deployments/pirax/sites.yaml: acme: url: must not end with "/"
 ```
+
+With the default selection, `<file>` is the selected list's absolute path. Deployment selection/schema problems instead throw `DeploymentConfigError` before the list is read.
 
 `site` is the slug, or `site[<index>]` when the slug is missing or invalid, or `<root>` for file-level problems. `field` is the failing part, such as `url`, `mask[1]`, `pages[2].path`, `pages[0].mask[0]`, `test_form` or `test_form.page`. Read errors report only the error code, and YAML errors report only the parser message, never file contents.
 
@@ -328,8 +332,8 @@ Obtain a **new dedicated mailbox**, not anyone's personal inbox. Enable IMAP/app
 | `IMAP_USER`, `IMAP_PASSWORD` | Dedicated account login and provider/app password; nonblank, no control characters; not trimmed. |
 | `IMAP_FOLDER`, `IMAP_SPAM_FOLDER` | Exact existing provider folder names, no outer whitespace, controls or `*`/`%`; no automatic discovery or creation. Equal names are checked once and treated as spam. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` | Selftest only: provider's authenticated sender settings (port 465 implicit TLS, others required STARTTLS), same dedicated account; port 1–65535, nonblank credentials without controls. |
-| `GRAVITY_FORMS_ZIP` | Native tests only: absolute path to the licensed Gravity Forms ZIP at the [pinned version](plugin/pirax-form-test/README.md#supported-versions-and-behaviour), from gravityforms.com → account → Downloads. |
-| `FLUENT_FORMS_PRO_ZIP` | Native plugin tests only: absolute path to the licensed Fluent Forms Pro ZIP at the [pinned version](plugin/pirax-form-test/README.md#supported-versions-and-behaviour), from fluentforms.com → account → Downloads. |
+| `GRAVITY_FORMS_ZIP` | Native tests only: absolute path to the licensed Gravity Forms ZIP at the [pinned version](deployments/pirax/versions.json), from gravityforms.com → account → Downloads. |
+| `FLUENT_FORMS_PRO_ZIP` | Native plugin tests only: absolute path to the licensed Fluent Forms Pro ZIP at the [pinned version](deployments/pirax/versions.json), from fluentforms.com → account → Downloads. |
 
 IMAP uses only the two literal folders with `EXAMINE`, tag-specific UID SEARCH and candidate Subject-only `BODY.PEEK`; no body reads, discovery, flag writes, moves, deletes or mailbox creation. ImapFlow is pinned to **2.0.7**, with the reproducible Bun patch `patches/imapflow@2.0.7.patch` disabling namespace/path rewriting and implicit LIST in opt-in literal-mailbox mode (both runtime builds). Keep the pin/patch and installed-contract tests together when upgrading.
 

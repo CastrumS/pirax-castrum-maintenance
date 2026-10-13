@@ -1,5 +1,7 @@
 # Lessons
 
+- A fake that intercepts writes but falls through to live reads mixes two sources of truth and breaks when real state advances; isolate its lifecycle state and retain separate real-service calibration — 2026-10-13 — [case and evidence](history/2026-10-13-synthetic-release-state.md).
+
 - A pending-promise rejection matcher can delay browser I/O enough to time out and cascade into environment/browser failures; measure outside the matcher, settle the operation, then keep the same rejection assertion — 2026-10-13 — [case and evidence](history/2026-10-13-pending-promise-browser-matcher.md).
 
 - A config-derived output path can itself contain the secret a scanner rejects; diagnose with a fixed allowlisted source filename, not that output path — 2026-10-12 — [case and evidence](history/2026-10-12-secret-in-diagnostic-path.md).

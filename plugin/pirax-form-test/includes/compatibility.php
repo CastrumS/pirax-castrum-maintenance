@@ -23,7 +23,7 @@ defined( 'ABSPATH' ) || exit;
 
 /** Exactly the audited versions; any other, a later patch release included, is rejected until re-audited. */
 const AUDITED_VERSIONS = array(
-	'gf'          => '3.1.3.1',
+	'gf'          => '3.1.3.2',
 	'ff'          => '6.2.15',
 	'ff_pro'      => '6.2.15',
 	'cleantalk'   => '6.89.1',

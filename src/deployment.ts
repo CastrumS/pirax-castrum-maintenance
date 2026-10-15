@@ -1,11 +1,12 @@
 // Deployment selection and data (plan D1/D2). DEPLOYMENT names one folder, deployments/<name>/, that holds every
 // operator-specific value: config.json (the helper's visible identity and update channel, the failure notice, the
-// form checker's texts and the weekly check flag and time zone), versions.json (the five audited pins and the
-// helper version) and sites.yaml.
+// form checker's texts, the weekly check flag and time zone, and the audited plugin list), versions.json (the listed
+// plugins' pins and the helper version) and sites.yaml.
 //   loadDeployment({ root?, env? })   the selected deployment, read and validated now, as an immutable snapshot
 //                                     with derived paths, asset names, package URL and git remote
-//   parseConfig(text) / parseVersions(text)   the strict schemas of config.json and versions.json
+//   parseConfig(text) / parseVersions(text, keys)   the strict schemas of config.json and versions.json (exactly keys)
 //   formatVersions(versions)          canonical versions.json text
+//   pinKeys(record) / samePins(a, b)  a pins record's present keys in PIN_KEYS order / same keys and values
 //   DeploymentConfigError             a field (DEPLOYMENT or a schema path) and a fixed reason, never the rejected content
 // The default root is this repository, never the working directory; env defaults to process.env when called.
 // There is no default deployment and no cache. The folder and its data files must be plain entries (no links).
@@ -17,7 +18,10 @@ import { addressPattern } from "./forms/config.ts";
 const ROOT = resolve(import.meta.dir, "..");
 
 export const PIN_KEYS = ["gf", "ff", "ff_pro", "cleantalk", "fluent_smtp"] as const;
-export type AuditedVersions = Record<(typeof PIN_KEYS)[number], string>;
+export type PinKey = (typeof PIN_KEYS)[number];
+export type AuditedVersions = Partial<Record<PinKey, string>>;
+export const pinKeys = (record: AuditedVersions): PinKey[] => PIN_KEYS.filter((key) => record[key] !== undefined);
+export const samePins = (a: AuditedVersions, b: AuditedVersions): boolean => pinKeys(a).length === pinKeys(b).length && pinKeys(a).every((key) => a[key] === b[key]);
 /** Same rule as the updater's verify_release(): stable dotted numeric versions only. */
 export const STABLE_VERSION = /^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){1,3}$/;
 
@@ -29,6 +33,7 @@ export type DeploymentConfig = Frozen<{
   notice: { recipient: string; subjectPrefix: string };
   forms: { refusalPrefix: string; text: string; message: string };
   weeklyCheck: { enabled: boolean; timeZone: string };
+  audited: readonly PinKey[];
 }>;
 export type DeploymentVersions = Frozen<{ schemaVersion: 1; helperVersion: string; audited: AuditedVersions }>;
 export type Deployment = Frozen<{
@@ -128,8 +133,15 @@ const CONFIG: Shape = {
   },
   forms: { refusalPrefix: display, text: display, message: display },
   weeklyCheck: { enabled: (v) => v === true || v === false, timeZone },
+  // Unique known keys, in any order; Fluent Forms Pro only with Fluent Forms.
+  audited: (v) =>
+    Array.isArray(v) && v.length > 0 && new Set(v).size === v.length && v.every((key) => (PIN_KEYS as readonly unknown[]).includes(key)) && (!v.includes("ff_pro") || v.includes("ff")),
 };
-const VERSIONS: Shape = { schemaVersion: (v) => v === 1, helperVersion: stable, audited: Object.fromEntries(PIN_KEYS.map((key) => [key, stable])) };
+const versionsShape = (keys: readonly PinKey[]): Shape => ({
+  schemaVersion: (v) => v === 1,
+  helperVersion: stable,
+  audited: Object.fromEntries(PIN_KEYS.filter((key) => keys.includes(key)).map((key) => [key, stable])),
+});
 
 /** value checked against shape: every field present and valid, nothing else; the result has shape's key order. */
 function validate(shape: Shape, value: unknown, field: string): unknown {
@@ -164,11 +176,11 @@ export function parseConfig(text: string): DeploymentConfig {
   return config;
 }
 
-export const parseVersions = (text: string): DeploymentVersions => validate(VERSIONS, json(text, "versions"), "versions") as DeploymentVersions;
+export const parseVersions = (text: string, keys: readonly PinKey[]): DeploymentVersions => validate(versionsShape(keys), json(text, "versions"), "versions") as DeploymentVersions;
 
 /** Canonical versions.json: schema key order, two-space indent, final newline. */
 export const formatVersions = (versions: DeploymentVersions): string =>
-  `${JSON.stringify({ schemaVersion: versions.schemaVersion, helperVersion: versions.helperVersion, audited: Object.fromEntries(PIN_KEYS.map((key) => [key, versions.audited[key]])) }, null, 2)}\n`;
+  `${JSON.stringify({ schemaVersion: versions.schemaVersion, helperVersion: versions.helperVersion, audited: Object.fromEntries(pinKeys(versions.audited).map((key) => [key, versions.audited[key]])) }, null, 2)}\n`;
 
 /** The real path, or null when nothing is there. */
 function real(path: string): string | null {
@@ -206,7 +218,7 @@ export function loadDeployment({ root = ROOT, env = process.env }: DeploymentOpt
   };
   const paths = { config: data("config.json", "config"), versions: data("versions.json", "versions"), sites: data("sites.yaml", "sites") };
   const config = parseConfig(readFileSync(paths.config, "utf8"));
-  const versions = parseVersions(readFileSync(paths.versions, "utf8"));
+  const versions = parseVersions(readFileSync(paths.versions, "utf8"), config.audited);
   const { slug } = config.plugin;
   const assets = { main: `${slug}.php`, basename: `${slug}/${slug}.php`, zip: `${slug}.zip`, manifest: `${slug}-manifest.json`, signature: `${slug}-manifest.json.sig` };
   return freeze({

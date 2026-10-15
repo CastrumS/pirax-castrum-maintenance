@@ -24,5 +24,6 @@
   "weeklyCheck": {
     "enabled": false,
     "timeZone": "Europe/Zagreb"
-  }
+  },
+  "audited": ["gf", "ff", "ff_pro", "cleantalk", "fluent_smtp"]
 }

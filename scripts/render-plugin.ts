@@ -7,18 +7,19 @@
 //   html   HTML text
 //   md     Markdown text
 // Values: plugin.{name,author,description,slug,updateUri}, channel.{repository,releasesRoot,publicKey},
-// forms.refusalPrefix, assets.{main,basename,zip,manifest,signature}, versions.helperVersion,
-// versions.audited.<pin key> and currentVersions (the plugin guide's generated section). An unknown token, or
-// anything left looking like one, throws naming the template file and token, never a value.
+// forms.refusalPrefix, assets.{main,basename,zip,manifest,signature}, versions.helperVersion, auditedVersions
+// (the AUDITED_VERSIONS body: every known key, null when unlisted) and currentVersions (the plugin guide's generated
+// section). An unknown token, or anything left looking like one, throws naming the template file and token, never a value.
 //   FILES / SOURCE                        the production allowlist (template paths) and the template directory
 //   renderPlugin(deployment, source?)     every allowlisted file as { file, path, contents }; path is the archive
 //                                         path <slug>/<file>, with the main file renamed to <slug>.php
 //   renderTemplate(text, values, file)    one template
+//   auditedLine(key, version)             one AUDITED_VERSIONS line; version undefined (an unlisted key) renders null
 //   renderCurrentVersions(pins, version)  the plugin guide's current-versions section
 // Import-safe; renderPlugin() only reads the templates.
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { PIN_KEYS, type AuditedVersions, type Deployment } from "../src/deployment.ts";
+import { PIN_KEYS, pinKeys, type AuditedVersions, type Deployment, type PinKey } from "../src/deployment.ts";
 
 export const SOURCE = resolve(import.meta.dir, "../plugin/pirax-form-test");
 export const FILES = [
@@ -58,22 +59,47 @@ export function renderTemplate(text: string, values: Readonly<Record<string, str
   return rendered;
 }
 
+/** e.g. `\t'gf'          => '3.1.2',`: the quoted key padded so every arrow lines up; an unlisted key is null. */
+export const auditedLine = (key: PinKey, version: string | undefined): string => `\t${`'${key}'`.padEnd(14)}=> ${version === undefined ? "null" : `'${version}'`},`;
+
+/** Each known plugin's guide label, its short name when optional, and the adapters it applies to. */
+const GUIDE: Record<PinKey, { label: string; short?: string; applies: string }> = {
+  gf: { label: "Gravity Forms", applies: "GF" },
+  ff: { label: "Fluent Forms (free)", applies: "FF" },
+  ff_pro: { label: "Fluent Forms Pro", short: "Pro", applies: "FF, when active" },
+  cleantalk: { label: "Anti-Spam by CleanTalk", short: "CleanTalk", applies: "GF and FF, when active" },
+  fluent_smtp: { label: "FluentSMTP", short: "FluentSMTP", applies: "GF and FF, when active" },
+};
+
+/** "A", "A and B", "A, B and C". */
+const list = (names: string[]): string => (names.length === 1 ? names[0]! : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
+
 /** The plugin guide's generated current-versions section (between its markers), from pins and helper version. */
 export function renderCurrentVersions(pins: AuditedVersions, version: string): string {
-  const smtpSeries = `${pins.fluent_smtp.split(".").slice(0, -1).join(".")}.x`;
-  const smtpNext = pins.fluent_smtp.replace(/\d+$/, (n) => String(BigInt(n) + 1n));
+  const listed = pinKeys(pins);
+  const optional = listed.flatMap((key) => GUIDE[key].short ?? []);
+  const unlisted = PIN_KEYS.filter((key) => !listed.includes(key)).map((key) => GUIDE[key].label);
+  const { cleantalk, fluent_smtp: smtp } = pins;
+  const sentences = [
+    optional.length === 0
+      ? []
+      : `${list(optional)} ${optional.length === 1 ? "is" : "are"} optional: a site without ${optional.length === 1 ? "it" : "them"} is checked against the core rows only. When ${optional.length === 1 ? "it is" : "one is"} active at any other version, marked submissions of the adapters it applies to are rejected.`,
+    cleantalk === undefined || smtp === undefined
+      ? []
+      : `This includes later patch releases such as FluentSMTP ${smtp.replace(/\d+$/, (n) => String(BigInt(n) + 1n))} or CleanTalk ${cleantalk}.1: ${smtp} is the only audited FluentSMTP release, not ${smtp.split(".").slice(0, -1).join(".")}.x.`,
+    unlisted.length === 0
+      ? []
+      : `${list(unlisted)} ${unlisted.length === 1 ? "is" : "are"} not audited by this build: while ${unlisted.length === 1 ? "it is" : "one is"} active, marked submissions of the adapters it applies to are rejected as awaiting audit.`,
+    "An active plugin whose version cannot be read counts as not audited. A new version is supported only after it is re-audited. Ordinary submissions still work with any version. The plugin also loads without either form plugin; each adapter is simply inactive.",
+  ].flat();
   return [
     `Version ${version}. Marked submissions are accepted only on these exact audited versions, compared as exact strings:`,
     "",
     "| Plugin | Audited version | Applies to |",
     "|---|---|---|",
-    `| Gravity Forms | ${pins.gf} | GF |`,
-    `| Fluent Forms (free) | ${pins.ff} | FF |`,
-    `| Fluent Forms Pro | ${pins.ff_pro} | FF, when active |`,
-    `| Anti-Spam by CleanTalk | ${pins.cleantalk} | GF and FF, when active |`,
-    `| FluentSMTP | ${pins.fluent_smtp} | GF and FF, when active |`,
+    ...listed.map((key) => `| ${GUIDE[key].label} | ${pins[key]} | ${GUIDE[key].applies} |`),
     "",
-    `Pro, CleanTalk and FluentSMTP are optional: a site without them is checked against the core rows only. When one is active at any other version, marked submissions of the adapters it applies to are rejected. This includes later patch releases such as FluentSMTP ${smtpNext} or CleanTalk ${pins.cleantalk}.1: ${pins.fluent_smtp} is the only audited FluentSMTP release, not ${smtpSeries}. An active plugin whose version cannot be read counts as not audited. A new version is supported only after it is re-audited. Ordinary submissions still work with any version. The plugin also loads without either form plugin; each adapter is simply inactive.`,
+    sentences.join(" "),
     "",
   ].join("\n");
 }
@@ -96,7 +122,7 @@ export function renderPlugin(deployment: Deployment, source = SOURCE): RenderedF
     "assets.manifest": assets.manifest,
     "assets.signature": assets.signature,
     "versions.helperVersion": versions.helperVersion,
-    ...Object.fromEntries(PIN_KEYS.map((key) => [`versions.audited.${key}`, versions.audited[key]])),
+    auditedVersions: PIN_KEYS.map((key) => auditedLine(key, versions.audited[key])).join("\n"),
     currentVersions: renderCurrentVersions(versions.audited, versions.helperVersion),
   };
   return FILES.map((file) => ({

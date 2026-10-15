@@ -16,7 +16,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildPlugin, withoutSigningKey } from "../../scripts/build-plugin";
 import { only, parseHelperVersion, type AuditedVersions } from "../../scripts/plugin-source";
-import { loadDeployment } from "../../src/deployment";
+import { loadDeployment, pinKeys } from "../../src/deployment";
 import { fixtureConfig, writeDeployment } from "../fixtures/deployment";
 
 /** The synthetic identity; its key and releases root are set per staged helper. */
@@ -136,7 +136,7 @@ export async function stageHelper({ version, publicKey, root, audited, out }: { 
   const stage = await mkdtemp(join(tmpdir(), `${SLUG}-deployment-`));
   try {
     writeDeployment(stage, "fixture", {
-      config: { ...IDENTITY, channel: { ...IDENTITY.channel, releasesRoot: root, publicKey } },
+      config: { ...IDENTITY, channel: { ...IDENTITY.channel, releasesRoot: root, publicKey }, audited: pinKeys(audited) },
       versions: { schemaVersion: 1, helperVersion: version, audited },
     });
     const deployment = loadDeployment({ root: stage, env: { DEPLOYMENT: "fixture" } });

@@ -35,6 +35,7 @@ export const fixtureConfig = (publicKey: string) => ({
   notice: { recipient: "audit-notices@acme.example", subjectPrefix: "[acme-audit]" },
   forms: { refusalPrefix: "Acme (QA) test blocked?:", text: "Acme Test", message: "Acme test message" },
   weeklyCheck: { enabled: false, timeZone: "America/New_York" },
+  audited: ["gf", "ff", "ff_pro", "cleantalk", "fluent_smtp"],
 });
 
 export const FIXTURE_VERSIONS = {

@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { PIN_KEYS, parseAuditedVersions, parseHelperVersion, readAuditedVersions, readHelperVersion } from "../scripts/plugin-source";
-import { renderPlugin } from "../scripts/render-plugin";
+import { PIN_KEYS, parseAuditedVersions, pinKeys, parseHelperVersion, readAuditedVersions, readHelperVersion } from "../scripts/plugin-source";
+import { auditedLine, renderPlugin } from "../scripts/render-plugin";
 import { DeploymentConfigError, loadDeployment } from "../src/deployment";
 import { FIXTURE_VERSIONS, fixtureConfig, fixtureKeys, writeDeployment } from "../test/fixtures/deployment";
 import { nearMisses, nextPatch, pinLine, PINS, withHelperVersion } from "../test/plugin/version-fixtures";
@@ -46,6 +46,21 @@ test("the selected deployment holds exactly the five known pins, and the rendere
   // Each pin line occurs exactly once, so fixture edits of it are unambiguous.
   for (const key of PIN_KEYS) expect(COMPATIBILITY.split(line(key, audited[key])).length).toBe(2);
   expect(parseAuditedVersions(COMPATIBILITY)).toEqual(audited);
+});
+
+test("an AUDITED_VERSIONS line pads the quoted key to 14 characters and renders an unlisted key as null", () => {
+  expect(auditedLine("gf", "3.1.2")).toBe("\t'gf'          => '3.1.2',");
+  expect(auditedLine("fluent_smtp", "2.2.95")).toBe("\t'fluent_smtp' => '2.2.95',");
+  expect(auditedLine("ff_pro", undefined)).toBe("\t'ff_pro'      => null,");
+  for (const key of PIN_KEYS) expect(line(key)).toBe(auditedLine(key, PINS[key]));
+});
+
+test("null lines are unlisted keys: the parser returns only the stable pins, and still needs every known key once", () => {
+  const unlisted = edited(COMPATIBILITY, (t) => t.replace(line("gf"), auditedLine("gf", undefined)).replace(line("cleantalk"), auditedLine("cleantalk", undefined)));
+  const { gf: _gf, cleantalk: _cleantalk, ...rest } = PINS;
+  expect(parseAuditedVersions(unlisted)).toEqual(rest);
+  expect(Object.keys(parseAuditedVersions(unlisted))).toEqual(["ff", "ff_pro", "fluent_smtp"]);
+  expect(message(() => parseAuditedVersions(unlisted.replace(`${auditedLine("gf", undefined)}\n`, "")))).toMatch(/missing gf$/);
 });
 
 test("the rendered helper header and VERSION constant agree with the selected helper version", () => {
@@ -91,7 +106,11 @@ test("malformed, incomplete, duplicate, unknown or nonliteral pins are refused b
     "prerelease value": [table((t) => t.replace(line("ff_pro"), `\t'ff_pro'      => '${PINS.ff_pro}-beta',`)), /'ff_pro' is not a stable dotted numeric version/],
     "private text as a value": [table((t) => t.replace(line("gf"), `\t'gf'          => '${SENTINEL}',`)), /'gf' is not a stable dotted numeric version/],
     "comment inside the table": [table((t) => t.replace(`${line("gf")}\n`, `${line("gf")}\n\t// ${SENTINEL}\n`)), /not a unique/],
-    "unrendered template token": [table((t) => t.replace(line("gf"), "\t'gf'          => '{{php:versions.audited.gf}}',")), /'gf' is not a stable dotted numeric version/],
+    "unrendered template token": [table((t) => t.replace(/^const AUDITED_VERSIONS = array\(\n[^]*?\n\);$/m, "const AUDITED_VERSIONS = array(\n{{raw:auditedVersions}}\n);")), /not a unique/],
+    "duplicate null key": [table((t) => t.replace(`${line("gf")}\n`, `${line("gf")}\n${auditedLine("gf", undefined)}\n`)), /not a unique/],
+    "unknown null key": [table((t) => t.replace(`${line("gf")}\n`, `${line("gf")}\n\t'gravity'      => null,\n`)), /has an unknown plugin key$/],
+    "uppercase null": [table((t) => t.replace(line("gf"), "\t'gf'          => NULL,")), /not a unique/],
+    "quoted null": [table((t) => t.replace(line("gf"), "\t'gf'          => 'null',")), /'gf' is not a stable dotted numeric version/],
     "no table": [table((t) => t.replace("const AUDITED_VERSIONS = array(", "const AUDITED = array(")), /expected exactly one AUDITED_VERSIONS array, found 0/],
     "two tables": [table((t) => t.replace(/^const AUDITED_VERSIONS = array\([^]*?\n\);$/m, (block) => `${block}\n${block}`)), /expected exactly one AUDITED_VERSIONS array, found 2/],
     "empty source": [() => parseAuditedVersions(""), /found 0/],
@@ -158,8 +177,8 @@ test("helper version fixtures survive two successive patch bumps", () => {
 });
 
 test("wrong-version fixtures are genuinely different from every pin, now and after two pin bumps", () => {
-  for (const key of PIN_KEYS)
-    for (const pin of [PINS[key], nextPatch(PINS[key]), nextPatch(nextPatch(PINS[key]))]) {
+  for (const listed of pinKeys(PINS).map((key) => PINS[key]!))
+    for (const pin of [listed, nextPatch(listed), nextPatch(nextPatch(listed))]) {
       const misses = nearMisses(pin);
       expect(misses).not.toContain(pin);
       expect(new Set(misses).size).toBe(misses.length);

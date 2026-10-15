@@ -6,8 +6,8 @@ import { join, relative, resolve } from "node:path";
 import { buildPlugin } from "../scripts/build-plugin";
 import { compareArchives } from "../scripts/compare-deployment-build";
 import { parseAuditedVersions, parseHelperVersion } from "../scripts/plugin-source";
-import { FILES, renderCurrentVersions, renderTemplate } from "../scripts/render-plugin";
-import { loadDeployment, PIN_KEYS, type Deployment } from "../src/deployment";
+import { auditedLine, FILES, renderCurrentVersions, renderTemplate } from "../scripts/render-plugin";
+import { loadDeployment, PIN_KEYS, pinKeys, type AuditedVersions, type Deployment } from "../src/deployment";
 import { FIXTURE_VERSIONS, fixtureConfig, fixtureKeys, writeDeployment } from "../test/fixtures/deployment";
 
 // Each case runs zip/unzip and some spawn Bun; the default 5 s is too short on a loaded machine.
@@ -94,10 +94,10 @@ describe("Pirax build", () => {
 
   test("the PHP templates hold no current audited pin or helper version literal", () => {
     const php = FILES.filter((f) => f.endsWith(".php")).map((f) => [f, readFileSync(join(TEMPLATES, f), "utf8")] as const);
-    const literals = [...PIN_KEYS.map((k) => pirax.versions.audited[k]), pirax.versions.helperVersion];
+    const literals = [...pinKeys(pirax.versions.audited).map((k) => pirax.versions.audited[k]!), pirax.versions.helperVersion];
     const found = php.flatMap(([file, text]) => literals.filter((v) => new RegExp(`(?<![\\w.])${v.replace(/\./g, "\\.")}(?![\\w.])`).test(text)).map((v) => `${file}: ${v}`));
     expect(found).toEqual([]);
-    expect(readFileSync(join(TEMPLATES, "includes/compatibility.php"), "utf8")).toContain("\t'gf'          => '{{php:versions.audited.gf}}',\n");
+    expect(readFileSync(join(TEMPLATES, "includes/compatibility.php"), "utf8")).toContain("\nconst AUDITED_VERSIONS = array(\n{{raw:auditedVersions}}\n);\n");
   });
 });
 
@@ -200,7 +200,44 @@ describe("second deployment", () => {
   });
 });
 
+describe("four-key deployment", () => {
+  test("a deployment that does not audit Gravity Forms ships gf as null and leaves it out of the guide's table", async () => {
+    await inScratch(async (dir) => {
+      const { gf: _gf, ...audited } = FIXTURE_VERSIONS.audited;
+      writeDeployment(dir, "four", { config: { ...fixtureConfig(fixtureKeys().publicKey), audited: ["ff", "ff_pro", "cleantalk", "fluent_smtp"] }, versions: { ...FIXTURE_VERSIONS, audited } });
+      const four = loadDeployment({ root: dir, env: { DEPLOYMENT: "four" } });
+      const files = await unzipped((await buildPlugin({ deployment: four, zip: join(dir, four.assets.zip) })).zip);
+      const compatibility = files[`${four.config.plugin.slug}/includes/compatibility.php`]!;
+      expect(compatibility).toContain(`\nconst AUDITED_VERSIONS = array(\n\t'gf'          => null,\n\t'ff'          => '${audited.ff}',\n`);
+      expect(parseAuditedVersions(compatibility)).toEqual(audited);
+      expect(Object.keys(parseAuditedVersions(compatibility))).toEqual(["ff", "ff_pro", "cleantalk", "fluent_smtp"]);
+      const readme = files[`${four.config.plugin.slug}/README.md`]!;
+      const section = readme.slice(readme.indexOf("<!-- pirax:current-versions:start -->"), readme.indexOf("<!-- pirax:current-versions:end -->"));
+      expect(section).not.toContain("| Gravity Forms |");
+      expect(section).toContain(`| Fluent Forms (free) | ${audited.ff} | FF |`);
+      expect(section).toContain(" Gravity Forms is not audited by this build: while it is active, marked submissions of the adapters it applies to are rejected as awaiting audit. ");
+    });
+  });
+});
+
 describe("renderer", () => {
+  test("the current-versions paragraph names only the listed optional plugins and the unlisted ones", () => {
+    const pins = FIXTURE_VERSIONS.audited;
+    const tail = "An active plugin whose version cannot be read counts as not audited. A new version is supported only after it is re-audited. Ordinary submissions still work with any version. The plugin also loads without either form plugin; each adapter is simply inactive.";
+    const patch = "This includes later patch releases such as FluentSMTP 9.5.6 or CleanTalk 9.4.4.4.1: 9.5.5 is the only audited FluentSMTP release, not 9.5.x.";
+    const paragraph = (audited: AuditedVersions) => renderCurrentVersions(audited, "1.4.9").split("\n").at(-2);
+    const only = (...keys: (keyof typeof pins)[]) => Object.fromEntries(keys.map((k) => [k, pins[k]])) as AuditedVersions;
+    expect(paragraph(pins)).toBe(`Pro, CleanTalk and FluentSMTP are optional: a site without them is checked against the core rows only. When one is active at any other version, marked submissions of the adapters it applies to are rejected. ${patch} ${tail}`);
+    expect(paragraph(only("gf", "ff", "ff_pro"))).toBe(
+      `Pro is optional: a site without it is checked against the core rows only. When it is active at any other version, marked submissions of the adapters it applies to are rejected. Anti-Spam by CleanTalk and FluentSMTP are not audited by this build: while one is active, marked submissions of the adapters it applies to are rejected as awaiting audit. ${tail}`,
+    );
+    expect(paragraph(only("gf", "cleantalk", "fluent_smtp"))).toBe(
+      `CleanTalk and FluentSMTP are optional: a site without them is checked against the core rows only. When one is active at any other version, marked submissions of the adapters it applies to are rejected. ${patch} Fluent Forms (free) and Fluent Forms Pro are not audited by this build: while one is active, marked submissions of the adapters it applies to are rejected as awaiting audit. ${tail}`,
+    );
+    expect(paragraph(only("gf"))).toBe(`Fluent Forms (free), Fluent Forms Pro, Anti-Spam by CleanTalk and FluentSMTP are not audited by this build: while one is active, marked submissions of the adapters it applies to are rejected as awaiting audit. ${tail}`);
+    expect(renderCurrentVersions(only("ff", "fluent_smtp"), "1.4.9").split("\n").filter((l) => l.startsWith("| ") && !l.startsWith("| Plugin"))).toEqual(["| Fluent Forms (free) | 9.2.2 | FF |", "| FluentSMTP | 9.5.5 | GF and FF, when active |"]);
+  });
+
   const values = { "plugin.name": "O'Neil & Sons \\ \"Q\" <b>", "assets.zip": "acme.zip", "x.dollar": "$& $1 $$" };
 
   test("each context escapes for where its token sits", () => {
@@ -248,7 +285,7 @@ describe("build guards", () => {
       writeFileSync(join(s, file), text.replace(from, to));
     };
     // A template that ships its own value instead of the deployment's no longer agrees with the deployment data.
-    expect(await refusalWith(edit("includes/compatibility.php", "{{php:versions.audited.gf}}", "1.0"))).toBe("rendered includes/compatibility.php does not hold the deployment's audited versions");
+    expect(await refusalWith(edit("includes/compatibility.php", "{{raw:auditedVersions}}", PIN_KEYS.map((k) => auditedLine(k, "1.0")).join("\n")))).toBe("rendered includes/compatibility.php does not hold the deployment's audited versions");
     expect(await refusalWith(edit("pirax-form-test.php", "const VERSION = '{{php:versions.helperVersion}}';", "const VERSION = '9.9.9';"))).toBe(
       "pirax-form-test.php: Version header and VERSION constant differ",
     );

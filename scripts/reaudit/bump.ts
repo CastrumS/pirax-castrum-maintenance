@@ -17,7 +17,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { rename, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
-import { formatVersions, parseVersions, type Deployment } from "../../src/deployment.ts";
+import { formatVersions, parseVersions, pinKeys, type Deployment } from "../../src/deployment.ts";
 import { PIN_KEYS, type AuditedVersions } from "../plugin-source.ts";
 import { compareMatrix, ReauditError, validateVersions } from "./detect.ts";
 
@@ -50,7 +50,7 @@ export function planBump(oldPins: AuditedVersions, newPins: AuditedVersions, fro
 }
 
 function rewriteVersions(text: string, file: string, plan: BumpPlan, pinsOnly: boolean): string {
-  const current = parseVersions(text);
+  const current = parseVersions(text, pinKeys(plan.oldPins));
   if (formatVersions(current) !== text) throw new Error(`bump: ${file} is not in canonical form (hand edit or drift)`);
   if (PIN_KEYS.some((k) => current.audited[k] !== plan.oldPins[k])) throw new Error(`bump: ${file} does not hold the plan's old pins`);
   if (current.helperVersion !== plan.from) throw new Error(`bump: ${file} helper version is not ${plan.from}`);

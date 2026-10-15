@@ -10,7 +10,7 @@
 import { mkdir, mkdtemp, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
-import { loadDeployment, PIN_KEYS, type Deployment } from "../src/deployment.ts";
+import { loadDeployment, samePins, type Deployment } from "../src/deployment.ts";
 import { only, parseAuditedVersions, parseHelperVersion } from "./plugin-source.ts";
 import { FILES, renderPlugin, SOURCE } from "./render-plugin.ts";
 
@@ -40,7 +40,7 @@ export async function buildPlugin({ deployment = loadDeployment(), source = SOUR
   const rendered = (file: string) => files.find((f) => f.file === file)!.contents;
   if (parseHelperVersion(rendered("pirax-form-test.php")) !== deployment.versions.helperVersion) throw new Error("rendered pirax-form-test.php does not hold the deployment's helper version");
   const audited = parseAuditedVersions(rendered("includes/compatibility.php"));
-  if (PIN_KEYS.some((key) => audited[key] !== deployment.versions.audited[key])) throw new Error("rendered includes/compatibility.php does not hold the deployment's audited versions");
+  if (!samePins(audited, deployment.versions.audited)) throw new Error("rendered includes/compatibility.php does not hold the deployment's audited versions");
   // The updater's trust root.
   if (only(rendered("includes/updates.php"), /^const UPDATE_PUBLIC_KEY = '([^']*)';$/gm, "includes/updates.php", "UPDATE_PUBLIC_KEY") !== deployment.config.channel.publicKey)
     throw new Error("rendered includes/updates.php does not hold the deployment's public key");

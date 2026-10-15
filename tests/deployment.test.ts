@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { DeploymentConfigError, formatVersions, loadDeployment, parseConfig, parseVersions, PIN_KEYS, type Deployment } from "../src/deployment";
+import { DeploymentConfigError, formatVersions, loadDeployment, parseConfig, parseVersions, PIN_KEYS, pinKeys, samePins, type Deployment } from "../src/deployment";
 import { FIXTURE_VERSIONS, fixtureConfig, fixtureKeys, writeDeployment } from "../test/fixtures/deployment";
 
 const ROOT = resolve(import.meta.dir, "..");
@@ -139,6 +139,7 @@ describe("Pirax data", () => {
   test("deployments/pirax holds the five audited pins, the helper version and the public identity, channel, notice and filler", () => {
     expect(pirax.name).toBe("pirax");
     expect(pirax.directory).toBe(join(realpathSync(ROOT), "deployments/pirax"));
+    expect(pirax.config.audited).toEqual([...PIN_KEYS]);
     expect(Object.keys(pirax.versions.audited)).toEqual([...PIN_KEYS]);
     expect(pirax.assets.basename).toBe(`${pirax.config.plugin.slug}/${pirax.config.plugin.slug}.php`);
     expect(pirax.config.channel.releasesRoot).toBe(`https://github.com/${pirax.config.channel.repository}/releases`);
@@ -227,12 +228,12 @@ describe("schema", () => {
 
   test("valid files parse to exactly their values", () => {
     expect(parseConfig(JSON.stringify(valid))).toEqual(valid as ReturnType<typeof parseConfig>);
-    expect(parseVersions(JSON.stringify(FIXTURE_VERSIONS))).toEqual(FIXTURE_VERSIONS as ReturnType<typeof parseVersions>);
+    expect(parseVersions(JSON.stringify(FIXTURE_VERSIONS), PIN_KEYS)).toEqual(FIXTURE_VERSIONS as ReturnType<typeof parseVersions>);
     const loopback = config((c) => (c.channel.releasesRoot = "http://127.0.0.1:8123/acme-fixture/acme-form-check-channel/releases"));
     expect(parseConfig(loopback).channel.releasesRoot).toBe("http://127.0.0.1:8123/acme-fixture/acme-form-check-channel/releases");
     // Key order in the file does not matter; the parsed record is canonical.
     const reordered = JSON.stringify({ audited: Object.fromEntries(Object.entries(FIXTURE_VERSIONS.audited).reverse()), helperVersion: "1.4.9", schemaVersion: 1 });
-    expect(formatVersions(parseVersions(reordered))).toBe(`${JSON.stringify(FIXTURE_VERSIONS, null, 2)}\n`);
+    expect(formatVersions(parseVersions(reordered, PIN_KEYS))).toBe(`${JSON.stringify(FIXTURE_VERSIONS, null, 2)}\n`);
   });
 
   test("config refusals name the schema field and a fixed reason, never the rejected content", () => {
@@ -318,10 +319,62 @@ describe("schema", () => {
       "audited not an object": [versions((v) => set(v, "audited", null)), "versions.audited is invalid"],
     };
     for (const [name, [text, expected]] of Object.entries(cases)) {
-      const { message } = refusal(() => parseVersions(text));
+      const { message } = refusal(() => parseVersions(text, PIN_KEYS));
       expect({ name, message }).toEqual({ name, message: expected });
       expect(message).not.toContain(SENTINEL);
     }
+  });
+
+  test("the audited list is required, non-empty, of unique known keys, with ff_pro only beside ff; its order is free", () => {
+    const cases: Record<string, unknown> = {
+      "not an array": "gf",
+      empty: [],
+      "unknown key": ["gf", "acme"],
+      duplicate: ["ff", "ff"],
+      "ff_pro alone": ["ff_pro"],
+      "ff_pro without ff": ["gf", "ff_pro"],
+      "credential-shaped key": ["ff", SENTINEL],
+    };
+    for (const [name, audited] of Object.entries(cases)) {
+      const { field, message } = refusal(() => parseConfig(config((c) => set(c, "audited", audited))));
+      expect({ name, field, message }).toEqual({ name, field: "config.audited", message: "config.audited is invalid" });
+    }
+    expect(refusal(() => parseConfig(config((c) => drop(c, "audited"))))).toEqual({ field: "config.audited", message: "config.audited is missing" });
+    expect(parseConfig(config((c) => set(c, "audited", ["fluent_smtp", "ff_pro", "ff"]))).audited).toEqual(["fluent_smtp", "ff_pro", "ff"]);
+  });
+
+  test("versions.json holds exactly the listed pins and formats them in known-key order", () => {
+    const four = ["fluent_smtp", "ff", "cleantalk", "ff_pro"] as const;
+    const { gf: _gf, ...pins } = FIXTURE_VERSIONS.audited;
+    const parsed = parseVersions(versions((v) => set(v, "audited", Object.fromEntries(Object.entries(pins).reverse()))), four);
+    expect(parsed.audited).toEqual(pins);
+    expect(formatVersions(parsed)).toBe(`${JSON.stringify({ ...FIXTURE_VERSIONS, audited: pins }, null, 2)}\n`);
+    expect(refusal(() => parseVersions(versions((v) => set(v, "audited", pins)), PIN_KEYS)).message).toBe("versions.audited.gf is missing");
+    expect(refusal(() => parseVersions(JSON.stringify(FIXTURE_VERSIONS), four)).message).toBe("versions.audited has an unknown field");
+  });
+
+  test("pinKeys lists present keys in known order; samePins needs the same keys and values", () => {
+    const { gf: _gf, ...four } = FIXTURE_VERSIONS.audited;
+    expect(pinKeys({ fluent_smtp: "1.0", gf: "2.0" })).toEqual(["gf", "fluent_smtp"]);
+    expect(pinKeys(FIXTURE_VERSIONS.audited)).toEqual([...PIN_KEYS]);
+    expect(samePins(FIXTURE_VERSIONS.audited, { ...FIXTURE_VERSIONS.audited })).toBe(true);
+    expect(samePins(four, { ...four })).toBe(true);
+    expect(samePins(four, FIXTURE_VERSIONS.audited)).toBe(false);
+    expect(samePins(FIXTURE_VERSIONS.audited, four)).toBe(false);
+    expect(samePins(four, { ...four, ff: "0.0.1" })).toBe(false);
+  });
+
+  test("the loader reads versions.json against the config's audited list", () => {
+    withRoot((root) => {
+      const { gf: _gf, ...four } = FIXTURE_VERSIONS.audited;
+      const listed = { ...valid, audited: ["ff", "ff_pro", "cleantalk", "fluent_smtp"] };
+      writeDeployment(root, "four", { config: listed, versions: { ...FIXTURE_VERSIONS, audited: four } });
+      writeDeployment(root, "extra", { config: listed, versions: FIXTURE_VERSIONS });
+      writeDeployment(root, "short", { config: valid, versions: { ...FIXTURE_VERSIONS, audited: four } });
+      expect(loadDeployment({ root, env: { DEPLOYMENT: "four" } }).versions.audited).toEqual(four);
+      expect(refusal(() => loadDeployment({ root, env: { DEPLOYMENT: "extra" } }))).toEqual({ field: "versions.audited", message: "versions.audited has an unknown field" });
+      expect(refusal(() => loadDeployment({ root, env: { DEPLOYMENT: "short" } }))).toEqual({ field: "versions.audited.gf", message: "versions.audited.gf is missing" });
+    });
   });
 
   test("a deployment with an invalid file is refused by the loader with the same field", () => {

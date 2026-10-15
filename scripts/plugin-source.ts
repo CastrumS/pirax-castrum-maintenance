@@ -2,17 +2,19 @@
 // versions.json (src/deployment.ts); the build renders them into the shipping PHP as literals. The readers give
 // the deployment's facts; the parsers independently read the same facts back from rendered helper PHP, such as
 // a built ZIP's entries, so a package can be checked against its deployment. There is no second table.
-//   PIN_KEYS / AuditedVersions          the five known pin keys and the record they form
+//   PIN_KEYS / PinKey / AuditedVersions the five known pin keys and the record of listed pins they form
+//   pinKeys(record) / samePins(a, b)    present keys in PIN_KEYS order / same keys and values
 //   readAuditedVersions(selection?)     the selected deployment's pins, read now ({ root?, env? } as loadDeployment)
 //   readHelperVersion(selection?)       the selected deployment's helper version, read now
-//   parseAuditedVersions(text)          strict parse of a rendered includes/compatibility.php
+//   parseAuditedVersions(text)          strict parse of a rendered includes/compatibility.php: every known key once,
+//                                       a stable version or null (unlisted); returns the listed pins only
 //   parseHelperVersion(text)            the same for a rendered main file: Version header and VERSION must agree
 //   only(text, pattern, file, what)     the capture of exactly one match, or an error naming the file
 // Synchronous and import-safe; the readers need DEPLOYMENT (or an explicit selection) only when called. Errors name
 // the file and field, never the rejected text: it could be anything, even private material pasted by mistake.
-import { loadDeployment, PIN_KEYS, STABLE_VERSION, type AuditedVersions, type DeploymentOptions } from "../src/deployment.ts";
+import { loadDeployment, PIN_KEYS, pinKeys, samePins, STABLE_VERSION, type AuditedVersions, type DeploymentOptions, type PinKey } from "../src/deployment.ts";
 
-export { PIN_KEYS, type AuditedVersions };
+export { PIN_KEYS, pinKeys, samePins, type AuditedVersions, type PinKey };
 
 const COMPATIBILITY = "includes/compatibility.php";
 const MAIN = "pirax-form-test.php";
@@ -26,17 +28,19 @@ export function only(text: string, pattern: RegExp, file: string, what: string) 
 
 export function parseAuditedVersions(text: string): AuditedVersions {
   const block = only(text, /^const AUDITED_VERSIONS = array\(\n([^]*?)\n\);$/gm, COMPATIBILITY, "AUDITED_VERSIONS array");
-  const audited: Record<string, string> = {};
+  const seen = new Set<string>();
+  const audited: AuditedVersions = {};
   for (const line of block.split("\n")) {
-    const [, key, version] = line.match(/^\t'([a-z_]+)' *=> '([^'\\]+)',$/) ?? [];
-    if (!key || !version || Object.hasOwn(audited, key)) throw new Error(`${COMPATIBILITY}: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal`);
+    const [, key, version] = line.match(/^\t'([a-z_]+)' *=> (?:'([^'\\]+)'|null),$/) ?? [];
+    if (!key || seen.has(key)) throw new Error(`${COMPATIBILITY}: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal`);
     if (!(PIN_KEYS as readonly string[]).includes(key)) throw new Error(`${COMPATIBILITY}: AUDITED_VERSIONS has an unknown plugin key`);
-    if (!STABLE_VERSION.test(version)) throw new Error(`${COMPATIBILITY}: AUDITED_VERSIONS '${key}' is not a stable dotted numeric version`);
-    audited[key] = version;
+    if (version !== undefined && !STABLE_VERSION.test(version)) throw new Error(`${COMPATIBILITY}: AUDITED_VERSIONS '${key}' is not a stable dotted numeric version`);
+    seen.add(key);
+    if (version !== undefined) audited[key as PinKey] = version;
   }
-  const missing = PIN_KEYS.filter((key) => !Object.hasOwn(audited, key));
+  const missing = PIN_KEYS.filter((key) => !seen.has(key));
   if (missing.length) throw new Error(`${COMPATIBILITY}: AUDITED_VERSIONS is missing ${missing.join(", ")}`);
-  return audited as AuditedVersions;
+  return audited;
 }
 
 export const readAuditedVersions = (selection: DeploymentOptions = {}): AuditedVersions => ({ ...loadDeployment(selection).versions.audited });

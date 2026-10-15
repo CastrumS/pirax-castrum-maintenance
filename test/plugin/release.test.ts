@@ -14,7 +14,8 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { FILES, withoutSigningKey } from "../../scripts/build-plugin";
 import { only, parseAuditedVersions, parseHelperVersion } from "../../scripts/plugin-source";
-import { loadDeployment } from "../../src/deployment";
+import { auditedLine } from "../../scripts/render-plugin";
+import { loadDeployment, PIN_KEYS } from "../../src/deployment";
 import { FIXTURE_VERSIONS, fixtureConfig } from "../fixtures/deployment";
 import { findSecret } from "./artifacts";
 import { testKey } from "./update-fixture";
@@ -69,23 +70,25 @@ interface Selection {
   versions?: Versions | string;
   /** Edits of template files (paths under plugin/pirax-form-test/). */
   edits?: Record<string, (text: string) => string>;
+  /** The selected deployment's audited list; all five when omitted. */
+  audited?: string[];
 }
 
 /** The synthetic identity (name, slug, author, refusals) on the given key and repository. */
-function identity(publicKey: string, repository: string) {
+function identity(publicKey: string, repository: string, audited = fixtureConfig("").audited) {
   const config = fixtureConfig(publicKey);
-  return { ...config, channel: { repository, releasesRoot: `https://github.com/${repository}/releases`, publicKey } };
+  return { ...config, channel: { repository, releasesRoot: `https://github.com/${repository}/releases`, publicKey }, audited };
 }
 
 /** A committed disposable checkout: build inputs, the selected deployment `fixture` and an unrelated `other`. */
-async function checkout(name: string, { publicKey = key().publicKey, repository = REPO, versions = FIXTURE_VERSIONS, edits = {} }: Selection = {}) {
+async function checkout(name: string, { publicKey = key().publicKey, repository = REPO, versions = FIXTURE_VERSIONS, edits = {}, audited }: Selection = {}) {
   const dir = join(scratch, name);
   for (const file of COPIED) {
     await mkdir(dirname(join(dir, file)), { recursive: true });
     await Bun.write(join(dir, file), Bun.file(join(ROOT, file)));
   }
   for (const [deployment, config, data] of [
-    ["fixture", identity(publicKey, repository), typeof versions === "string" ? versions : `${JSON.stringify(versions, null, 2)}\n`],
+    ["fixture", identity(publicKey, repository, audited), typeof versions === "string" ? versions : `${JSON.stringify(versions, null, 2)}\n`],
     ["other", { ...identity(key().publicKey, REPO), plugin: { ...fixtureConfig("").plugin, slug: "other-form-check" } }, `${JSON.stringify(FIXTURE_VERSIONS, null, 2)}\n`],
   ] as const) {
     await mkdir(join(dir, "deployments", deployment), { recursive: true });
@@ -195,6 +198,23 @@ test("offline: dry run signs the exact manifest bytes from the selected deployme
   await Bun.write(join(artifactDir, "dry-run-manifest.json"), bytes);
   await Bun.write(join(artifactDir, "dry-run-manifest.json.sig"), signature);
   summary.dryRun = { exit: r.code, ghCalls: r.calls.length, dist: r.dist, version, sha256: manifest.sha256, audited, testKeyFingerprint: k.fingerprint, verifiedWithTestKey: true, verifiedWithProductionKey: false };
+});
+
+test("offline: a four-key deployment's dry-run manifest carries exactly its listed pins", async () => {
+  const k = key();
+  const { gf: _gf, ...audited } = FIXTURE_VERSIONS.audited;
+  const dir = await checkout("dry-run-four", { publicKey: k.publicKey, repository: FIXTURE_REPO, versions: versionsWith({ audited }), audited: ["ff", "ff_pro", "cleantalk", "fluent_smtp"] });
+  const r = await cli(dir, "dry-run-four", ["--dry-run"], k.seed);
+  expect(r.code).toBe(0);
+  expect(r.calls).toEqual([]);
+  expect(r.dist).toEqual(ASSETS);
+  const bytes = await Bun.file(join(dir, `dist/${SLUG}-manifest.json`)).bytes();
+  expect(verifies(bytes, await Bun.file(join(dir, `dist/${SLUG}-manifest.json.sig`)).text(), k.publicKey)).toBe(true);
+  const manifest = JSON.parse(new TextDecoder().decode(bytes));
+  expect(Object.keys(manifest.audited)).toEqual(["ff", "ff_pro", "cleantalk", "fluent_smtp"]);
+  expect(manifest.audited).toEqual(audited);
+  const files = await entries(dir, `dist/${SLUG}.zip`);
+  expect(parseAuditedVersions(files[`${SLUG}/includes/compatibility.php`]!)).toEqual(audited);
 });
 
 test("offline: importing the release script has no side effects, even with no deployment selected", async () => {
@@ -485,8 +505,8 @@ test("offline: malformed deployment versions or template literals are refused be
     "not JSON": [{ versions: "{" }, "versions is not valid JSON"],
     // A template that ships its own literal is caught by the strict parsers reading the rendered bytes.
     "header differs from constant": [{ edits: { "pirax-form-test.php": (t) => t.replace("const VERSION = '{{php:versions.helperVersion}}';", "const VERSION = '9.9.9';") } }, "pirax-form-test.php: Version header and VERSION constant differ"],
-    "non-literal audited version": [{ edits: { "includes/compatibility.php": (t) => t.replace("'{{php:versions.audited.cleantalk}}'", "CLEANTALK_VERSION") } }, "includes/compatibility.php: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal"],
-    "duplicate audited key": [{ edits: { "includes/compatibility.php": (t) => t.replace("\t'gf'          => '{{php:versions.audited.gf}}',\n", "\t'gf'          => '{{php:versions.audited.gf}}',\n\t'gf'          => '{{php:versions.audited.gf}}',\n") } }, "includes/compatibility.php: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal"],
+    "non-literal audited version": [{ edits: { "includes/compatibility.php": (t) => t.replace("{{raw:auditedVersions}}", PIN_KEYS.map((key) => (key === "cleantalk" ? "\t'cleantalk'   => CLEANTALK_VERSION," : auditedLine(key, FIXTURE_VERSIONS.audited[key]))).join("\n")) } }, "includes/compatibility.php: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal"],
+    "duplicate audited key": [{ edits: { "includes/compatibility.php": (t) => t.replace("{{raw:auditedVersions}}\n", `${auditedLine("gf", FIXTURE_VERSIONS.audited.gf)}\n{{raw:auditedVersions}}\n`) } }, "includes/compatibility.php: AUDITED_VERSIONS has a line that is not a unique 'plugin' => 'version' literal"],
     "literal public key": [{ edits: { "includes/updates.php": (t) => t.replace("'{{php:channel.publicKey}}'", `'${PRODUCTION_KEY}'`) } }, "rendered includes/updates.php does not hold the deployment's public key"],
   };
   const outcomes: Record<string, string> = {};

@@ -9,13 +9,14 @@
 //   withAlteredFile(h, file, search, replace, body)  an installed plugin file edited (search exactly once) during body, then restored
 import { expect } from "bun:test";
 import type { Harness } from "./harness";
-import { readAuditedVersions, readHelperVersion, type AuditedVersions } from "../../scripts/plugin-source";
+import { readAuditedVersions, readHelperVersion, type PinKey } from "../../scripts/plugin-source";
+import { auditedLine } from "../../scripts/render-plugin";
 
 export const PINS = readAuditedVersions();
 export const HELPER_VERSION = readHelperVersion();
 
-/** e.g. `\t'gf'          => '3.1.2',`: keys padded so every arrow lines up. */
-export const pinLine = (key: keyof AuditedVersions, version = PINS[key]) => `\t${`'${key}'`.padEnd(14)}=> '${version}',`;
+/** e.g. `\t'gf'          => '3.1.2',`: the renderer's own line for the pin (or the given version). */
+export const pinLine = (key: PinKey, version: string | undefined = PINS[key]) => auditedLine(key, version);
 
 export const nextPatch = (version: string) => version.replace(/\d+$/, (n) => String(Number(n) + 1));
 

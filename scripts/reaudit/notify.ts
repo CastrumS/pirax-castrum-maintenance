@@ -239,7 +239,7 @@ export function readSummaries(dir: string, attempt: string | undefined): Partial
   return summaries;
 }
 
-function newId(): string {
+export function newId(): string {
   const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
   let id = "";
   while (id.length < 12) { const b = crypto.getRandomValues(new Uint8Array(1))[0]!; if (b < 252) id += alphabet[b % 36]; }

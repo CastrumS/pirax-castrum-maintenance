@@ -4,6 +4,7 @@
 // validated FailureSummary: never a raw Error, vendor response or private URL; a run URL must belong to the
 // deployment's repository. Errors name variables or a safe error code, never values. An unusable DEPLOYMENT aborts
 // before any credential or transport, and so does an Actions run of another repository. A failed send exits nonzero and never sends again.
+// sendMessage is the shared one-attempt SMTP transport; sendFailure formats a failure notice and sends it through it.
 //
 // Usage (every form needs DEPLOYMENT):
 //   bun --env-file=.env scripts/reaudit/notify.ts --selftest       one clearly labeled harmless notice; prints
@@ -170,17 +171,17 @@ export function safeError(e: unknown): string {
   return typeof code === "string" && ERROR_CODES.includes(code) ? `${name} (${code})` : name;
 }
 
-type SendOptions = { selftestId?: string; createTransport?: typeof nodemailer.createTransport; timeoutMs?: number };
+type TransportOptions = { createTransport?: typeof nodemailer.createTransport; timeoutMs?: number };
+type SendOptions = TransportOptions & { selftestId?: string };
 
 /** Exactly one bounded send to the deployment's recipient; throws a NoticeError with safe facts on any failure. */
-export async function sendFailure(deployment: Deployment, summary: FailureSummary, env: Record<string, string | undefined> = process.env, { selftestId, createTransport = nodemailer.createTransport, timeoutMs = SEND_TIMEOUT_MS }: SendOptions = {}): Promise<{ accepted: number; rejected: number }> {
-  const { subject, text } = formatFailure(deployment, summary, selftestId);
+export async function sendMessage(deployment: Deployment, message: { subject: string; text: string }, env: Record<string, string | undefined> = process.env, { createTransport = nodemailer.createTransport, timeoutMs = SEND_TIMEOUT_MS }: TransportOptions = {}): Promise<{ accepted: number; rejected: number }> {
   const creds = readEnv(env, { IMAP_USER: (v) => addressPattern.test(v), IMAP_PASSWORD: (v) => !/[\u0000-\u001f\u007f]/.test(v) });
   const transport = createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: creds.IMAP_USER, pass: creds.IMAP_PASSWORD }, logger: false, debug: false, connectionTimeout: 20_000, greetingTimeout: 20_000, socketTimeout: 45_000 });
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const info = await Promise.race([
-      transport.sendMail({ from: creds.IMAP_USER, to: deployment.config.notice.recipient, subject, text }),
+      transport.sendMail({ from: creds.IMAP_USER, to: deployment.config.notice.recipient, subject: message.subject, text: message.text }),
       new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new NoticeError(`notice: SMTP send timed out after ${timeoutMs} ms`)), timeoutMs); }),
     ]);
     const accepted = Array.isArray(info?.accepted) ? info.accepted.length : 0;
@@ -193,6 +194,10 @@ export async function sendFailure(deployment: Deployment, summary: FailureSummar
     clearTimeout(timer);
     transport.close();
   }
+}
+
+export async function sendFailure(deployment: Deployment, summary: FailureSummary, env: Record<string, string | undefined> = process.env, { selftestId, ...transport }: SendOptions = {}): Promise<{ accepted: number; rejected: number }> {
+  return sendMessage(deployment, formatFailure(deployment, summary, selftestId), env, transport);
 }
 
 // reaudit.yml's notice job sends exactly one notice per run: the first failed or cancelled job in this order.

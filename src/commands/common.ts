@@ -11,6 +11,7 @@ import { reportStatus } from "../report/html.ts";
 import { saveArtifact } from "../report/writer.ts";
 import type { RunReport, ViewportResult } from "../report/model.ts";
 import type { FormsOptions } from "../forms/runner.ts";
+import type { FormsCommandResult } from "./forms.ts";
 import { secretRedactor } from "../forms/evidence.ts";
 
 export type Command = "baseline" | "check" | "approve" | "forms";
@@ -57,24 +58,28 @@ export const configurationError = (error: unknown) => error instanceof UsageErro
 
 /** Harness seam: supply a real scoped Store, deployment selection and browser/run options; CLI has no scope/TLS bypass flags.
  * Valid arguments always need a valid selected deployment, even with --sites or an empty list; --sites replaces only its site list. */
-export async function dispatch(command: Command, args: string[], options: RunOptions & { store?: Store; selection?: DeploymentOptions } = {}): Promise<ExitCode> {
+export async function runCommand(command: Command, args: string[], options: RunOptions & { store?: Store; selection?: DeploymentOptions } = {}): Promise<CommandResult | FormsCommandResult> {
   const log = options.log ?? console.log;
   try {
     const parsed = parseArgs(command, args);
     const deployment = loadDeployment(options.selection);
     const sites = selectSites(loadSites(parsed.sitesFile ?? deployment.paths.sites), parsed.target);
     if (parsed.pagePath !== undefined && !sites[0]!.pages.some(p => p.path === parsed.pagePath)) throw new UsageError("requested page is not in the current site list");
-    if (!sites.length) { log("No sites selected."); return 0; }
+    if (!sites.length) { log("No sites selected."); return { exitCode: 0 }; }
     const store = options.store ?? createStore({ config: readR2Config() });
     const run: FormsRunOptions = { ...options, forms: { ...options.forms, texts: deployment.config.forms } };
-    if (command === "baseline") return (await (await import("./baseline.ts")).runBaseline(sites, store, run)).exitCode;
-    if (command === "check") return (await (await import("./check.ts")).runCheck(sites, store, run)).exitCode;
-    if (command === "forms") return (await (await import("./forms.ts")).runForms(sites, store, run)).exitCode;
-    return (await (await import("./approve.ts")).runApprove(sites[0]!, store, { pagePath: parsed.pagePath, log })).exitCode;
+    if (command === "baseline") return await (await import("./baseline.ts")).runBaseline(sites, store, run);
+    if (command === "check") return await (await import("./check.ts")).runCheck(sites, store, run);
+    if (command === "forms") return await (await import("./forms.ts")).runForms(sites, store, run);
+    return await (await import("./approve.ts")).runApprove(sites[0]!, store, { pagePath: parsed.pagePath, log });
   } catch (error) {
     log(`${command}: ${safeError(error)}`);
-    return configurationError(error) ? 2 : 1;
+    return { exitCode: configurationError(error) ? 2 : 1 };
   }
+}
+
+export async function dispatch(command: Command, args: string[], options: RunOptions & { store?: Store; selection?: DeploymentOptions } = {}): Promise<ExitCode> {
+  return (await runCommand(command, args, options)).exitCode;
 }
 
 type ConsumeCapture = (site: Site, key: string, capture: CaptureResult, result: ViewportResult, runDir: string) => Promise<void>;

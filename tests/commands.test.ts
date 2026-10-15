@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { dispatch, parseArgs, selectSites } from "../src/commands/common.ts";
+import { dispatch, parseArgs, runCommand, selectSites } from "../src/commands/common.ts";
 import { completedRunIds, newestSiteCheck, runApprove } from "../src/commands/approve.ts";
 import { loadSites } from "../src/sites.ts";
 import { loadDeployment } from "../src/deployment.ts";
@@ -44,6 +44,11 @@ describe("command preflight without browser or storage", () => {
     expect(await dispatch("forms", ["acme", "extra", "--sites", sitesFile], { log, selection: pirax })).toBe(2);
     const bad = join(dir, "bad.yaml"); await Bun.write(bad, "sites: [{slug: bad}]\n");
     expect(await dispatch("baseline", ["all", "--sites", bad], { log, selection: pirax })).toBe(2);
+  });
+  test("runCommand returns the exit code: empty selection is zero, unknown slug is two", async () => {
+    const empty = join(dir, "run-empty.yaml"); await Bun.write(empty, "sites: []\n");
+    expect(await runCommand("check", ["all", "--sites", empty], { selection: pirax })).toEqual({ exitCode: 0 });
+    expect(await runCommand("check", ["unknown", "--sites", sitesFile], { log: () => {}, selection: pirax })).toEqual({ exitCode: 2 });
   });
   test("valid argv needs a valid deployment even with --sites or an empty list; exit 2 names the field only", async () => {
     const empty = join(dir, "selection-empty.yaml"); await Bun.write(empty, "sites: []\n");

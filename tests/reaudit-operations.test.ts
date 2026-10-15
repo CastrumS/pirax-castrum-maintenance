@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { loadDeployment } from "../src/deployment.ts";
 import { GIT_AUTH, heartbeatDue, heartbeatPath, parseInstant, runHeartbeat, safeChildEnv } from "../scripts/reaudit/heartbeat.ts";
-import { formatFailure, parseFailureSummary, runUrlFromEnv, safeError, sendFailure, type FailureSummary } from "../scripts/reaudit/notify.ts";
+import { formatFailure, NoticeError, parseFailureSummary, runUrlFromEnv, safeError, sendFailure, sendMessage, type FailureSummary } from "../scripts/reaudit/notify.ts";
 import { decideWatchdog, normalizeWatchdogFacts, observe, runWatchdog, type Gh } from "../scripts/reaudit/watchdog.ts";
 import { FIXTURE_VERSIONS, fixtureConfig, fixtureKeys, writeDeployment } from "../test/fixtures/deployment.ts";
 
@@ -207,6 +207,18 @@ describe("sendFailure", () => {
   test("a recipient not accepted is a failure", async () => {
     const t = fakeTransport(async () => ({ accepted: [], rejected: [RECIPIENT] }));
     expect(sendFailure(PIRAX, summary, creds, { createTransport: t.create })).rejects.toThrow(/accept/);
+  });
+
+  test("sendMessage sends the exact subject and text once; a transport rejection is one call and no secret", async () => {
+    const ok = fakeTransport(async () => ({ accepted: [RECIPIENT], rejected: [] }));
+    expect(await sendMessage(PIRAX, { subject: "synthetic subject", text: "synthetic body\n" }, creds, { createTransport: ok.create })).toEqual({ accepted: 1, rejected: 0 });
+    expect(ok.calls.send).toEqual([{ from: creds.IMAP_USER, to: RECIPIENT, subject: "synthetic subject", text: "synthetic body\n" }]);
+    const failing = fakeTransport(async () => { throw Object.assign(new Error(`rejected with ${SECRET}`), { code: "EAUTH" }); });
+    const error = await sendMessage(PIRAX, { subject: "synthetic subject", text: "synthetic body\n" }, creds, { createTransport: failing.create }).catch((e: Error) => e);
+    expect(error).toBeInstanceOf(NoticeError);
+    expect(failing.calls.send.length).toBe(1);
+    expect((error as Error).message).toBe("notice: SMTP send failed: Error (EAUTH)");
+    expect((error as Error).message.includes(SECRET)).toBe(false);
   });
 
   test("CLI: usage, invalid summary and missing credentials exit nonzero by name only", async () => {

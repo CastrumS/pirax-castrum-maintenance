@@ -17,8 +17,8 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { rename, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
-import { formatVersions, parseVersions, pinKeys, type Deployment } from "../../src/deployment.ts";
-import { PIN_KEYS, type AuditedVersions } from "../plugin-source.ts";
+import { formatVersions, parseVersions, pinKeys, samePins, type Deployment } from "../../src/deployment.ts";
+import type { AuditedVersions } from "../plugin-source.ts";
 import { compareMatrix, ReauditError, validateVersions } from "./detect.ts";
 
 export type BumpSources = Record<string, string>;
@@ -35,10 +35,11 @@ export function nextHelperPatch(version: string): string {
   return version.replace(/\d+$/, (n) => String(BigInt(n) + 1n));
 }
 
-/** A changed, non-downgraded, complete matrix and the next helper patch. */
+/** A changed, non-downgraded matrix of exactly the old pins' keys, and the next helper patch. */
 export function planBump(oldPins: AuditedVersions, newPins: AuditedVersions, from: string): BumpPlan {
-  oldPins = validateVersions(oldPins, "bump");
-  newPins = validateVersions(newPins, "bump");
+  const keys = pinKeys(oldPins);
+  oldPins = validateVersions(oldPins, "bump", keys);
+  newPins = validateVersions(newPins, "bump", keys);
   let changed: string;
   try {
     changed = compareMatrix(oldPins, newPins).status;
@@ -52,7 +53,7 @@ export function planBump(oldPins: AuditedVersions, newPins: AuditedVersions, fro
 function rewriteVersions(text: string, file: string, plan: BumpPlan, pinsOnly: boolean): string {
   const current = parseVersions(text, pinKeys(plan.oldPins));
   if (formatVersions(current) !== text) throw new Error(`bump: ${file} is not in canonical form (hand edit or drift)`);
-  if (PIN_KEYS.some((k) => current.audited[k] !== plan.oldPins[k])) throw new Error(`bump: ${file} does not hold the plan's old pins`);
+  if (!samePins(current.audited, plan.oldPins)) throw new Error(`bump: ${file} does not hold the plan's old pins`);
   if (current.helperVersion !== plan.from) throw new Error(`bump: ${file} helper version is not ${plan.from}`);
   return formatVersions({ schemaVersion: 1, helperVersion: pinsOnly ? plan.from : plan.to, audited: plan.newPins });
 }

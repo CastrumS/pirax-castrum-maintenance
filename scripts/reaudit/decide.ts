@@ -7,8 +7,9 @@
 //   verifyManifests(manifests, packages)  native harness manifests used exactly the selected versions and ZIPs
 //   parseTestCounts(output)     Bun's final pass/fail/skip/todo/ran counts
 // Failure summaries carry only stage/reason codes built from a fixed vocabulary, never error text or values.
+import { PIN_KEYS, pinKeys, samePins, type AuditedVersions, type PinKey } from "../../src/deployment.ts";
 import { nextHelperPatch } from "./bump.ts";
-import { compareMatrix, PIN_KEYS, ReauditError, type AuditedVersions, type PinKey } from "./detect.ts";
+import { compareMatrix, ReauditError } from "./detect.ts";
 import type { FailureSummary } from "./notify.ts";
 
 /** 2: bound to a deployment and its repository (plan D6). */
@@ -16,8 +17,8 @@ export const CANDIDATE_SCHEMA = 2;
 const GATES = { cleanup: "confirmed", native: "passed", manifests: "verified", final: "passed", privacy: "passed" } as const;
 
 export type PackageFact = { version: string; sha256: string };
-/** What the publisher selected itself (DEPLOYMENT and its config) and its own Actions run attempt; never candidate data. */
-export type CandidateContext = { deployment: string; repository: string; runId: string; runAttempt: string };
+/** What the publisher selected itself (DEPLOYMENT, its config and its listed pin keys) and its own Actions run attempt; never candidate data. */
+export type CandidateContext = { deployment: string; repository: string; runId: string; runAttempt: string; keys: readonly PinKey[] };
 export type Candidate = {
   schema: typeof CANDIDATE_SCHEMA;
   /** The audited deployment's name and channel repository; the publisher accepts only its own selection's. */
@@ -31,8 +32,8 @@ export type Candidate = {
   base: string;
   oldPins: AuditedVersions;
   newPins: AuditedVersions;
-  /** Selected package versions and SHA-256 digests; never paths or URLs. */
-  packages: Record<PinKey, PackageFact>;
+  /** Selected package versions and SHA-256 digests of exactly the listed keys; never paths or URLs. */
+  packages: Partial<Record<PinKey, PackageFact>>;
   helper: { from: string; to: string };
   /** changesDigest() of the deterministic bump.ts rewrite of the audited base. */
   changes: { digest: string };
@@ -51,7 +52,7 @@ export type AuditFacts = {
   oldPins: AuditedVersions;
   acquisition?:
     | { status: "unchanged"; versions: AuditedVersions }
-    | { status: "changed"; versions: AuditedVersions; packages: Record<PinKey, PackageFact> }
+    | { status: "changed"; versions: AuditedVersions; packages: Partial<Record<PinKey, PackageFact>> }
     | { status: "failed"; error: unknown };
   cleanup?: "confirmed" | "failed" | "unknown" | "not-applicable";
   /** Unchanged runs: the release of the current helper version, independently verified. */
@@ -79,16 +80,14 @@ export const RUN_ID = /^[1-9][0-9]{0,19}$/;
 export const RUN_ATTEMPT = /^[1-9][0-9]{0,3}$/;
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 const keysAre = (v: Record<string, unknown>, keys: readonly string[]) => Object.keys(v).length === keys.length && keys.every((k) => Object.hasOwn(v, k));
-const samePins = (a: AuditedVersions, b: AuditedVersions) => PIN_KEYS.every((k) => a[k] === b[k]);
-
-function pins(value: unknown): AuditedVersions | undefined {
-  if (!isObject(value) || !keysAre(value, PIN_KEYS) || !PIN_KEYS.every((k) => typeof value[k] === "string" && VERSION.test(value[k]))) return undefined;
-  return Object.fromEntries(PIN_KEYS.map((k) => [k, value[k]])) as AuditedVersions;
+function pins(value: unknown, keys: readonly PinKey[]): AuditedVersions | undefined {
+  if (!isObject(value) || !keysAre(value, keys) || !keys.every((k) => typeof value[k] === "string" && VERSION.test(value[k]))) return undefined;
+  return Object.fromEntries(PIN_KEYS.filter((k) => keys.includes(k)).map((k) => [k, value[k]])) as AuditedVersions;
 }
 
 /**
  * Strict: throws CandidateError(`candidate: <field>`) for anything but the complete, successful candidate of the
- * expected deployment, repository and run attempt. Identical pins and digests from another deployment are refused.
+ * expected deployment, repository, run attempt and exactly its listed pin keys. Identical pins and digests from another deployment are refused.
  */
 export function parseCandidate(value: unknown, expected: CandidateContext): Candidate {
   const fail = (field: string) => new CandidateError(`candidate: ${field}`);
@@ -101,9 +100,9 @@ export function parseCandidate(value: unknown, expected: CandidateContext): Cand
   if (typeof value.runId !== "string" || !RUN_ID.test(value.runId) || value.runId !== expected.runId) throw fail("runId");
   if (typeof value.runAttempt !== "string" || !RUN_ATTEMPT.test(value.runAttempt) || value.runAttempt !== expected.runAttempt) throw fail("runAttempt");
   if (typeof value.base !== "string" || !HEX40.test(value.base)) throw fail("base");
-  const oldPins = pins(value.oldPins);
+  const oldPins = pins(value.oldPins, expected.keys);
   if (!oldPins) throw fail("oldPins");
-  const newPins = pins(value.newPins);
+  const newPins = pins(value.newPins, expected.keys);
   if (!newPins) throw fail("newPins");
   try {
     if (compareMatrix(oldPins, newPins).status !== "changed") throw fail("newPins");
@@ -111,8 +110,9 @@ export function parseCandidate(value: unknown, expected: CandidateContext): Cand
     throw fail("newPins");
   }
   const packages = value.packages;
-  if (!isObject(packages) || !keysAre(packages, PIN_KEYS)) throw fail("packages");
-  for (const key of PIN_KEYS) {
+  const keys = pinKeys(newPins);
+  if (!isObject(packages) || !keysAre(packages, keys)) throw fail("packages");
+  for (const key of keys) {
     const p = packages[key];
     if (!isObject(p) || !keysAre(p, ["version", "sha256"]) || p.version !== newPins[key] || typeof p.sha256 !== "string" || !HEX64.test(p.sha256)) throw fail("packages");
   }
@@ -131,7 +131,7 @@ export function parseCandidate(value: unknown, expected: CandidateContext): Cand
     base: value.base,
     oldPins,
     newPins,
-    packages: Object.fromEntries(PIN_KEYS.map((k) => [k, { version: newPins[k], sha256: (packages[k] as PackageFact).sha256 }])) as Record<PinKey, PackageFact>,
+    packages: Object.fromEntries(keys.map((k) => [k, { version: newPins[k]!, sha256: (packages[k] as PackageFact).sha256 }])),
     helper: { from: helper.from as string, to: helper.to as string },
     changes: { digest: changes.digest },
     gates: { ...GATES },
@@ -182,13 +182,13 @@ export function decideAudit(facts: AuditFacts): Decision {
   if (facts.final !== "passed") return fail("bump", facts.final === "failed" ? "final-checks-failed" : "final-checks-missing", audited);
   if (facts.privacy !== "passed") return fail("privacy", facts.privacy === "failed" ? "evidence-privacy-failed" : "evidence-privacy-missing", audited);
   if (!facts.changes) return fail("bump", "intended-change-missing", audited);
-  const packages = Object.fromEntries(PIN_KEYS.map((k) => [k, a.packages[k] && { version: a.packages[k].version, sha256: a.packages[k].sha256 }]));
+  const packages = Object.fromEntries(Object.entries(a.packages).map(([k, p]) => [k, { version: p.version, sha256: p.sha256 }]));
   const draft = {
     schema: CANDIDATE_SCHEMA, deployment: facts.deployment, repository: facts.repository, runId: facts.runId, runAttempt: facts.runAttempt, base: facts.base, oldPins: facts.oldPins, newPins: a.versions,
     packages, helper: { from: facts.helper, to: facts.changes.to }, changes: { digest: facts.changes.digest }, gates: { ...GATES },
   };
   try {
-    return { outcome: "audited-candidate", candidate: parseCandidate(draft, facts) };
+    return { outcome: "audited-candidate", candidate: parseCandidate(draft, { ...facts, keys: pinKeys(facts.oldPins) }) };
   } catch {
     return fail("bump", "candidate-invalid", audited);
   }
@@ -219,17 +219,33 @@ export function decidePublication(f: PublicationFacts): { proceed: true } | { pr
   return { proceed: true };
 }
 
-/** Every manifest used the selected GF/FF ZIPs; full-stack manifests also Pro/CleanTalk/FluentSMTP; at least one is full. */
-export function verifyManifests(manifests: unknown[], packages: Record<PinKey, PackageFact>): "verified" | "failed" {
+/** Each pin's harness manifest fields: its `versions` entry and its `zips` digest entry. */
+const MANIFEST_FIELDS = {
+  gf: ["gf", "gravityforms"],
+  ff: ["ff", "fluentform"],
+  ff_pro: ["ffPro", "fluentformpro"],
+  cleantalk: ["cleantalk", "cleantalk"],
+  fluent_smtp: ["fluentSmtp", "fluentSmtp"],
+} as const satisfies Record<PinKey, readonly [string, string]>;
+const FORM_KEYS: readonly PinKey[] = ["gf", "ff"];
+
+/**
+ * Every manifest used the selected ZIPs of the listed form plugins (GF/FF) and reports no unlisted pin; a full-stack
+ * manifest also reports every listed extra (Pro/CleanTalk/FluentSMTP), a default one none of them; at least one is full.
+ */
+export function verifyManifests(manifests: unknown[], packages: Partial<Record<PinKey, PackageFact>>): "verified" | "failed" {
+  const listed = PIN_KEYS.filter((k) => packages[k]);
+  const extras = listed.filter((k) => !FORM_KEYS.includes(k));
   let full = 0;
   for (const m of manifests) {
     if (!isObject(m) || !isObject(m.versions) || !isObject(m.zips)) return "failed";
     const { versions: v, zips: z } = m;
-    if (v.gf !== packages.gf.version || v.ff !== packages.ff.version || z.gravityforms !== packages.gf.sha256 || z.fluentform !== packages.ff.sha256) return "failed";
-    const extras = [v.ffPro, v.cleantalk, v.fluentSmtp, z.fluentformpro, z.cleantalk, z.fluentSmtp];
-    if (extras.every((x) => x === undefined)) continue;
-    const expected = [packages.ff_pro.version, packages.cleantalk.version, packages.fluent_smtp.version, packages.ff_pro.sha256, packages.cleantalk.sha256, packages.fluent_smtp.sha256];
-    if (extras.some((x, i) => x !== expected[i])) return "failed";
+    const reported = (k: PinKey) => [v[MANIFEST_FIELDS[k][0]], z[MANIFEST_FIELDS[k][1]]];
+    const selected = (k: PinKey) => reported(k)[0] === packages[k]!.version && reported(k)[1] === packages[k]!.sha256;
+    const absent = (k: PinKey) => reported(k).every((x) => x === undefined);
+    if (!listed.filter((k) => FORM_KEYS.includes(k)).every(selected) || !PIN_KEYS.filter((k) => !listed.includes(k)).every(absent)) return "failed";
+    if (extras.length && extras.every(absent)) continue;
+    if (!extras.every(selected)) return "failed";
     full++;
   }
   return full ? "verified" : "failed";

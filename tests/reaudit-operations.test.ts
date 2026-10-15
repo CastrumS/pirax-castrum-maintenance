@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { loadDeployment } from "../src/deployment.ts";
+import { loadDeployment, PIN_KEYS } from "../src/deployment.ts";
 import { GIT_AUTH, heartbeatDue, heartbeatPath, parseInstant, runHeartbeat, safeChildEnv } from "../scripts/reaudit/heartbeat.ts";
 import { formatFailure, NoticeError, parseFailureSummary, runUrlFromEnv, safeError, sendFailure, sendMessage, type FailureSummary } from "../scripts/reaudit/notify.ts";
 import { decideWatchdog, normalizeWatchdogFacts, observe, runWatchdog, type Gh } from "../scripts/reaudit/watchdog.ts";
@@ -37,13 +37,29 @@ describe("failure summary validation", () => {
   const full: FailureSummary = { stage: "audit", reason: "plugin-suite-failed", oldVersions: pins, candidateVersions: { ...pins, ff: "6.2.15" }, runUrl: RUN, cleanup: "confirmed", publication: "not-attempted" };
 
   test("accepts complete safe facts and renders every one", () => {
-    const s = parseFailureSummary(REPO, JSON.parse(JSON.stringify(full)));
+    const s = parseFailureSummary(REPO, PIN_KEYS, JSON.parse(JSON.stringify(full)));
     const { subject, text } = formatFailure(PIRAX, s);
     expect(subject.startsWith("[pirax-audit] ")).toBe(true);
     expect(subject).toContain("audit");
     for (const fact of ["plugin-suite-failed", RUN, "6.2.14", "6.2.15", "ff_pro", "fluent_smtp", "confirmed"]) expect(text).toContain(fact);
     expect(text).toContain("No publication step was attempted");
     expect(RECIPIENT).toBe("piraxcastrum@gmail.com");
+  });
+
+  test("a four-key deployment's summary has exactly its listed versions, and its notice prints only those", () => {
+    const keys = ["ff", "ff_pro", "cleantalk", "fluent_smtp"] as const;
+    const root = mkdtempSync(join(tmpdir(), "reaudit-notice-four-"));
+    const { gf: _gf, ...four } = FIXTURE_VERSIONS.audited;
+    writeDeployment(root, "four", { config: { ...fixtureConfig(fixtureKeys().publicKey), audited: keys }, versions: { ...FIXTURE_VERSIONS, audited: four } });
+    const deployment = loadDeployment({ root, env: { DEPLOYMENT: "four" } });
+    const summary = { stage: "audit", reason: "native-suite-failed", oldVersions: four, candidateVersions: { ...four, ff: "9.2.3" } } as const;
+    expect(parseFailureSummary(deployment.config.channel.repository, keys, summary)).toEqual(summary);
+    expect(() => parseFailureSummary(deployment.config.channel.repository, keys, { ...summary, oldVersions: FIXTURE_VERSIONS.audited })).toThrow("invalid failure summary: oldVersions");
+    expect(() => parseFailureSummary(REPO, PIN_KEYS, summary)).toThrow("invalid failure summary: oldVersions");
+    const { text } = formatFailure(deployment, summary);
+    expect(text).toContain("  ff: 9.2.3");
+    expect(text).not.toMatch(/^ {2}gf:/m);
+    rmSync(root, { recursive: true, force: true });
   });
 
   test("another deployment's notice uses its own subject prefix and accepts only its own repository's run URLs", () => {
@@ -53,24 +69,24 @@ describe("failure summary validation", () => {
     expect(subject).not.toContain("pirax");
     expect(text).toContain(own);
     expect(() => formatFailure(FIXTURE, full)).toThrow("invalid failure summary: runUrl");
-    expect(() => parseFailureSummary(REPO, { ...full, runUrl: own })).toThrow("invalid failure summary: runUrl");
+    expect(() => parseFailureSummary(REPO, PIN_KEYS, { ...full, runUrl: own })).toThrow("invalid failure summary: runUrl");
     expect(runUrlFromEnv(FIXTURE.config.channel.repository, { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: FIXTURE.config.channel.repository, GITHUB_RUN_ID: "123456789" })).toBe(own);
     expect(runUrlFromEnv(FIXTURE.config.channel.repository, { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: REPO, GITHUB_RUN_ID: "123456789" })).toBeUndefined();
     // A repository name is matched literally: "." is not a wildcard.
-    expect(() => parseFailureSummary("a/b.c", { ...full, runUrl: "https://github.com/a/bxc/actions/runs/1" })).toThrow("invalid failure summary: runUrl");
-    expect(parseFailureSummary("a/b.c", { ...full, runUrl: "https://github.com/a/b.c/actions/runs/1" }).runUrl).toBe("https://github.com/a/b.c/actions/runs/1");
+    expect(() => parseFailureSummary("a/b.c", PIN_KEYS, { ...full, runUrl: "https://github.com/a/bxc/actions/runs/1" })).toThrow("invalid failure summary: runUrl");
+    expect(parseFailureSummary("a/b.c", PIN_KEYS, { ...full, runUrl: "https://github.com/a/b.c/actions/runs/1" }).runUrl).toBe("https://github.com/a/b.c/actions/runs/1");
   });
 
   test("a loopback throwaway site is rendered as recovery guidance; any other site is refused", () => {
     const site = "http://127.0.0.1:41234";
-    const { text } = formatFailure(PIRAX, parseFailureSummary(REPO, { ...full, stage: "cleanup", reason: "cleanup-failed", cleanup: "failed", site }));
+    const { text } = formatFailure(PIRAX, parseFailureSummary(REPO, PIN_KEYS, { ...full, stage: "cleanup", reason: "cleanup-failed", cleanup: "failed", site }));
     expect(text).toContain(`Throwaway site: ${site}`);
     for (const bad of [PRIVATE_URL, "http://example.com:80", "http://127.0.0.1:0", "http://127.0.0.1:65536", "http://127.0.0.1:8080/wp-admin", 8080])
-      expect(() => parseFailureSummary(REPO, { ...full, site: bad })).toThrow("invalid failure summary: site");
+      expect(() => parseFailureSummary(REPO, PIN_KEYS, { ...full, site: bad })).toThrow("invalid failure summary: site");
   });
 
   test("absent cleanup/publication are explicit unknowns, never 'nothing published'", () => {
-    const { text } = formatFailure(PIRAX, parseFailureSummary(REPO, { stage: "unknown", reason: "invalid-summary" }));
+    const { text } = formatFailure(PIRAX, parseFailureSummary(REPO, PIN_KEYS, { stage: "unknown", reason: "invalid-summary" }));
     expect(text).toMatch(/Publication: unknown/);
     expect(text).toMatch(/Cleanup: unknown/);
     expect(text).toMatch(/inspect main, tags and releases/i);
@@ -96,24 +112,24 @@ describe("failure summary validation", () => {
       { ...full, candidateVersions: { ...pins, extra: "1.0" } }, { ...full, candidateVersions: { gf: "1.0" } }, { ...full, oldVersions: [] },
       { ...full, cleanup: "probably" }, { ...full, publication: "none" }, { ...full, publication: "nothing" },
     ];
-    for (const value of bad) expect(() => parseFailureSummary(REPO, value)).toThrow();
+    for (const value of bad) expect(() => parseFailureSummary(REPO, PIN_KEYS, value)).toThrow();
   });
 
   test("validation errors name fields, never the rejected value", () => {
-    try { parseFailureSummary(REPO, { ...full, runUrl: PRIVATE_URL }); throw new Error("accepted"); }
+    try { parseFailureSummary(REPO, PIN_KEYS, { ...full, runUrl: PRIVATE_URL }); throw new Error("accepted"); }
     catch (e) { expect((e as Error).message).toContain("runUrl"); expect((e as Error).message.includes(SECRET)).toBe(false); }
   });
 
   test("unknown keys are never echoed, even purely alphabetic ones", () => {
     for (const key of [ALPHA_SECRET, SECRET]) {
-      try { parseFailureSummary(REPO, { ...full, [key]: 1 }); throw new Error("accepted"); }
+      try { parseFailureSummary(REPO, PIN_KEYS, { ...full, [key]: 1 }); throw new Error("accepted"); }
       catch (e) { expect((e as Error).message).toBe("invalid failure summary: unknown keys"); }
     }
   });
 
   test("intended commit and tag for partial publication are validated and rendered", () => {
     const commit = "0123456789abcdef0123456789abcdef01234567";
-    const s = parseFailureSummary(REPO, { ...full, stage: "publication", publication: "main-pushed", commit, tag: "v1.4.2" });
+    const s = parseFailureSummary(REPO, PIN_KEYS, { ...full, stage: "publication", publication: "main-pushed", commit, tag: "v1.4.2" });
     expect([s.commit, s.tag]).toEqual([commit, "v1.4.2"]);
     const { text } = formatFailure(PIRAX, s);
     expect(text).toContain(`Intended commit: ${commit}`);
@@ -124,7 +140,7 @@ describe("failure summary validation", () => {
     ].map((c) => ({ ...full, commit: c }));
     for (const tag of ["1.4.2", "v1", "v1.4.2-rc1", "v01.4", "V1.4.2", "v1.4.2\nBcc: x@y.z", `v1.4.2 ${SECRET}`, "refs/tags/v1.4.2", "v1.2.3.4.5", "", 1.4]) bad.push({ ...full, tag });
     for (const value of bad) {
-      try { parseFailureSummary(REPO, value); throw new Error("accepted"); }
+      try { parseFailureSummary(REPO, PIN_KEYS, value); throw new Error("accepted"); }
       catch (e) { expect((e as Error).message).toMatch(/^invalid failure summary: (commit|tag)$/); }
     }
   });
@@ -624,7 +640,7 @@ describe("watchdog", () => {
     const env = { GITHUB_SERVER_URL: "https://github.com", GITHUB_REPOSITORY: "CastrumS/pirax-castrum-maintenance", GITHUB_RUN_ID: "123456789" };
     expect(await runWatchdog({ deployment: PIRAX, now, gh: disabled, notify, env })).toEqual({ healthy: false, reason: "workflow-disabled-inactivity", notice: "sent" });
     expect(sent).toEqual([{ stage: "watchdog", reason: "workflow-disabled-inactivity", runUrl: RUN, cleanup: "not-applicable", publication: "not-attempted" }]);
-    expect(() => parseFailureSummary(REPO, sent[0])).not.toThrow();
+    expect(() => parseFailureSummary(REPO, PIN_KEYS, sent[0])).not.toThrow();
     let attempts = 0;
     const failing = async () => { attempts++; throw new Error(SECRET); };
     const result = await runWatchdog({ deployment: PIRAX, now, gh: disabled, notify: failing, env });

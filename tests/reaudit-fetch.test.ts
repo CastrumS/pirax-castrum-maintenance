@@ -9,13 +9,13 @@ import { join, resolve } from "node:path";
 import { findSecret } from "../test/plugin/artifacts";
 import { type AuditedVersions, ReauditError } from "../scripts/reaudit/detect";
 import { parseCatalog } from "../scripts/reaudit/detect";
-import { acquirePackages, gpg, openOfficialVault, vaultChildEnv, type Vault } from "../scripts/reaudit/fetch";
+import { acquirePackages, catalogPhp, gpg, openOfficialVault, vaultChildEnv, type Package, type Vault } from "../scripts/reaudit/fetch";
 import { realDeps, runAudit, type RunDeps } from "../scripts/reaudit/run";
 import { readAuditedVersions } from "../scripts/plugin-source";
 import { writeDeployment } from "../test/fixtures/deployment";
 
 const ROOT = resolve(import.meta.dir, "..");
-const PINS: AuditedVersions = { gf: "3.1.2", ff: "6.2.14", ff_pro: "6.2.15", cleantalk: "6.88", fluent_smtp: "2.4.1" };
+const PINS: Required<AuditedVersions> = { gf: "3.1.2", ff: "6.2.14", ff_pro: "6.2.15", cleantalk: "6.88", fluent_smtp: "2.4.1" };
 const MAIN = {
   gf: "gravityforms/gravityforms.php",
   ff: "fluentform/fluentform.php",
@@ -47,6 +47,7 @@ const infoUrl = (slug: string) => `https://api.wordpress.org/plugins/info/1.0/${
 const freeUrl = (slug: string, version: string) => `https://downloads.wordpress.org/plugin/${slug}.${version}.zip`;
 
 interface Scenario {
+  pins?: AuditedVersions;
   latest?: Partial<AuditedVersions>;
   responses?: Record<string, () => Response | Promise<Response>>;
   vault?: Partial<Vault>;
@@ -55,9 +56,11 @@ interface Scenario {
 
 /** Runs acquirePackages against fixture responses; returns the outcome plus every recorded call. */
 async function run(scenario: Scenario = {}) {
+  const pins = scenario.pins ?? PINS;
   const latest = { ...PINS, ...scenario.latest };
   const fetched: string[] = [];
   const calls: string[] = [];
+  const catalogPins: Parameters<Vault["catalog"]>[0][] = [];
   const responses: Record<string, () => Response | Promise<Response>> = {};
   for (const key of ["ff", "cleantalk", "fluent_smtp"] as const) {
     const slug = SLUG[key];
@@ -80,6 +83,7 @@ async function run(scenario: Scenario = {}) {
     activate: async () => (calls.push("activate"), { activated: true, remaining: --remaining }),
     selfUpdate: async () => (calls.push("selfUpdate"), { before: "5.3.9", after: "5.4.0" }),
     catalog: async (pins) => (
+      catalogPins.push(pins),
       calls.push(`catalog ${pins.gf} ${pins.ff_pro}`),
       [
         { main: MAIN.gf, product_id: 29365, version: latest.gf },
@@ -95,7 +99,7 @@ async function run(scenario: Scenario = {}) {
   const cache = await mkdtemp(join(scratch, "cache-"));
   const opened: Record<string, string | undefined>[] = [];
   const outcome = await acquirePackages({
-    pins: PINS,
+    pins,
     directory,
     cache,
     env: SECRETS,
@@ -105,7 +109,7 @@ async function run(scenario: Scenario = {}) {
     (result) => ({ result, error: undefined }),
     (error: unknown) => ({ result: undefined, error: error as ReauditError }),
   );
-  return { ...outcome, fetched, calls, directory, cache, opened };
+  return { ...outcome, fetched, calls, catalogPins, directory, cache, opened };
 }
 
 /** A status double answering `first` once, then `later`. */
@@ -148,14 +152,16 @@ describe("acquirePackages", () => {
     expect(downloads(fetched).sort()).toEqual(
       [PRIVATE_URL(29365), PRIVATE_URL(1111130), freeUrl("fluentform", "6.2.15"), freeUrl("cleantalk-spam-protect", "6.88"), freeUrl("fluent-smtp", "2.4.1")].sort(),
     );
-    const { packages } = result!;
+    // All five are listed here, so all five are present.
+    const packages = result!.packages as Record<keyof AuditedVersions, Package>;
+    expect(Object.keys(packages).sort()).toEqual(["cleantalk", "ff", "ff_pro", "fluent_smtp", "gf"]);
     expect(packages.ff.path).toBe(join(cache, "fluentform.6.2.15.zip"));
     expect(packages.cleantalk.path).toBe(join(cache, "cleantalk-spam-protect.6.88.zip"));
     expect(packages.fluent_smtp.path).toBe(join(cache, "fluent-smtp.2.4.1.zip"));
     expect(packages.gf.path.startsWith(directory + "/")).toBe(true);
     expect(packages.ff_pro.path.startsWith(directory + "/")).toBe(true);
     for (const [key, pkg] of Object.entries(packages)) {
-      expect(pkg.version).toBe(result!.versions[key as keyof AuditedVersions]);
+      expect(pkg.version).toBe(result!.versions[key as keyof AuditedVersions]!);
       expect(pkg.sha256).toBe(sha(await Bun.file(pkg.path).bytes()));
     }
     expect(await readdir(cache)).toHaveLength(3); // no .part leftovers
@@ -164,6 +170,25 @@ describe("acquirePackages", () => {
     await mkdir(evidence);
     await writeFile(join(evidence, "result.json"), JSON.stringify(result));
     expect(await findSecret(evidence, [PRIVATE_URL(29365), PRIVATE_URL(1111130), "SYNTHETIC-SIGNATURE", ...Object.values(SECRETS)])).toEqual([]);
+  });
+
+  test.each([
+    ["unchanged", {}],
+    ["changed", { ff: "6.2.15" }],
+  ] as const)("a four-key deployment without Gravity Forms, %s: only listed plugins are queried, cataloged and downloaded", async (status, latest) => {
+    const { gf: _gf, ...four } = PINS;
+    const { result, error, fetched, calls, catalogPins } = await run({ pins: four, latest });
+    expect(error).toBeUndefined();
+    expect(result!.status).toBe(status);
+    expect(fetched.filter((url) => url.includes("gravityforms"))).toEqual([]);
+    expect(catalogPins).toEqual([{ ff_pro: "6.2.15" }]);
+    const want = catalogPhp(catalogPins[0]!).match(/json_decode\('([^']*)'/)![1]!;
+    expect(JSON.parse(want)).toEqual({ "fluentformpro/fluentformpro.php": "6.2.15" });
+    expect(calls.filter((c) => c.startsWith("download"))).toEqual(status === "changed" ? ["download 1111130"] : []);
+    expect(Object.keys(result!.versions)).toEqual(["ff", "ff_pro", "cleantalk", "fluent_smtp"]);
+    expect(result!.versions).toEqual({ ...four, ...latest });
+    if (result!.status === "changed") expect(Object.keys(result!.packages).sort()).toEqual(["cleantalk", "ff", "ff_pro", "fluent_smtp"]);
+    expect(calls.slice(-3)).toEqual(["deactivate", "status", "close"]);
   });
 
   test("the official-client child gets only its own inputs", () => {
@@ -412,7 +437,7 @@ test("the official-vault driver runs every PHP step in a real Playground child",
     expect(await vault.selfUpdate()).toEqual({ before: "5.3.9", after: "5.3.9" });
     const catalog = await vault.catalog({ gf: "3.1.2", ff_pro: "6.2.15" });
     expect(JSON.stringify(catalog)).not.toContain("private.invalid");
-    expect(parseCatalog(catalog)).toEqual({ gf: { version: "3.1.2", item: 29365 }, ff_pro: { version: "6.2.15", item: 1111130 } });
+    expect(parseCatalog(catalog, ["gf", "ff_pro"])).toEqual({ gf: { version: "3.1.2", item: 29365 }, ff_pro: { version: "6.2.15", item: 1111130 } });
     expect(await vault.download(1111130)).toBe("https://private.invalid/package/1111130");
     expect(await vault.deactivate()).toEqual({ deactivated: true });
     expect(await vault.status()).toEqual({ activated: false, remaining: 139 });

@@ -1,11 +1,11 @@
 // Re-audit run (plan D3–D6/D10), the read-only audit job's only step with vendor credentials. In this disposable
 // checkout of the audited main commit, for the deployment DEPLOYMENT selects (its versions.json holds the current
 // pins and helper version; in Actions its repository must be GITHUB_REPOSITORY), it:
-//   1. acquires the five selected packages (fetch.ts; GPL Vault inputs only in that call, private scratch outside
+//   1. acquires the deployment's listed packages (fetch.ts; GPL Vault inputs only in that call, private scratch outside
 //      the evidence directory, deactivation confirmed before it returns)
 //   2. unchanged: independently verifies the current helper release (read-only); missing/incomplete fails
 //   3. changed: writes the candidate pins only, runs ALL `bun test test/plugin` with a random per-run
-//      FORM_TEST_TOKEN and the selected paid ZIPs, and checks every new native manifest used exactly the selected
+//      FORM_TEST_TOKEN and the listed paid ZIPs, and checks every new native manifest used exactly the selected
 //      versions and digests; only then the helper patch bump (bump.ts, the deployment's versions.json only) and
 //      typecheck + core/release/pin tests
 //   4. scans retained native evidence (trace ZIP entries included) and its own output for known secrets
@@ -30,7 +30,6 @@ import { DeploymentConfigError, loadDeployment, type Deployment } from "../../sr
 import type { AuditedVersions } from "../plugin-source.ts";
 import { applyBump, bumpFiles, planBump, readBumpSources } from "./bump.ts";
 import { decideAudit, parseTestCounts, RUN_ATTEMPT, RUN_ID, verifyManifests, type AuditFacts, type Decision } from "./decide.ts";
-import type { PinKey } from "./detect.ts";
 import { acquirePackages, type Acquisition } from "./fetch.ts";
 import { repositoryMismatch } from "./heartbeat.ts";
 import { loopbackSite, type FailureSummary } from "./notify.ts";
@@ -140,12 +139,20 @@ export async function runAudit({ root = ROOT, out, runId, runAttempt, env = proc
       facts.currentRelease = await deps.currentRelease({ deployment, version: facts.helper, pins: facts.oldPins, env }).catch(() => "unknown" as const);
     } else if (acquisition?.status === "changed") {
       const packages = acquisition.packages;
-      facts.acquisition = { status: "changed", versions: acquisition.versions, packages: Object.fromEntries(Object.entries(packages).map(([k, p]) => [k, { version: p.version, sha256: p.sha256 }])) as Record<PinKey, { version: string; sha256: string }> };
+      facts.acquisition = { status: "changed", versions: acquisition.versions, packages: Object.fromEntries(Object.entries(packages).map(([k, p]) => [k, { version: p.version, sha256: p.sha256 }])) };
       const plan = planBump(facts.oldPins, acquisition.versions, facts.helper);
       const baseSources = readBumpSources(deployment);
       await applyBump(deployment, plan, { pinsOnly: true });
-      secrets = secretValues(env, [token, scratch, packages.gf.path, packages.ff_pro.path], recipient);
-      const childEnv = { ...scopedEnv(env, []), DEPLOYMENT: deployment.name, ...(env.GH_TOKEN && { GH_TOKEN: env.GH_TOKEN }), FORM_TEST_TOKEN: token, GRAVITY_FORMS_ZIP: packages.gf.path, FLUENT_FORMS_PRO_ZIP: packages.ff_pro.path };
+      secrets = secretValues(env, [token, scratch, ...[packages.gf, packages.ff_pro].flatMap((p) => (p ? [p.path] : []))], recipient);
+      // Only the listed paid packages reach the native suite.
+      const childEnv = {
+        ...scopedEnv(env, []),
+        DEPLOYMENT: deployment.name,
+        ...(env.GH_TOKEN && { GH_TOKEN: env.GH_TOKEN }),
+        FORM_TEST_TOKEN: token,
+        ...(packages.gf && { GRAVITY_FORMS_ZIP: packages.gf.path }),
+        ...(packages.ff_pro && { FLUENT_FORMS_PRO_ZIP: packages.ff_pro.path }),
+      };
       const exec = (args: string[], log: string, timeoutMs: number) => deps.exec(bunCommand(...args), { cwd: root, env: childEnv, log: join(evidence, log), secrets, timeoutMs });
       const passed = (r: { code: number | null; output: string }, counted: boolean) => {
         const c = parseTestCounts(r.output);

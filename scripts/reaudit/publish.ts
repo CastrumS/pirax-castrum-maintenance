@@ -24,7 +24,7 @@ import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DeploymentConfigError, loadDeployment, type Deployment } from "../../src/deployment.ts";
-import { parseAuditedVersions, parseHelperVersion, PIN_KEYS, type AuditedVersions } from "../plugin-source.ts";
+import { parseAuditedVersions, parseHelperVersion, pinKeys, samePins, type AuditedVersions } from "../plugin-source.ts";
 import { remoteTag } from "../release-plugin.ts";
 import { renderPlugin } from "../render-plugin.ts";
 import { GIT_AUTH, repositoryMismatch } from "./heartbeat.ts";
@@ -117,8 +117,8 @@ export async function verifyRelease({ deployment, tag, version, pins, commit, en
       m.version !== version ||
       m.package !== `${releasesRoot}/download/${tag}/${assets.zip}` ||
       m.sha256 !== sha256(zip) ||
-      Object.keys(audited).length !== PIN_KEYS.length ||
-      PIN_KEYS.some((k) => audited[k] !== pins[k])
+      Object.keys(audited).length !== pinKeys(pins).length ||
+      !samePins(audited as AuditedVersions, pins)
     )
       return bad("incomplete", "release-manifest");
     const signature = Buffer.from((await readFile(join(dir, assets.signature), "utf8")).trim(), "base64");
@@ -138,7 +138,7 @@ export async function verifyRelease({ deployment, tag, version, pins, commit, en
       JSON.stringify(entries) !== JSON.stringify(renderPlugin(deployment).map((f) => f.path).sort()) ||
       zipVersion !== version ||
       !zipPins ||
-      PIN_KEYS.some((k) => zipPins![k] !== pins[k])
+      !samePins(zipPins, pins)
     )
       return bad("incomplete", "release-package");
     if ((await scanEvidence(dir, secrets)).length) return bad("incomplete", "release-asset-secret");
@@ -168,7 +168,7 @@ export async function publish({ root = ROOT, candidatePath, runId, runAttempt, e
   try {
     const text = await readFile(candidatePath, "utf8");
     if (text.length > 64 * 1024) throw new Error("oversize");
-    candidate = parseCandidate(JSON.parse(text), { deployment: deployment.name, repository: deployment.config.channel.repository, runId, runAttempt });
+    candidate = parseCandidate(JSON.parse(text), { deployment: deployment.name, repository: deployment.config.channel.repository, runId, runAttempt, keys: pinKeys(deployment.versions.audited) });
   } catch {
     throw new PublishError(summary("publication", "candidate-invalid"));
   }
@@ -219,7 +219,7 @@ export async function publish({ root = ROOT, candidatePath, runId, runAttempt, e
     if (git(["add", "--", ...files]).code !== 0) throw stop("bump", "commit-failed");
     const staged = git(["status", "--porcelain", "--untracked-files=no"]).out.split("\n").sort();
     if (JSON.stringify(staged) !== JSON.stringify(files.map((f) => `M  ${f}`).sort())) throw stop("bump", "unexpected-changes");
-    const lines = PIN_KEYS.filter((k) => candidate.oldPins[k] !== candidate.newPins[k]).map((k) => `${k} ${candidate.oldPins[k]} -> ${candidate.newPins[k]}`);
+    const lines = pinKeys(candidate.oldPins).filter((k) => candidate.oldPins[k] !== candidate.newPins[k]).map((k) => `${k} ${candidate.oldPins[k]} -> ${candidate.newPins[k]}`);
     const message = `chore(reaudit): audited pins, helper ${candidate.helper.to}\n\n${lines.join("\n")}\n\nRe-audit run ${candidate.runId} attempt ${candidate.runAttempt} at ${candidate.base}.`;
     const identity = ["-c", "user.name=github-actions[bot]", "-c", "user.email=41898282+github-actions[bot]@users.noreply.github.com", "-c", "commit.gpgsign=false"];
     if (git([...identity, "commit", "--quiet", "--no-verify", "-m", message]).code !== 0) throw stop("bump", "commit-failed");

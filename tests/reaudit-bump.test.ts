@@ -65,6 +65,23 @@ test("a plan needs a changed, non-downgraded matrix and names the next helper pa
   expect(() => planBump(PINS, { ...next, extra: "1.0" } as never, HELPER)).toThrow();
 });
 
+test("a four-key plan validates and rewrites exactly the listed pins", async () => {
+  const { gf: _gf, ...four } = PINS;
+  const next = raise(four, ["ff"]);
+  const plan = planBump(four, next, HELPER);
+  expect(plan).toEqual({ oldPins: four, newPins: next, from: HELPER, to: nextHelperPatch(HELPER) });
+  expect(() => planBump(four, { ...next, gf: PINS.gf }, HELPER)).toThrow("bump: gf unknown");
+  expect(() => planBump(PINS, next, HELPER)).toThrow("bump: gf missing");
+  const dir = await copyRoot();
+  const config = { ...fixtureConfig(fixtureKeys().publicKey), audited: ["ff", "ff_pro", "cleantalk", "fluent_smtp"] };
+  writeDeployment(dir, "four", { config, versions: { schemaVersion: 1, helperVersion: HELPER, audited: four } });
+  const deployment = select(dir, "four");
+  const [file, text] = Object.entries(bumpSources(deployment, readBumpSources(deployment), plan))[0]!;
+  expect(file).toBe("deployments/four/versions.json");
+  expect(JSON.parse(text)).toEqual({ schemaVersion: 1, helperVersion: plan.to, audited: next });
+  expect(() => bumpSources(deployment, readBumpSources(deployment), planBump(four, raise(four, ["ff_pro"]), plan.to))).toThrow("helper version");
+});
+
 test("two successive bumps write only the selected versions.json: no shared source, guide or other deployment; the build renders them", async () => {
   const dir = await copyRoot();
   const original = await tree(dir);
@@ -121,7 +138,7 @@ test("drift, foreign data and noncanonical text refuse the whole bump and write 
   const plan = planBump(PINS, raise(PINS, ["ff"]), HELPER);
   const canonical = (over: object) => formatVersions({ schemaVersion: 1, helperVersion: HELPER, audited: PINS, ...over } as never);
   const cases: [string, (t: string) => string, RegExp][] = [
-    ["pins differ from the plan's old pins", () => canonical({ audited: { ...PINS, gf: bumpPatch(PINS.gf) } }), /old pins/],
+    ["pins differ from the plan's old pins", () => canonical({ audited: { ...PINS, gf: bumpPatch(PINS.gf!) } }), /old pins/],
     ["helper version differs", () => canonical({ helperVersion: bumpPatch(HELPER) }), /helper version/],
     ["another deployment's data", () => formatVersions(FIXTURE_VERSIONS as never), /old pins/],
     ["hand-reformatted file", (t) => t.replace(/\n {2}/g, "\n    "), /canonical/],

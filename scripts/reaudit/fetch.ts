@@ -1,5 +1,5 @@
-// Re-audit acquisition (plan D3/D4): resolve all five latest versions and, on a change, download all five
-// packages with HTTPS/size/time bounds, main-file Version and SHA-256 checks. Paid versions and packages come
+// Re-audit acquisition (plan D3/D4): resolve the latest versions of the deployment's listed pins and, on a change,
+// download exactly those packages with HTTPS/size/time bounds, main-file Version and SHA-256 checks. Paid versions and packages come
 // only from GPL Vault's official updater, running in a throwaway Playground (gplvault-playground.ts) during
 // one license activation that this parent always deactivates and confirms. Private package URLs, raw
 // responses and credentials never leave this module: results carry versions, digests, paths and safe counts.
@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, rename, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { pinKeys } from "../../src/deployment.ts";
 import { PHP_VERSION, WP_VERSION } from "../../test/plugin/platform";
 import {
   assembleLatest,
@@ -44,8 +45,8 @@ export interface Vault {
   activate(): Promise<{ activated: boolean; remaining: number | null }>;
   /** Native WordPress self-update of gplvault-updater, then a fresh request reporting the loaded version. */
   selfUpdate(): Promise<{ before: string; after: string }>;
-  /** schema() with gplvault_schema_payload listing the two paid main files at these versions; `{main, product_id, version}[]`. */
-  catalog(pins: { gf: string; ff_pro: string }): Promise<unknown>;
+  /** schema() with gplvault_schema_payload listing exactly these paid main files at these versions; `{main, product_id, version}[]`. */
+  catalog(pins: Partial<Record<"gf" | "ff_pro", string>>): Promise<unknown>;
   /** download(['product_id' => item]): the private package URL, or "" when refused. */
   download(item: number): Promise<string>;
   /** `deactivated` is true only for an explicit boolean true receipt. */
@@ -78,7 +79,7 @@ export interface Lifecycle {
 }
 export type Acquisition =
   | { status: "unchanged"; versions: AuditedVersions; packages: null; lifecycle: Lifecycle }
-  | { status: "changed"; versions: AuditedVersions; changed: PinKey[]; packages: Record<PinKey, Package>; lifecycle: Lifecycle };
+  | { status: "changed"; versions: AuditedVersions; changed: PinKey[]; packages: Partial<Record<PinKey, Package>>; lifecycle: Lifecycle };
 
 const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 const count = (value: unknown) => (Number.isSafeInteger(value) && (value as number) >= 0 ? (value as number) : null);
@@ -165,7 +166,7 @@ async function fetchPackage(fetcher: Fetch, key: PinKey, url: string, version: s
 }
 
 /**
- * Resolve the five latest versions and, when any differs from `pins`, acquire all five packages, within one
+ * Resolve the latest versions of exactly the keys `pins` lists and, when any differs, acquire exactly those packages, within one
  * official GPL Vault activation that is always deactivated. Throws ReauditError (with `.lifecycle`) on any
  * failure, including an unconfirmed deactivation after an otherwise successful run; nothing partial is returned.
  * `env` needs GPLVAULT_LICENSE_KEY, GPLVAULT_PRODUCT_ID and (for the official vault) GPLVAULT_UPDATER_PASSPHRASE.
@@ -187,7 +188,10 @@ export async function acquirePackages({
   fetch?: Fetch;
   openVault?: OpenVault;
 }): Promise<Acquisition> {
-  pins = validateVersions(pins, "pins");
+  const keys = pinKeys(pins);
+  pins = validateVersions(pins, "pins", keys);
+  const freeKeys = FREE_KEYS.filter((key) => keys.includes(key));
+  const paidKeys = PAID_KEYS.filter((key) => keys.includes(key));
   for (const name of ["GPLVAULT_LICENSE_KEY", "GPLVAULT_PRODUCT_ID"]) if (!env[name]) throw new ReauditError("environment", name, "missing");
   directory = resolve(directory);
 
@@ -233,13 +237,13 @@ export async function acquirePackages({
   let opening: Promise<Vault> | undefined;
   let latest: AuditedVersions | undefined;
   let changed: PinKey[] = [];
-  const free = {} as Record<(typeof FREE_KEYS)[number], { version: string; url: string }>;
-  const packages = {} as Record<PinKey, Package>;
+  const free: Partial<Record<(typeof FREE_KEYS)[number], { version: string; url: string }>> = {};
+  const packages: Partial<Record<PinKey, Package>> = {};
   const paidFiles: string[] = [];
   try {
     await step("discovery", "wordpress.org", () =>
       Promise.all(
-        FREE_KEYS.map(async (key) => {
+        freeKeys.map(async (key) => {
           const url = `https://api.wordpress.org/plugins/info/1.0/${PLUGINS[key].slug}.json`;
           const text = new TextDecoder().decode(await get(fetcher, url, "discovery", key, MAX_JSON, 60_000));
           let body: unknown;
@@ -266,18 +270,18 @@ export async function acquirePackages({
     const updater = await step("updater", "self-update", () => v.selfUpdate());
     if (!/^\d+(\.\d+)*$/.test(updater.before) || !/^\d+(\.\d+)*$/.test(updater.after)) throw new ReauditError("updater", "version", "malformed");
     lifecycle.updater = { before: updater.before, after: updater.after };
-    const catalog = parseCatalog(await step("catalog", "schema", () => v.catalog({ gf: pins.gf, ff_pro: pins.ff_pro })));
-    latest = assembleLatest([
-      ...FREE_KEYS.map((key) => ({ key, version: free[key].version })),
-      ...PAID_KEYS.map((key) => ({ key, version: catalog[key].version })),
-    ]);
+    const catalog = parseCatalog(await step("catalog", "schema", () => v.catalog(Object.fromEntries(paidKeys.map((key) => [key, pins[key]!])))), paidKeys);
+    latest = assembleLatest(
+      [...freeKeys.map((key) => ({ key, version: free[key]!.version })), ...paidKeys.map((key) => ({ key, version: catalog[key]!.version }))],
+      keys,
+    );
     ({ changed } = compareMatrix(pins, latest));
     // Paid packages are fetched while the activation is valid; their URLs stay in this scope.
-    for (const key of changed.length ? PAID_KEYS : []) {
-      const url = await step("download", key, () => v.download(catalog[key].item));
+    for (const key of changed.length ? paidKeys : []) {
+      const url = await step("download", key, () => v.download(catalog[key]!.item));
       const path = join(directory, `${PLUGINS[key].slug}.${latest[key]}.zip`);
       paidFiles.push(path);
-      packages[key] = await step("download", key, () => tracked(fetchPackage(fetcher, key, url, latest![key], path, abort.signal)));
+      packages[key] = await step("download", key, () => tracked(fetchPackage(fetcher, key, url, latest![key]!, path, abort.signal)));
     }
   } catch (error) {
     failure = error;
@@ -308,9 +312,9 @@ export async function acquirePackages({
   // wordpress.org packages need no license, so they follow the deactivation.
   if (!failure && changed.length)
     try {
-      for (const key of FREE_KEYS)
+      for (const key of freeKeys)
         packages[key] = await step("download", key, () =>
-          tracked(fetchPackage(fetcher, key, free[key].url, latest![key], join(cache, `${PLUGINS[key].slug}.${latest![key]}.zip`), abort.signal)),
+          tracked(fetchPackage(fetcher, key, free[key]!.url, latest![key]!, join(cache, `${PLUGINS[key].slug}.${latest![key]}.zip`), abort.signal)),
         );
     } catch (error) {
       failure = error;
@@ -330,6 +334,23 @@ export async function acquirePackages({
     ? { status: "changed", versions: latest!, changed, packages, lifecycle }
     : { status: "unchanged", versions: latest!, packages: null, lifecycle };
 }
+
+/** The catalog step's PHP: gplvault_schema_payload names exactly the given paid main files at their pins. */
+export const catalogPhp = (pins: Partial<Record<"gf" | "ff_pro", string>>) => `
+    $want = json_decode('${JSON.stringify(Object.fromEntries(PAID_KEYS.filter((key) => pins[key] !== undefined).map((key) => [PLUGINS[key].main, pins[key]])))}', true);
+    $payload = fn() => ['plugins' => $want, 'themes' => []];
+    add_filter('gplvault_schema_payload', $payload, PHP_INT_MAX);
+    $schema = gv_api_manager()->set_initials()->schema();
+    remove_filter('gplvault_schema_payload', $payload, PHP_INT_MAX);
+    if (is_wp_error($schema) || !isset($schema['plugins']) || !is_array($schema['plugins'])) throw new Exception('schema');
+    $scalar = fn($v) => is_scalar($v) ? $v : null;
+    $out = [];
+    foreach ($schema['plugins'] as $file => $entry) {
+      if (!is_array($entry)) continue;
+      $main = isset($want[$file]) ? $file : $scalar($entry['plugin_basename'] ?? null);
+      if (is_string($main) && isset($want[$main])) $out[] = ['main' => $main, 'product_id' => $scalar($entry['product_id'] ?? null), 'version' => $scalar($entry['version'] ?? null)];
+    }
+    return $out;`;
 
 // PHP steps for the official client. Each runs as its own request (after wp-load), so the self-updated client
 // code is what later steps load. They return only booleans, counts, versions and item ids — except download,
@@ -374,21 +395,7 @@ const PHP = {
   refresh: `
     gv_settings_manager()->enable_activation_status();
     return get_plugin_data(WP_PLUGIN_DIR . '/${UPDATER_MAIN}', false, false)['Version'];`,
-  catalog: (pins: { gf: string; ff_pro: string }) => `
-    $want = json_decode('${JSON.stringify({ [PLUGINS.gf.main]: pins.gf, [PLUGINS.ff_pro.main]: pins.ff_pro })}', true);
-    $payload = fn() => ['plugins' => $want, 'themes' => []];
-    add_filter('gplvault_schema_payload', $payload, PHP_INT_MAX);
-    $schema = gv_api_manager()->set_initials()->schema();
-    remove_filter('gplvault_schema_payload', $payload, PHP_INT_MAX);
-    if (is_wp_error($schema) || !isset($schema['plugins']) || !is_array($schema['plugins'])) throw new Exception('schema');
-    $scalar = fn($v) => is_scalar($v) ? $v : null;
-    $out = [];
-    foreach ($schema['plugins'] as $file => $entry) {
-      if (!is_array($entry)) continue;
-      $main = isset($want[$file]) ? $file : $scalar($entry['plugin_basename'] ?? null);
-      if (is_string($main) && isset($want[$main])) $out[] = ['main' => $main, 'product_id' => $scalar($entry['product_id'] ?? null), 'version' => $scalar($entry['version'] ?? null)];
-    }
-    return $out;`,
+  catalog: catalogPhp,
   download: (item: number) => `
     $url = gv_api_manager()->set_initials()->download(['product_id' => ${item}]);
     return is_string($url) ? $url : '';`,

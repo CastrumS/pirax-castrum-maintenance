@@ -1,11 +1,9 @@
-// Re-audit discovery (plan D3): pure normalization of upstream answers and complete five-key version
-// comparison. Never best-effort: any missing, duplicate, malformed, downgraded or ambiguous value fails
-// the whole decision. Errors name the stage and field only, never a value.
+// Re-audit discovery (plan D3): pure normalization of upstream answers and complete version comparison over the
+// deployment's listed pin keys. Never best-effort: any missing, unlisted, duplicate, malformed, downgraded or
+// ambiguous value fails the whole decision. Errors name the stage and field only, never a value.
+import { PIN_KEYS, pinKeys, type AuditedVersions, type PinKey } from "../../src/deployment.ts";
 
-export const PIN_KEYS = ["gf", "ff", "ff_pro", "cleantalk", "fluent_smtp"] as const;
-export type PinKey = (typeof PIN_KEYS)[number];
-/** Structurally identical to scripts/plugin-source.ts's AuditedVersions. */
-export type AuditedVersions = Record<PinKey, string>;
+export { PIN_KEYS, type AuditedVersions, type PinKey };
 
 /** Where each pin comes from, and its main file inside the plugin ZIP. */
 export const PLUGINS = {
@@ -47,12 +45,12 @@ export function compareVersions(a: string, b: string): -1 | 0 | 1 {
   return 0;
 }
 
-/** Exactly the five pin keys, each a stable version string. */
-export function validateVersions(record: unknown, stage: string): AuditedVersions {
+/** Exactly `keys`, each a stable version string, in PIN_KEYS order. */
+export function validateVersions(record: unknown, stage: string, keys: readonly PinKey[]): AuditedVersions {
   if (!record || typeof record !== "object" || Array.isArray(record)) throw new ReauditError(stage, "record", "malformed");
-  for (const key of Object.keys(record)) if (!(PIN_KEYS as readonly string[]).includes(key)) throw new ReauditError(stage, key, "unknown");
-  const out = {} as AuditedVersions;
-  for (const key of PIN_KEYS) {
+  for (const key of Object.keys(record)) if (!(keys as readonly string[]).includes(key)) throw new ReauditError(stage, key, "unknown");
+  const out: AuditedVersions = {};
+  for (const key of PIN_KEYS.filter((k) => keys.includes(k))) {
     const value = (record as Record<string, unknown>)[key];
     if (value === undefined) throw new ReauditError(stage, key, "missing");
     if (!isStable(value)) throw new ReauditError(stage, key, "malformed");
@@ -61,25 +59,29 @@ export function validateVersions(record: unknown, stage: string): AuditedVersion
   return out;
 }
 
-/** A complete matrix from per-product observations; duplicates and unknown products are refused. */
-export function assembleLatest(observations: { key: string; version: unknown }[]): AuditedVersions {
+/** The complete matrix of `keys` from per-product observations; duplicates and unlisted products are refused. */
+export function assembleLatest(observations: { key: string; version: unknown }[], keys: readonly PinKey[]): AuditedVersions {
   const out: Record<string, unknown> = {};
   for (const { key, version } of observations) {
-    if (!(PIN_KEYS as readonly string[]).includes(key)) throw new ReauditError("discovery", key, "unknown");
+    if (!(keys as readonly string[]).includes(key)) throw new ReauditError("discovery", key, "unknown");
     if (key in out) throw new ReauditError("discovery", key, "duplicate");
     out[key] = version;
   }
-  return validateVersions(out, "discovery");
+  return validateVersions(out, "discovery", keys);
 }
 
-/** Exact string equality is the only unchanged pin; numerically equal respellings and downgrades fail. */
+/**
+ * Over the pins' own keys (an unknown key is refused) and exactly those in latest: exact string equality is the only
+ * unchanged pin; numerically equal respellings and downgrades fail.
+ */
 export function compareMatrix(pins: AuditedVersions, latest: AuditedVersions): { status: "unchanged" | "changed"; changed: PinKey[] } {
-  pins = validateVersions(pins, "pins");
-  latest = validateVersions(latest, "latest");
+  const keys = pinKeys(pins);
+  pins = validateVersions(pins, "pins", keys);
+  latest = validateVersions(latest, "latest", keys);
   const changed: PinKey[] = [];
-  for (const key of PIN_KEYS) {
+  for (const key of keys) {
     if (pins[key] === latest[key]) continue;
-    const order = compareVersions(latest[key], pins[key]);
+    const order = compareVersions(latest[key]!, pins[key]!);
     if (order === 0) throw new ReauditError("discovery", key, "ambiguous");
     if (order < 0) throw new ReauditError("discovery", key, "downgrade");
     changed.push(key);
@@ -102,12 +104,12 @@ export function parseWordpressOrgInfo(key: PinKey, body: unknown): { version: st
 
 /**
  * Paid versions and GPL Vault item ids from the official client's schema() plugins catalog, already reduced
- * by gplvault-playground's PHP step to `{main, product_id, version}` entries (no URLs).
+ * by gplvault-playground's PHP step to `{main, product_id, version}` entries (no URLs); only the listed paid `keys`.
  */
-export function parseCatalog(entries: unknown): Record<"gf" | "ff_pro", { version: string; item: number }> {
+export function parseCatalog(entries: unknown, keys: readonly ("gf" | "ff_pro")[]): Partial<Record<"gf" | "ff_pro", { version: string; item: number }>> {
   if (!Array.isArray(entries)) throw new ReauditError("catalog", "response", "malformed");
-  const out = {} as Record<"gf" | "ff_pro", { version: string; item: number }>;
-  for (const key of PAID_KEYS) {
+  const out: Partial<Record<"gf" | "ff_pro", { version: string; item: number }>> = {};
+  for (const key of keys) {
     const matches = entries.filter((e) => e && typeof e === "object" && (e as { main?: unknown }).main === PLUGINS[key].main);
     if (!matches.length) throw new ReauditError("catalog", key, "missing");
     if (matches.length > 1) throw new ReauditError("catalog", key, "duplicate");

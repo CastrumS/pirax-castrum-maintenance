@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parseInstant } from "../scripts/reaudit/heartbeat";
 import { chooseNotice, formatFailure, readSummaries, type FailureSummary } from "../scripts/reaudit/notify";
-import { loadDeployment } from "../src/deployment";
+import { loadDeployment, PIN_KEYS } from "../src/deployment";
 
 const ROOT = resolve(import.meta.dir, "..");
 const REPO = "CastrumS/pirax-castrum-maintenance";
@@ -276,14 +276,14 @@ test("pinned download action's flat single-match/named extraction reaches the re
     }
     const dir = expand(step(audit.jobs.notify!, (s) => !!s.run?.includes("scripts/reaudit/notify.ts")).env!.SUMMARIES);
     const needs = { [job]: { result: "failure" } };
-    const notice = chooseNotice(REPO, needs, readSummaries(dir, "1"));
+    const notice = chooseNotice(REPO, PIN_KEYS, needs, readSummaries(dir, "1"));
     expect(notice).toEqual(summary); // Every stage/reason/version/cleanup/site/partial-publication fact survives.
     expect(formatFailure(PIRAX, notice)).toEqual(formatFailure(PIRAX, summary));
     const r = await cli([join(ROOT, "scripts/reaudit/notify.ts"), "--jobs", dir], { DEPLOYMENT: "pirax", REAUDIT_NEEDS: JSON.stringify(needs), GITHUB_RUN_ATTEMPT: "1" });
     expect(r.code).toBe(1);
     expect(JSON.parse(r.stderr.trim().split("\n").at(-1)!)).toMatchObject({ smtpAttempts: 0, stage: summary.stage });
     expect(readSummaries(dir, "2")).toEqual({});
-    expect(chooseNotice(REPO, needs, readSummaries(dir, "2")).reason).toBe(`${job}-job-failure`);
+    expect(chooseNotice(REPO, PIN_KEYS, needs, readSummaries(dir, "2")).reason).toBe(`${job}-job-failure`);
   }
 });
 

@@ -19,7 +19,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import nodemailer from "nodemailer";
-import { DeploymentConfigError, loadDeployment, type Deployment } from "../../src/deployment.ts";
+import { DeploymentConfigError, loadDeployment, PIN_KEYS, pinKeys, type AuditedVersions, type Deployment, type PinKey } from "../../src/deployment.ts";
 import { EnvError, EnvFormatError, readEnv } from "../../src/env.ts";
 import { addressPattern } from "../../src/forms/config.ts";
 import { subjectTag } from "../../src/mail/imap.ts";
@@ -27,9 +27,6 @@ import { repositoryMismatch } from "./heartbeat.ts";
 
 const SEND_TIMEOUT_MS = 90_000;
 
-/** Structurally the five AUDITED_VERSIONS keys; the shared pin reader is not imported here. */
-export const PIN_KEYS = ["gf", "ff", "ff_pro", "cleantalk", "fluent_smtp"] as const;
-export type VersionMap = Record<(typeof PIN_KEYS)[number], string>;
 export const STAGES = ["discovery", "setup", "download", "audit", "cleanup", "privacy", "bump", "push", "publication", "heartbeat", "watchdog", "notify-selftest", "unknown"] as const;
 export const CLEANUP = ["confirmed", "failed", "unknown", "not-applicable"] as const;
 /** Uncertainty-aware: anything not proven is "unknown", and "not-attempted" is only for runs that never reached publication. */
@@ -39,8 +36,8 @@ export type FailureSummary = {
   stage: (typeof STAGES)[number];
   /** Lowercase reason code, e.g. `download-failed`. */
   reason: string;
-  oldVersions?: VersionMap;
-  candidateVersions?: VersionMap;
+  oldVersions?: AuditedVersions;
+  candidateVersions?: AuditedVersions;
   /** The deployment repository's official Actions run URL. */
   runUrl?: string;
   cleanup?: (typeof CLEANUP)[number];
@@ -74,13 +71,16 @@ export function loopbackSite(value: unknown): string | null {
 
 const invalid = (field: string) => new NoticeError(`invalid failure summary: ${field}`);
 
-function versions(value: unknown, field: string): VersionMap {
-  if (!isObject(value) || Object.keys(value).length !== PIN_KEYS.length || !PIN_KEYS.every((k) => typeof value[k] === "string" && VERSION.test(value[k] as string))) throw invalid(field);
-  return Object.fromEntries(PIN_KEYS.map((k) => [k, value[k]])) as VersionMap;
+function versions(value: unknown, field: string, keys: readonly PinKey[]): AuditedVersions {
+  if (!isObject(value) || Object.keys(value).length !== keys.length || !keys.every((k) => typeof value[k] === "string" && VERSION.test(value[k] as string))) throw invalid(field);
+  return Object.fromEntries(PIN_KEYS.filter((k) => keys.includes(k)).map((k) => [k, value[k]])) as AuditedVersions;
 }
 
-/** Strict: unknown keys or any unsafe value (a run URL of another repository included) throw a NoticeError naming the field only. */
-export function parseFailureSummary(repository: string, value: unknown): FailureSummary {
+/**
+ * Strict: unknown keys, version maps with other than exactly `keys` (the deployment's listed pins) or any unsafe value
+ * (a run URL of another repository included) throw a NoticeError naming the field only.
+ */
+export function parseFailureSummary(repository: string, keys: readonly PinKey[], value: unknown): FailureSummary {
   if (!isObject(value)) throw invalid("not an object");
   const allowed = ["stage", "reason", "oldVersions", "candidateVersions", "runUrl", "cleanup", "publication", "commit", "tag", "site"];
   // Fixed message: a key's name is caller data and may be secret-shaped however harmless its characters look.
@@ -93,8 +93,8 @@ export function parseFailureSummary(repository: string, value: unknown): Failure
   const summary: FailureSummary = { stage: oneOf(STAGES, "stage"), reason: "" };
   if (typeof value.reason !== "string" || !REASON.test(value.reason)) throw invalid("reason");
   summary.reason = value.reason;
-  if (value.oldVersions !== undefined) summary.oldVersions = versions(value.oldVersions, "oldVersions");
-  if (value.candidateVersions !== undefined) summary.candidateVersions = versions(value.candidateVersions, "candidateVersions");
+  if (value.oldVersions !== undefined) summary.oldVersions = versions(value.oldVersions, "oldVersions", keys);
+  if (value.candidateVersions !== undefined) summary.candidateVersions = versions(value.candidateVersions, "candidateVersions", keys);
   if (value.runUrl !== undefined) {
     if (typeof value.runUrl !== "string" || !runUrlPattern(repository).test(value.runUrl)) throw invalid("runUrl");
     summary.runUrl = value.runUrl;
@@ -133,9 +133,10 @@ const PUBLICATION_TEXT: Record<(typeof PUBLICATION)[number], string> = {
 
 /** Renders already-validated facts for deployment; the optional selftest tag lets a read-only mailbox lookup find this message. */
 export function formatFailure(deployment: Deployment, input: FailureSummary, selftestId?: string): { subject: string; text: string } {
-  const s = parseFailureSummary(deployment.config.channel.repository, input);
+  const keys = pinKeys(deployment.versions.audited);
+  const s = parseFailureSummary(deployment.config.channel.repository, keys, input);
   const publication = s.publication ?? "unknown";
-  const table = (map: VersionMap | undefined) => (map ? PIN_KEYS.map((k) => `  ${k}: ${map[k]}`).join("\n") : "  not available");
+  const table = (map: AuditedVersions | undefined) => (map ? keys.map((k) => `  ${k}: ${map[k]}`).join("\n") : "  not available");
   const label = selftestId ? `SELFTEST harmless notice, not a real failure ${subjectTag(selftestId)}` : `re-audit failed at ${s.stage}: ${s.reason}`;
   const text = [
     selftestId ? "SELFTEST: this is a harmless failure-path proof. No detection, commit or publication ran.\n" : "",
@@ -208,14 +209,14 @@ const JOB_FALLBACK: Record<(typeof NOTICE_JOBS)[number], Omit<FailureSummary, "r
   publish: { stage: "publication", cleanup: "not-applicable", publication: "unknown" },
   heartbeat: { stage: "heartbeat", cleanup: "not-applicable", publication: "unknown" },
 };
-/** The failed job's own valid summary, else fixed safe text for that job; never a raw or partially valid summary. */
-export function chooseNotice(repository: string, needs: unknown, summaries: Partial<Record<string, unknown>>, runUrl?: string): FailureSummary {
+/** The failed job's own valid summary (exactly the listed `keys`), else fixed safe text for that job; never a raw or partially valid summary. */
+export function chooseNotice(repository: string, keys: readonly PinKey[], needs: unknown, summaries: Partial<Record<string, unknown>>, runUrl?: string): FailureSummary {
   const url = runUrl ? { runUrl } : {};
   for (const job of NOTICE_JOBS) {
     const result = (needs as Record<string, { result?: unknown } | undefined> | null)?.[job]?.result;
     if (result !== "failure" && result !== "cancelled") continue;
     try {
-      const summary = parseFailureSummary(repository, summaries[job]);
+      const summary = parseFailureSummary(repository, keys, summaries[job]);
       return { ...url, ...summary };
     } catch {
       return { ...JOB_FALLBACK[job], reason: `${job}-job-${result}`, ...url };
@@ -266,6 +267,7 @@ if (import.meta.main) {
     process.exit(1);
   }
   const repository = deployment.config.channel.repository;
+  const keys = pinKeys(deployment.versions.audited);
   const runUrl = runUrlFromEnv(repository);
   let summary: FailureSummary;
   let exitCode = 0;
@@ -277,13 +279,13 @@ if (import.meta.main) {
     } catch {
       console.error("notify: REAUDIT_NEEDS is not JSON; sending the fixed fallback notice");
     }
-    summary = chooseNotice(repository, needs, readSummaries(args[1]!, process.env.GITHUB_RUN_ATTEMPT), runUrl);
+    summary = chooseNotice(repository, keys, needs, readSummaries(args[1]!, process.env.GITHUB_RUN_ATTEMPT), runUrl);
   } else if (args[0] === "--selftest") {
     selftestId = newId();
     summary = { stage: "notify-selftest", reason: "selftest", cleanup: "not-applicable", publication: "not-attempted", ...(runUrl && { runUrl }) };
   } else {
     try {
-      summary = parseFailureSummary(repository, JSON.parse(readFileSync(args[0]!, "utf8")));
+      summary = parseFailureSummary(repository, keys, JSON.parse(readFileSync(args[0]!, "utf8")));
     } catch (e) {
       console.error(`notify: ${e instanceof NoticeError ? e.message : "summary file unreadable or not JSON"}; sending the fixed fallback notice`);
       summary = { stage: "unknown", reason: "invalid-summary", cleanup: "unknown", publication: "unknown", ...(runUrl && { runUrl }) };

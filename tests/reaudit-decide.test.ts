@@ -7,7 +7,7 @@ import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { loadDeployment } from "../src/deployment";
+import { loadDeployment, PIN_KEYS } from "../src/deployment";
 import { bumpSources, changesDigest, planBump, readBumpSources } from "../scripts/reaudit/bump";
 import {
   decideAudit,
@@ -26,14 +26,14 @@ import { readHelperVersion } from "../scripts/plugin-source";
 import { FIXTURE_VERSIONS, fixtureConfig, fixtureKeys, writeDeployment } from "../test/fixtures/deployment";
 
 const ROOT = resolve(import.meta.dir, "..");
-const OLD: AuditedVersions = { gf: "3.1.2", ff: "6.2.14", ff_pro: "6.2.15", cleantalk: "6.88", fluent_smtp: "2.4.1" };
-const NEW: AuditedVersions = { gf: "3.1.3.1", ff: "6.2.15", ff_pro: "6.2.15", cleantalk: "6.89", fluent_smtp: "2.4.1" };
+const OLD: Required<AuditedVersions> = { gf: "3.1.2", ff: "6.2.14", ff_pro: "6.2.15", cleantalk: "6.88", fluent_smtp: "2.4.1" };
+const NEW: Required<AuditedVersions> = { gf: "3.1.3.1", ff: "6.2.15", ff_pro: "6.2.15", cleantalk: "6.89", fluent_smtp: "2.4.1" };
 const BASE = "a".repeat(40);
 const RUN = "1234567890";
 const ATTEMPT = "2";
 const REPO = "CastrumS/pirax-castrum-maintenance";
 /** The publisher's independently selected context. */
-const EXPECTED = { deployment: "pirax", repository: REPO, runId: RUN, runAttempt: ATTEMPT };
+const EXPECTED = { deployment: "pirax", repository: REPO, runId: RUN, runAttempt: ATTEMPT, keys: PIN_KEYS };
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 const PACKAGES = Object.fromEntries(Object.entries(NEW).map(([k, v]) => [k, { version: v, sha256: sha(`synthetic ${k} ${v}`) }])) as Record<keyof AuditedVersions, { version: string; sha256: string }>;
 const DIGEST = sha("synthetic intended change");
@@ -74,7 +74,7 @@ const unchangedFacts = (over: Partial<AuditFacts> = {}): AuditFacts => ({
 });
 const failed = (d: ReturnType<typeof decideAudit>) => {
   if (d.outcome !== "failed") throw new Error(`expected failed, got ${d.outcome}`);
-  return parseFailureSummary(REPO, d.summary);
+  return parseFailureSummary(REPO, PIN_KEYS, d.summary);
 };
 
 describe("decideAudit", () => {
@@ -286,6 +286,19 @@ describe("native evidence", () => {
     expect(verifyManifests([stale], PACKAGES)).toBe("failed");
     expect(verifyManifests([manifest("full"), null], PACKAGES)).toBe("failed");
   });
+  test("a four-key deployment: no manifest may carry the unlisted Gravity Forms", () => {
+    const { gf: _gf, ...four } = PACKAGES;
+    const without = (m: ReturnType<typeof manifest>) => {
+      const { gf: _v, ...versions } = m.versions;
+      const { gravityforms: _z, ...zips } = m.zips;
+      return { ...m, versions, zips };
+    };
+    expect(verifyManifests([without(manifest("default")), without(manifest("full"))], four)).toBe("verified");
+    expect(verifyManifests([without(manifest("default"))], four)).toBe("failed");
+    expect(verifyManifests([without(manifest("default")), manifest("full")], four)).toBe("failed");
+    const zipOnly = without(manifest("full"));
+    expect(verifyManifests([{ ...zipOnly, zips: { ...zipOnly.zips, gravityforms: PACKAGES.gf.sha256 } }], four)).toBe("failed");
+  });
   test("test counts: no failure, skip or todo is acceptable", () => {
     expect(parseTestCounts("x\n 297 pass\n 0 fail\n 4535 expect() calls\nRan 297 tests across 29 files. [3237.22s]\n")).toEqual({ pass: 297, fail: 0, skip: 0, todo: 0, ran: 297 });
     expect(parseTestCounts(" 290 pass\n 7 skip\n 0 fail\nRan 297 tests across 29 files.\n")).toMatchObject({ skip: 7 });
@@ -298,14 +311,14 @@ describe("chooseNotice", () => {
   const needs = (audit: string, publish: string, heartbeat: string) => ({ audit: { result: audit }, publish: { result: publish }, heartbeat: { result: heartbeat } });
   test("one notice: the failed job's own valid summary, publication first", () => {
     const pub = { stage: "publication", reason: "release-create-failed", publication: "main-pushed", commit: BASE, tag: "v0.3.1" } as const;
-    expect(chooseNotice(REPO, needs("success", "failure", "failure"), { publish: pub, audit: undefined }, url)).toEqual({ ...pub, runUrl: url });
+    expect(chooseNotice(REPO, PIN_KEYS, needs("success", "failure", "failure"), { publish: pub, audit: undefined }, url)).toEqual({ ...pub, runUrl: url });
   });
   test("missing or invalid summaries fall back to fixed safe text per failed job", () => {
-    expect(chooseNotice(REPO, needs("failure", "skipped", "success"), {}, url)).toEqual({ stage: "setup", reason: "audit-job-failure", cleanup: "unknown", publication: "not-attempted", runUrl: url });
-    expect(chooseNotice(REPO, needs("cancelled", "skipped", "success"), { audit: { stage: "audit", [SENTINEL]: 1 } }, url)).toEqual({ stage: "setup", reason: "audit-job-cancelled", cleanup: "unknown", publication: "not-attempted", runUrl: url });
-    expect(chooseNotice(REPO, needs("success", "failure", "success"), {}, url)).toEqual({ stage: "publication", reason: "publish-job-failure", cleanup: "not-applicable", publication: "unknown", runUrl: url });
-    expect(chooseNotice(REPO, needs("success", "skipped", "failure"), {}, undefined)).toEqual({ stage: "heartbeat", reason: "heartbeat-job-failure", cleanup: "not-applicable", publication: "unknown" });
-    expect(chooseNotice(REPO, {} as never, {}, url)).toEqual({ stage: "unknown", reason: "no-failed-job-identified", cleanup: "unknown", publication: "unknown", runUrl: url });
+    expect(chooseNotice(REPO, PIN_KEYS, needs("failure", "skipped", "success"), {}, url)).toEqual({ stage: "setup", reason: "audit-job-failure", cleanup: "unknown", publication: "not-attempted", runUrl: url });
+    expect(chooseNotice(REPO, PIN_KEYS, needs("cancelled", "skipped", "success"), { audit: { stage: "audit", [SENTINEL]: 1 } }, url)).toEqual({ stage: "setup", reason: "audit-job-cancelled", cleanup: "unknown", publication: "not-attempted", runUrl: url });
+    expect(chooseNotice(REPO, PIN_KEYS, needs("success", "failure", "success"), {}, url)).toEqual({ stage: "publication", reason: "publish-job-failure", cleanup: "not-applicable", publication: "unknown", runUrl: url });
+    expect(chooseNotice(REPO, PIN_KEYS, needs("success", "skipped", "failure"), {}, undefined)).toEqual({ stage: "heartbeat", reason: "heartbeat-job-failure", cleanup: "not-applicable", publication: "unknown" });
+    expect(chooseNotice(REPO, PIN_KEYS, {} as never, {}, url)).toEqual({ stage: "unknown", reason: "no-failed-job-identified", cleanup: "unknown", publication: "unknown", runUrl: url });
   });
   test("a rerun reads only its own attempt: attempt 1's confirmed-cleanup summary never describes attempt 2's missing one", async () => {
     // Synthetic downloaded-artifact layout: <dir>/reaudit-summary-<attempt>-<job>/summary.json.
@@ -315,8 +328,8 @@ describe("chooseNotice", () => {
     await writeFile(join(dir, "reaudit-summary-1-audit/summary.json"), JSON.stringify(old));
     const failed = needs("failure", "skipped", "success");
     const attempt2 = `${url}/attempts/2`;
-    expect(chooseNotice(REPO, failed, readSummaries(dir, "2"), attempt2)).toEqual({ stage: "setup", reason: "audit-job-failure", cleanup: "unknown", publication: "not-attempted", runUrl: attempt2 });
-    expect(chooseNotice(REPO, failed, readSummaries(dir, "1"), url)).toEqual({ ...old, runUrl: url });
+    expect(chooseNotice(REPO, PIN_KEYS, failed, readSummaries(dir, "2"), attempt2)).toEqual({ stage: "setup", reason: "audit-job-failure", cleanup: "unknown", publication: "not-attempted", runUrl: attempt2 });
+    expect(chooseNotice(REPO, PIN_KEYS, failed, readSummaries(dir, "1"), url)).toEqual({ ...old, runUrl: url });
     // An unvalidated attempt (absent, "01", a path) reads nothing, never a guessed or earlier attempt.
     for (const attempt of [undefined, "", "01", "0", "1/../1", "*"]) expect(readSummaries(dir, attempt)).toEqual({});
   });
@@ -343,16 +356,19 @@ describe("runAudit wiring (synthetic doubles)", () => {
     await mkdir(join(root, "deployments"), { recursive: true });
     await cp(join(ROOT, "deployments/pirax"), join(root, "deployments/pirax"), { recursive: true });
     writeDeployment(root, "fixture", { config: fixtureConfig(fixtureKeys().publicKey), versions: FIXTURE_VERSIONS });
+    writeDeployment(root, "four", { config: { ...fixtureConfig(fixtureKeys().publicKey), audited: FOUR_KEYS }, versions: { ...FIXTURE_VERSIONS, audited: FOUR_PINS } });
     const git = (...args: string[]) => Bun.spawnSync(["git", "-c", "user.name=t", "-c", "user.email=t@t.invalid", "-c", "commit.gpgsign=false", ...args], { cwd: root });
     git("init", "-q");
     git("add", "-A");
     git("commit", "-q", "-m", "fixture");
     return { root, base: git("rev-parse", "HEAD").stdout.toString().trim(), out: join(root, "out") };
   }
+  const FOUR_KEYS = ["ff", "ff_pro", "cleantalk", "fluent_smtp"] as const;
+  const { gf: _gf, ...FOUR_PINS } = FIXTURE_VERSIONS.audited;
   const PIRAX = loadDeployment({ env: { DEPLOYMENT: "pirax" } });
   const pins = { ...PIRAX.versions.audited };
   const helper = PIRAX.versions.helperVersion;
-  const next = { ...pins, ff: pins.ff.replace(/\d+$/, (x) => String(Number(x) + 1)) };
+  const next = { ...pins, ff: pins.ff!.replace(/\d+$/, (x) => String(Number(x) + 1)) };
 
   function doubles(opts: { acquire?: "changed" | "unchanged" | "fail"; nativeCode?: number; leak?: boolean; release?: "verified" | "missing"; next?: AuditedVersions } = {}) {
     const target = opts.next ?? next;
@@ -379,8 +395,11 @@ describe("runAudit wiring (synthetic doubles)", () => {
         if (cmd.includes("test/plugin")) {
           const dir = join(cwd, "artifacts/plugin", `stack-${calls.length}`);
           await mkdir(dir, { recursive: true });
-          const zips = { gravityforms: sha("synthetic gf"), fluentform: sha("synthetic ff"), fluentformpro: sha("synthetic ff_pro"), cleantalk: sha("synthetic cleantalk"), fluentSmtp: sha("synthetic fluent_smtp") };
-          const versions = { gf: target.gf, ff: target.ff, wp: "7.1.2", php: "8.3", ffPro: target.ff_pro, cleantalk: target.cleantalk, fluentSmtp: target.fluent_smtp };
+          // The harness's manifest fields of the target's (listed) keys only.
+          const fields = { gf: ["gf", "gravityforms"], ff: ["ff", "fluentform"], ff_pro: ["ffPro", "fluentformpro"], cleantalk: ["cleantalk", "cleantalk"], fluent_smtp: ["fluentSmtp", "fluentSmtp"] } as const;
+          const listed = Object.keys(target) as (keyof typeof fields)[];
+          const zips = Object.fromEntries(listed.map((k) => [fields[k][1], sha(`synthetic ${k}`)]));
+          const versions = { wp: "7.1.2", php: "8.3", ...Object.fromEntries(listed.map((k) => [fields[k][0], target[k]])) };
           await writeFile(join(dir, "manifest.json"), JSON.stringify({ suite: "stack", versions, zips, note: opts.leak ? ENV.GPLVAULT_LICENSE_KEY : "" }));
           return { code: opts.nativeCode ?? 0, output: " 3 pass\n 0 fail\nRan 3 tests across 1 file.\n" };
         }
@@ -432,7 +451,7 @@ describe("runAudit wiring (synthetic doubles)", () => {
     const decision = await runAudit({ root, out, runId: RUN, runAttempt: ATTEMPT, env: ENV, deps });
     expect(decision.outcome).toBe("failed");
     expect(existsSync(join(out, "candidate.json"))).toBe(false);
-    expect(parseFailureSummary(REPO, JSON.parse(await readFile(join(out, "summary.json"), "utf8")))).toMatchObject({ stage: "audit", reason: "native-suite-failed", cleanup: "confirmed", publication: "not-attempted" });
+    expect(parseFailureSummary(REPO, PIN_KEYS, JSON.parse(await readFile(join(out, "summary.json"), "utf8")))).toMatchObject({ stage: "audit", reason: "native-suite-failed", cleanup: "confirmed", publication: "not-attempted" });
     expect(calls).toHaveLength(1);
     expect(readHelperVersion({ root, env: { DEPLOYMENT: "pirax" } })).toBe(helper);
     expect(existsSync(seen.directory!)).toBe(false);
@@ -471,7 +490,7 @@ describe("runAudit wiring (synthetic doubles)", () => {
       const deps: RunDeps = { ...doubles().deps, acquire: async () => { throw Object.assign(new ReauditError("cleanup", "deactivate", "unconfirmed"), { lifecycle: given }); } };
       expect((await runAudit({ root, out, runId: RUN, runAttempt: ATTEMPT, env: ENV, deps })).outcome).toBe("failed");
       expect(JSON.parse(await readFile(join(out, "evidence/lifecycle.json"), "utf8"))).toEqual(kept);
-      const summary = parseFailureSummary(REPO, JSON.parse(await readFile(join(out, "summary.json"), "utf8")));
+      const summary = parseFailureSummary(REPO, PIN_KEYS, JSON.parse(await readFile(join(out, "summary.json"), "utf8")));
       expect(summary).toMatchObject({ stage: "cleanup", cleanup: "failed" });
       expect(summary.site).toBe(kept.site ?? undefined);
     }
@@ -510,6 +529,24 @@ describe("runAudit wiring (synthetic doubles)", () => {
     expect(seen.directory).toBeDefined();
     expect(calls.map((c) => c.cmd.slice(1))[0]).toEqual(["--no-env-file", "test", "test/plugin"]);
     expect(Bun.spawnSync(["git", "status", "--porcelain", "--untracked-files=no"], { cwd: root }).stdout.toString()).toBe(" M deployments/fixture/versions.json\n");
+  });
+
+  test("a four-key deployment without Gravity Forms: four-key candidate and pins, no Gravity Forms ZIP for the native suite", async () => {
+    const { root, out } = await fixture();
+    const raised = { ...FOUR_PINS, ff: "9.2.3" };
+    const { deps, calls } = doubles({ next: raised });
+    const env = { ...ENV, DEPLOYMENT: "four" };
+    expect(Object.keys(env)).not.toContain("GRAVITY_FORMS_ZIP");
+    const decision = await runAudit({ root, out, runId: RUN, runAttempt: ATTEMPT, env, deps });
+    expect(decision.outcome).toBe("audited-candidate");
+    const candidate = parseCandidate(JSON.parse(await readFile(join(out, "candidate.json"), "utf8")), { ...EXPECTED, deployment: "four", repository: fixtureConfig("").channel.repository, keys: FOUR_KEYS });
+    for (const record of [candidate.oldPins, candidate.newPins, candidate.packages]) expect(Object.keys(record)).toEqual([...FOUR_KEYS]);
+    expect(candidate).toMatchObject({ oldPins: FOUR_PINS, newPins: raised });
+    const native = calls[0]!.env;
+    expect(Object.keys(native)).not.toContain("GRAVITY_FORMS_ZIP");
+    expect(native.FLUENT_FORMS_PRO_ZIP).toBeDefined();
+    const written = JSON.parse(await readFile(join(root, "deployments/four/versions.json"), "utf8"));
+    expect(written.audited).toEqual(raised);
   });
 
   test("an invalid selection or an Actions repository other than the selected one stops before acquisition", async () => {

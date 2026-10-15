@@ -145,6 +145,10 @@ describe("Pirax data", () => {
     for (const value of [pirax.config.notice.recipient, pirax.config.notice.subjectPrefix, pirax.config.forms.text, pirax.config.forms.message, pirax.config.forms.refusalPrefix]) expect(value.trim()).toBe(value);
   });
 
+  test("deployments/pirax keeps the weekly check off, in Europe/Zagreb", () => {
+    expect(pirax.config.weeklyCheck).toEqual({ enabled: false, timeZone: "Europe/Zagreb" });
+  });
+
   test("the committed versions.json is in canonical form, so a bump rewrites only changed values", () => {
     expect(readFileSync(pirax.paths.versions, "utf8")).toBe(formatVersions(pirax.versions));
   });
@@ -282,6 +286,12 @@ describe("schema", () => {
       "refusal prefix with a pipe": [config((c) => (c.forms.refusalPrefix = "Acme | blocked:")), "config.forms.refusalPrefix is invalid"],
       "blank filler text": [config((c) => (c.forms.text = "")), "config.forms.text is invalid"],
       "multi-line filler message": [config((c) => (c.forms.message = "line\nline")), "config.forms.message is invalid"],
+      "no weekly check": [config((c) => drop(c, "weeklyCheck")), "config.weeklyCheck is missing"],
+      "weekly check enabled as text": [config((c) => set(c.weeklyCheck, "enabled", "true")), "config.weeklyCheck.enabled is invalid"],
+      "blank weekly check time zone": [config((c) => (c.weeklyCheck.timeZone = "")), "config.weeklyCheck.timeZone is invalid"],
+      "lower-case weekly check time zone": [config((c) => (c.weeklyCheck.timeZone = "europe/zagreb")), "config.weeklyCheck.timeZone is invalid"],
+      "unknown weekly check time zone": [config((c) => (c.weeklyCheck.timeZone = "Mars/Base")), "config.weeklyCheck.timeZone is invalid"],
+      "unknown weekly check field": [config((c) => set(c.weeklyCheck, SENTINEL, "x")), "config.weeklyCheck has an unknown field"],
     };
     for (const [name, [text, expected]] of Object.entries(cases)) {
       const { field, message } = refusal(() => parseConfig(text));

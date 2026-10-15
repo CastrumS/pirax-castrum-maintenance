@@ -20,5 +20,9 @@
     "refusalPrefix": "Pirax test blocked:",
     "text": "Pirax Test",
     "message": "Pirax test message"
+  },
+  "weeklyCheck": {
+    "enabled": false,
+    "timeZone": "Europe/Zagreb"
   }
 }

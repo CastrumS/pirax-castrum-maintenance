@@ -1,6 +1,7 @@
 // Deployment selection and data (plan D1/D2). DEPLOYMENT names one folder, deployments/<name>/, that holds every
-// operator-specific value: config.json (the helper's visible identity and update channel, the failure notice and
-// the form checker's texts), versions.json (the five audited pins and the helper version) and sites.yaml.
+// operator-specific value: config.json (the helper's visible identity and update channel, the failure notice, the
+// form checker's texts and the weekly check flag and time zone), versions.json (the five audited pins and the
+// helper version) and sites.yaml.
 //   loadDeployment({ root?, env? })   the selected deployment, read and validated now, as an immutable snapshot
 //                                     with derived paths, asset names, package URL and git remote
 //   parseConfig(text) / parseVersions(text)   the strict schemas of config.json and versions.json
@@ -27,6 +28,7 @@ export type DeploymentConfig = Frozen<{
   channel: { repository: string; releasesRoot: string; publicKey: string };
   notice: { recipient: string; subjectPrefix: string };
   forms: { refusalPrefix: string; text: string; message: string };
+  weeklyCheck: { enabled: boolean; timeZone: string };
 }>;
 export type DeploymentVersions = Frozen<{ schemaVersion: 1; helperVersion: string; audited: AuditedVersions }>;
 export type Deployment = Frozen<{
@@ -85,6 +87,16 @@ type Shape = { readonly [key: string]: Check | Shape };
 
 const display: Check = (v) => typeof v === "string" && DISPLAY.test(v);
 const stable: Check = (v) => typeof v === "string" && STABLE_VERSION.test(v);
+/** An IANA name exactly as Intl spells it: `europe/zagreb` and unknown zones are refused. */
+const timeZone: Check = (v) => {
+  if (typeof v !== "string" || v === "") return false;
+  try {
+    return new Intl.DateTimeFormat("en", { timeZone: v }).resolvedOptions().timeZone === v;
+  } catch (error) {
+    if (error instanceof RangeError) return false;
+    throw error;
+  }
+};
 /**
  * Canonical (exactly as URL parsing writes it) and plain: unreserved characters, `:`, `/` and `%` only, so no
  * credentials, query, fragment, quote or `*` (a URL is also a plugin header line inside a PHP comment).
@@ -115,6 +127,7 @@ const CONFIG: Shape = {
     subjectPrefix: (v) => typeof v === "string" && SUBJECT.test(v),
   },
   forms: { refusalPrefix: display, text: display, message: display },
+  weeklyCheck: { enabled: (v) => v === true || v === false, timeZone },
 };
 const VERSIONS: Shape = { schemaVersion: (v) => v === 1, helperVersion: stable, audited: Object.fromEntries(PIN_KEYS.map((key) => [key, stable])) };
 

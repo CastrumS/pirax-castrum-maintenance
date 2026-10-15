@@ -77,7 +77,8 @@ if (import.meta.main) {
     console.error(JSON.stringify({ ...status, exitCode: 1, ...selftestFacts, error: e.message }));
     process.exit(1);
   }
-  const delivery = await pollDelivery({ id: selftestId, config });
+  // The summary goes to the recipient's INBOX; IMAP_FOLDER is the form-test folder, so only the spam folder is reused.
+  const delivery = await pollDelivery({ id: selftestId, config: { ...config, folder: "INBOX" } });
   mkdirSync(resolve("runs"), { recursive: true });
   const artifact = join(resolve("runs"), `weekly-selftest-${runId}.json`);
   writeFileSync(artifact, `${JSON.stringify({ selftestId, smtpAccepted: true, accepted: facts.sent.accepted, rejected: facts.sent.rejected, delivery: delivery.outcome, startedAt: ranAt.toISOString() }, null, 2)}\n`);

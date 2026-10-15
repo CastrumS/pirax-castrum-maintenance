@@ -10,7 +10,7 @@ import type { BrowserContext, Page } from "playwright";
 import { withoutSigningKey } from "../../scripts/build-plugin";
 import { loadDeployment } from "../../src/deployment";
 import { findSecret } from "./artifacts";
-import { FF_VERSION, GF_VERSION, startHarness, type Harness } from "./harness";
+import { AUDITS_GF, FF_VERSION, GF_VERSION, startHarness, type Harness } from "./harness";
 import { HELPER_VERSION } from "./version-fixtures";
 
 // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
@@ -42,6 +42,9 @@ const PRODUCTION_FILES = [
 /** dist/ may hold this or another deployment's release assets. */
 // ponytail: name shape admits an unknown <slug>.zip; selected ZIP contents are checked below. Use isolated output dirs if provenance of every sibling asset is needed.
 const RELEASE_ASSET = /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\.zip|-manifest\.json(?:\.sig)?)$/;
+
+/** The installed form plugins: Gravity Forms only when the deployment audits it. */
+const FORM_PLUGINS = [...(AUDITS_GF ? ["gravityforms/gravityforms.php"] : []), "fluentform/fluentform.php"];
 
 const sha = (s: string) => createHash("sha256").update(s).digest("hex");
 /** A PHP expression decoding a JSON value (single-quoted literal, so `$` and `\` stay literal). */
@@ -162,10 +165,10 @@ test("generated ZIP uploads and activates through wp-admin without Gravity Forms
   // Supported form plugins come back without a fatal error next to the core.
   const back = await h.php<string[]>(`
     require_once ABSPATH . 'wp-admin/includes/plugin.php';
-    foreach (['gravityforms/gravityforms.php', 'fluentform/fluentform.php'] as $p) { $r = activate_plugin($p); if (is_wp_error($r)) throw new RuntimeException($r->get_error_message()); }
+    foreach (${lit(FORM_PLUGINS)} as $p) { $r = activate_plugin($p); if (is_wp_error($r)) throw new RuntimeException($r->get_error_message()); }
     return get_option('active_plugins');
   `);
-  expect(back).toEqual(expect.arrayContaining([PLUGIN, "gravityforms/gravityforms.php", "fluentform/fluentform.php"]));
+  expect(back).toEqual(expect.arrayContaining([PLUGIN, ...FORM_PLUGINS]));
   await page.goto(`${h.url}${SETTINGS}`);
   expect(await page.locator("h1").innerText()).toBe(config.plugin.name);
 }, 300_000);
@@ -274,7 +277,7 @@ test("compatibility panel: admins only, read-only, every unaudited callback by h
   const { page } = admin;
   await page.goto(`${h.url}${SETTINGS}`);
   // Default stack: exact core versions, no optional plugins (not listed as version 0), both ready.
-  expect(await panel(page, "gf")).toEqual({ rows: [["Gravity Forms", GF_VERSION, "audited"]], verdict: "ready", hooks: {} });
+  if (AUDITS_GF) expect(await panel(page, "gf")).toEqual({ rows: [["Gravity Forms", GF_VERSION!, "audited"]], verdict: "ready", hooks: {} });
   expect(await panel(page, "ff")).toEqual({ rows: [["Fluent Forms", FF_VERSION, "audited"]], verdict: "ready", hooks: {} });
   expect(await page.locator("#pirax-form-test-compatibility").innerText()).toContain('"Ready" covers only the plugins, versions and hooked callbacks loaded for this admin page');
 
@@ -282,10 +285,9 @@ test("compatibility panel: admins only, read-only, every unaudited callback by h
   const file = "pirax-<script>alert(document.domain)<script>.php";
   const source = [
     "<?php",
-    "add_action('gform_entry_created', function () {}, 10);",
+    ...(AUDITS_GF ? ["add_action('gform_entry_created', function () {}, 10);"] : []),
     "add_action('fluentform/submission_inserted', function () {}, 20);",
-    `add_action('gform_after_submission_${h.fixtures.gf}', 'pirax_hostile_numeric', 10, 2);`,
-    "function pirax_hostile_numeric() {}",
+    ...(AUDITS_GF ? [`add_action('gform_after_submission_${h.fixtures.gf}', 'pirax_hostile_numeric', 10, 2);`, "function pirax_hostile_numeric() {}"] : []),
     "add_action('fluentform/before_form_actions_processing', 'pirax_hostile_named', 20);",
     "function pirax_hostile_named() {}",
     "",
@@ -297,13 +299,13 @@ test("compatibility panel: admins only, read-only, every unaudited callback by h
   page.on("dialog", onDialog);
   try {
     await page.goto(`${h.url}${SETTINGS}`);
-    const gf = await panel(page, "gf");
+    if (AUDITS_GF)
+      expect(await panel(page, "gf")).toEqual({
+        rows: [["Gravity Forms", GF_VERSION!, "audited"]],
+        verdict: "blocked: 2 unaudited callback(s) on submission hooks",
+        hooks: { gform_entry_created: [`closure:${file}`], [`gform_after_submission_${h.fixtures.gf}`]: ["pirax_hostile_numeric"] },
+      });
     const ff = await panel(page, "ff");
-    expect(gf).toEqual({
-      rows: [["Gravity Forms", GF_VERSION, "audited"]],
-      verdict: "blocked: 2 unaudited callback(s) on submission hooks",
-      hooks: { gform_entry_created: [`closure:${file}`], [`gform_after_submission_${h.fixtures.gf}`]: ["pirax_hostile_numeric"] },
-    });
     expect(ff).toEqual({
       rows: [["Fluent Forms", FF_VERSION, "audited"]],
       verdict: "blocked: 2 unaudited callback(s) on submission hooks",
@@ -326,14 +328,18 @@ test("compatibility panel: admins only, read-only, every unaudited callback by h
     expect(after!.writes).toBe(before!.writes);
 
     // The same collector decides at submission time.
+    const gfGates = `
+        'gf' => ${F}gf_supported(GFAPI::get_form(${h.fixtures.gf})),
+        'list' => ${F}unaudited_callbacks(${F}inspected_hooks('gf', GFAPI::get_form(${h.fixtures.gf}))),`;
     const gates = await h.php<any>(`
       return [
-        'gf' => ${F}gf_supported(GFAPI::get_form(${h.fixtures.gf})),
-        'ff' => ${F}ff_supported(wpFluent()->table('fluentform_forms')->find(${h.fixtures.ff})),
-        'list' => ${F}unaudited_callbacks(${F}inspected_hooks('gf', GFAPI::get_form(${h.fixtures.gf}))),
+        'ff' => ${F}ff_supported(wpFluent()->table('fluentform_forms')->find(${h.fixtures.ff})),${AUDITS_GF ? gfGates : ""}
       ];
     `);
-    expect(gates).toEqual({ gf: false, ff: false, list: [`gform_entry_created: closure:${file}`, `gform_after_submission_${h.fixtures.gf}: pirax_hostile_numeric`] });
+    expect(gates).toEqual({
+      ff: false,
+      ...(AUDITS_GF && { gf: false, list: [`gform_entry_created: closure:${file}`, `gform_after_submission_${h.fixtures.gf}: pirax_hostile_numeric`] }),
+    });
 
     // Editors, subscribers and visitors get no panel.
     for (const role of ["editor", "subscriber"] as const) {
@@ -356,7 +362,8 @@ test("compatibility panel: admins only, read-only, every unaudited callback by h
     await h.php(`unlink(WPMU_PLUGIN_DIR . '/' . ${lit(file)}); delete_option('pirax_harness_render_probe'); return true;`);
   }
   await page.goto(`${h.url}${SETTINGS}`);
-  expect([(await panel(page, "gf")).verdict, (await panel(page, "ff")).verdict]).toEqual(["ready", "ready"]);
+  if (AUDITS_GF) expect((await panel(page, "gf")).verdict).toBe("ready");
+  expect((await panel(page, "ff")).verdict).toBe("ready");
 }, 300_000);
 
 test("marker parser classifies submitted values: ordinary, marked(id) or invalid-marker", async () => {

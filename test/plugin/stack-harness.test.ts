@@ -6,7 +6,7 @@
 import { afterAll, beforeAll, expect, setDefaultTimeout, test } from "bun:test";
 import { findSecret } from "./artifacts";
 import { withoutSigningKey } from "../../scripts/build-plugin";
-import { CLEANTALK_VERSION, FF_PRO_VERSION, FF_VERSION, FLUENT_SMTP_VERSION, startHarness, type Harness } from "./harness";
+import { AUDITS_GF, CLEANTALK_VERSION, FF_PRO_VERSION, FF_VERSION, FLUENT_SMTP_VERSION, startHarness, type Harness } from "./harness";
 
 // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
 setDefaultTimeout(180_000);
@@ -89,20 +89,22 @@ test("ordinary FF and GF controls reach CleanTalk moderation, the Pro webhook an
     await ff.locator("button[type=submit]").click();
     await page.locator(".ff-message-success").waitFor();
 
-    await page.goto(h.fixtures.page);
-    const gf = page.locator(`#gform_${h.fixtures.gf}`);
-    await gf.locator("input[name='input_1']").fill("Stack Visitor");
-    await gf.locator("input[name='input_2']").fill("visitor@example.test");
-    await gf.locator("textarea[name='input_3']").fill("gf ordinary stack control");
-    await gf.locator("[type=submit]").click();
-    await page.locator(".gform_confirmation_message").waitFor();
+    if (AUDITS_GF) {
+      await page.goto(h.fixtures.page);
+      const gf = page.locator(`#gform_${h.fixtures.gf}`);
+      await gf.locator("input[name='input_1']").fill("Stack Visitor");
+      await gf.locator("input[name='input_2']").fill("visitor@example.test");
+      await gf.locator("textarea[name='input_3']").fill("gf ordinary stack control");
+      await gf.locator("[type=submit]").click();
+      await page.locator(".gform_confirmation_message").waitFor();
+    }
   } finally {
     await h.closeBrowser(context);
   }
 
   const entries = await h.entries();
   expect(entries.ff).toBe(entries0.ff + 1);
-  expect(entries.gf).toBe(entries0.gf + 1);
+  if (AUDITS_GF) expect(entries.gf).toBe(entries0.gf + 1);
   const ffEntry = Math.max(...entries.rows.filter((r) => r.plugin === "ff").map((r) => r.id));
 
   // Pro's webhook is queued natively; nothing reaches the capture URL until the FF runner drains it.
@@ -111,18 +113,18 @@ test("ordinary FF and GF controls reach CleanTalk moderation, the Pro webhook an
   const ctFf = moderation.filter((r) => r.purpose === "cleantalk-moderation" && r.hooks.includes("fluentform/before_insert_submission"));
   const ctGf = moderation.filter((r) => r.purpose === "cleantalk-moderation" && r.hooks.includes("gform_entry_is_spam"));
   expect(ctFf.length).toBeGreaterThanOrEqual(1);
-  expect(ctGf.length).toBeGreaterThanOrEqual(1);
+  if (AUDITS_GF) expect(ctGf.length).toBeGreaterThanOrEqual(1);
   expect(ctFf[0]).toMatchObject({ method: "POST", api: "check_message" });
 
   await h.drainQueues();
   const captures = (await h.http()).slice(http0).filter((r) => r.purpose === "webhook-capture");
   expect(captures).toEqual([expect.objectContaining({ method: "POST", entry: ffEntry, hooks: expect.arrayContaining(["fluentform/integration_notify_fluentform_webhook_feed"]) })]);
-  expect((await h.feeds()).map((f) => f.plugin).sort()).toEqual(["ff", "gf"]);
+  expect((await h.feeds()).map((f) => f.plugin).sort()).toEqual(AUDITS_GF ? ["ff", "gf"] : ["ff"]);
 
   // FluentSMTP's wp_mail hands the original envelope to its Simulator provider, which logs it.
   const envelopes = (await h.envelopes()).slice(env0);
   const sim = (await h.simulator()).slice(sim0);
-  for (const [plugin, form] of [["gf", h.fixtures.gf], ["ff", h.fixtures.ff]] as const) {
+  for (const [plugin, form] of [...(AUDITS_GF ? [["gf", h.fixtures.gf] as const] : []), ["ff", h.fixtures.ff] as const]) {
     const mine = envelopes.filter((e) => e.subject.startsWith(`${plugin}-${form} notification`));
     expect(mine.map((e) => e.to.join(",")).sort()).toEqual(["owner-2@client.test", "owner@client.test"]);
     for (const e of mine) expect(e).toMatchObject({ transport: "fluentsmtp-simulator", cc: ["cc@client.test"], bcc: ["bcc@client.test"] });
@@ -139,7 +141,7 @@ test("evidence names every version and ZIP hash and retains no token, licensed p
   expect(evidence.files).toEqual(expect.arrayContaining(["http.jsonl", "envelopes.jsonl", "simulator.jsonl", "manifest.json"]));
   const manifest = await Bun.file(`${h.artifactDir}/manifest.json`).json();
   expect(manifest.versions).toEqual(h.versions);
-  expect(Object.keys(manifest.zips).sort()).toEqual(["cleantalk", "fluentSmtp", "fluentform", "fluentformpro", "gravityforms"]);
+  expect(Object.keys(manifest.zips).sort()).toEqual(["cleantalk", "fluentSmtp", "fluentform", "fluentformpro", ...(AUDITS_GF ? ["gravityforms"] : [])]);
   for (const hash of Object.values(manifest.zips)) expect(hash).toMatch(/^[0-9a-f]{64}$/);
   const secrets = [h.token, process.env.GRAVITY_FORMS_ZIP!, process.env.FLUENT_FORMS_PRO_ZIP!];
   expect(await findSecret(h.artifactDir, secrets)).toEqual([]);

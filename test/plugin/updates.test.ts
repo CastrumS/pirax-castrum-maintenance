@@ -86,7 +86,8 @@ beforeAll(async () => {
   admin = await h.browser("updates-listing-install");
   await login(admin.page);
   await h.uploadPlugin(admin.page, installed.zip);
-  audited = await h.php<Record<string, string>>(`return ${F}AUDITED_VERSIONS;`);
+  // A release manifest lists only the deployment's audited pins, never the helper's null (unlisted) keys.
+  audited = await h.php<Record<string, string>>(`return array_filter(${F}AUDITED_VERSIONS, 'is_string');`);
 }, 600_000);
 
 afterAll(async () => {

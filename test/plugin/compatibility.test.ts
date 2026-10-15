@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { loadDeployment } from "../../src/deployment";
 import { findSecret } from "./artifacts";
-import { startHarness, type EnvelopeRecord, type Harness, type HttpRecord } from "./harness";
+import { AUDITS_GF, gfOnly, startHarness, type EnvelopeRecord, type Harness, type HttpRecord } from "./harness";
 import { nextPatch, PINS, withAlteredFile as alteredFile } from "./version-fixtures";
 
 // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
@@ -27,7 +27,7 @@ const INVALID_CONFIG = `${config.forms.refusalPrefix} test configuration is inva
 const SETTINGS = "/wp-admin/options-general.php?page=pirax-form-test";
 const EMAIL_PRECHECK = "/wp-json/cleantalk-antispam/v1/check_email_before_post";
 /** A genuinely different GF version than the pin, for wrong-version cases. */
-const GF_NEXT = nextPatch(PINS.gf);
+const GF_NEXT = PINS.gf && nextPatch(PINS.gf);
 
 /** A PHP expression decoding a JSON value (single-quoted literal, so `$` and `\` stay literal). */
 const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}', true)`;
@@ -54,10 +54,10 @@ beforeAll(async () => {
 
   // One enabled notification per form, so "exactly one mail" is meaningful.
   await h.php(`
-    global $wpdb;
+    global $wpdb;${gfOnly(`
     $form = GFAPI::get_form(${h.fixtures.gf});
     $form['notifications']['pirax00000002']['isActive'] = false;
-    GFAPI::update_form($form);
+    GFAPI::update_form($form);`)}
     foreach ($wpdb->get_results($wpdb->prepare("SELECT id, value FROM {$wpdb->prefix}fluentform_form_meta WHERE form_id = %d AND meta_key = 'notifications'", ${h.fixtures.ff})) as $row) {
       $value = json_decode($row->value, true);
       if (str_ends_with($value['subject'], 'notification B')) {
@@ -224,33 +224,32 @@ function expectOriginal(envelopes: EnvelopeRecord[], to: string) {
 async function ordinaryControls(label: string) {
   const m = await mark();
   const ff = await ffSubmit(`ff ordinary ${label}`);
-  const gf = await gfSubmit(`gf ordinary ${label}`);
+  if (AUDITS_GF) expect(await gfSubmit(`gf ordinary ${label}`)).toMatchObject({ ok: true, text: "Pirax GF thanks" });
   expect(ff.status).toBe(200);
-  expect(gf).toMatchObject({ ok: true, text: "Pirax GF thanks" });
   const queued = await since(m);
   const ffEntry = queued.added.find((r) => r.plugin === "ff")!.id;
-  const gfEntry = queued.added.find((r) => r.plugin === "gf")!.id;
-  expect(queued.added.map((r) => r.plugin).sort()).toEqual(["ff", "gf"]);
+  const gfEntry = AUDITS_GF ? queued.added.find((r) => r.plugin === "gf")!.id : undefined;
+  expect(queued.added.map((r) => r.plugin).sort()).toEqual(AUDITS_GF ? ["ff", "gf"] : ["ff"]);
   expect(ffEntry).toBe(ff.insertId!);
   expect(queued.http.filter((r) => r.purpose === "cleantalk-moderation" && r.hooks.includes("fluentform/before_insert_submission")).length).toBeGreaterThanOrEqual(1);
-  expect(queued.http.filter((r) => r.purpose === "cleantalk-moderation" && r.hooks.includes("gform_entry_is_spam")).length).toBeGreaterThanOrEqual(1);
+  if (AUDITS_GF) expect(queued.http.filter((r) => r.purpose === "cleantalk-moderation" && r.hooks.includes("gform_entry_is_spam")).length).toBeGreaterThanOrEqual(1);
   expect(queued.jobs.ff.filter((j) => j.origin === ffEntry).map((j) => j.action)).toContain("fluentform/integration_notify_fluentform_webhook_feed");
 
   await h.drainQueues();
   const done = await since(m);
   await note(`ordinary controls ${label}`, { ffEntry, gfEntry, http: done.http, jobs: done.jobs, feeds: done.feeds });
   expect(done.http.filter((r) => r.purpose === "webhook-capture").map((r) => r.entry)).toEqual([ffEntry]);
-  expect(done.feeds.map((f) => [f.plugin, f.entry]).sort()).toEqual([["ff", ffEntry], ["gf", gfEntry]]);
+  expect(done.feeds.map((f) => [f.plugin, f.entry]).sort()).toEqual([["ff", ffEntry], ...(AUDITS_GF ? [["gf" as const, gfEntry!]] : [])]);
   const ffMail = done.env.filter((e) => e.subject === `ff-${h.fixtures.ff} notification A`);
   const gfMail = done.env.filter((e) => e.subject === `gf-${h.fixtures.gf} notification A`);
-  expect([ffMail.length, gfMail.length]).toEqual([1, 1]);
+  expect([ffMail.length, gfMail.length]).toEqual([1, AUDITS_GF ? 1 : 0]);
   expectOriginal([...ffMail, ...gfMail], "owner@client.test");
   expect(done.sim.map((s) => [s.subject, s.to.join(",")]).sort()).toEqual([
     [`ff-${h.fixtures.ff} notification A`, "owner@client.test"],
-    [`gf-${h.fixtures.gf} notification A`, "owner@client.test"],
+    ...(AUDITS_GF ? [[`gf-${h.fixtures.gf} notification A`, "owner@client.test"]] : []),
   ]);
   const rows = done.entries.rows.map((r) => `${r.plugin}:${r.id}`);
-  expect(rows).toEqual(expect.arrayContaining([`ff:${ffEntry}`, `gf:${gfEntry}`]));
+  expect(rows).toEqual(expect.arrayContaining([`ff:${ffEntry}`, ...(AUDITS_GF ? [`gf:${gfEntry}`] : [])]));
   return { ffEntry, gfEntry };
 }
 
@@ -284,11 +283,10 @@ test("full stack before marked submissions: ordinary FF and GF keep CleanTalk mo
 test("full stack: marked FF and GF each confirm with one redirected Simulator mail, no CleanTalk moderation, no Pro webhook job or hit, and no entry left", async () => {
   const m = await mark();
   const ff = await ffSubmit(`Pirax check ${marker}`);
-  const gf = await gfSubmit(`Pirax check ${marker}`);
+  if (AUDITS_GF) expect(await gfSubmit(`Pirax check ${marker}`)).toMatchObject({ ok: true, text: "Pirax GF thanks" });
   expect(ff.status).toBe(200);
   expect(ff.body?.success).toBe(true);
   expect(ff.body?.data?.result?.message).toBe("Thank you for your message. We will get in touch with you shortly");
-  expect(gf).toMatchObject({ ok: true, text: "Pirax GF thanks" });
 
   const submitted = await since(m);
   await note("marked full stack: before draining", { http: submitted.http, jobs: submitted.jobs, added: submitted.added });
@@ -303,10 +301,10 @@ test("full stack: marked FF and GF each confirm with one redirected Simulator ma
   expect(done.feeds).toEqual([]);
   expect(done.added).toEqual([]);
   expect(done.entries.rows).toEqual(m.entries.rows);
-  expect(done.env.map((e) => e.subject).sort()).toEqual([`[pirax-test ${ID}] ff-${h.fixtures.ff} notification A`, `[pirax-test ${ID}] gf-${h.fixtures.gf} notification A`]);
+  expect(done.env.map((e) => e.subject).sort()).toEqual([`[pirax-test ${ID}] ff-${h.fixtures.ff} notification A`, ...(AUDITS_GF ? [`[pirax-test ${ID}] gf-${h.fixtures.gf} notification A`] : [])]);
   expectRedirected(done.env);
   expect(done.sim.map((s) => ({ to: s.to, subject: s.subject, provider: s.provider, status: s.status, tagged: s.headers.filter((x) => /^x-pirax-form-test:/i.test(x)) })).sort((a, b) => a.subject.localeCompare(b.subject))).toEqual(
-    ["ff", "gf"].map((p) => ({
+    (AUDITS_GF ? ["ff", "gf"] : ["ff"]).map((p) => ({
       to: [REDIRECT],
       subject: `[pirax-test ${ID}] ${p}-${p === "ff" ? h.fixtures.ff : h.fixtures.gf} notification A`,
       provider: "Simulator",
@@ -314,11 +312,11 @@ test("full stack: marked FF and GF each confirm with one redirected Simulator ma
       tagged: [`X-Pirax-Form-Test: ${ID}`],
     })),
   );
-  expect(done.mail.map((x) => x.to)).toEqual([[REDIRECT], [REDIRECT]]);
+  expect(done.mail.map((x) => x.to)).toEqual(AUDITS_GF ? [[REDIRECT], [REDIRECT]] : [[REDIRECT]]);
   expect(tokenBearing(done.http)).toEqual([]);
 }, 300_000);
 
-test("GF modern AJAX (admin-ajax gform_submit_form): marked confirms with one redirected Simulator mail and no CleanTalk request or token-bearing HTTP; ordinary keeps CleanTalk's generic check, its entry, ledger feed and original mail", async () => {
+if (AUDITS_GF) test("GF modern AJAX (admin-ajax gform_submit_form): marked confirms with one redirected Simulator mail and no CleanTalk request or token-bearing HTTP; ordinary keeps CleanTalk's generic check, its entry, ledger feed and original mail", async () => {
   await setOptions({ pirax_harness_gf_ajax: true });
   try {
     let m = await mark();
@@ -353,7 +351,7 @@ test("GF modern AJAX (admin-ajax gform_submit_form): marked confirms with one re
   }
 }, 300_000);
 
-test("GF modern AJAX early boundary: malformed markers, invalid configuration and the token in a field input the stored form lacks are refused without CleanTalk; the token outside field inputs (query, cookie, other POST names) stays ordinary and keeps CleanTalk", async () => {
+if (AUDITS_GF) test("GF modern AJAX early boundary: malformed markers, invalid configuration and the token in a field input the stored form lacks are refused without CleanTalk; the token outside field inputs (query, cookie, other POST names) stays ordinary and keeps CleanTalk", async () => {
   await setOptions({ pirax_harness_gf_ajax: true });
   try {
     let m = await mark();
@@ -403,7 +401,7 @@ test("GF modern AJAX early boundary: malformed markers, invalid configuration an
   }
 }, 300_000);
 
-for (const mode of ["wrap", "early"] as const) {
+if (AUDITS_GF) for (const mode of ["wrap", "early"] as const) {
   test(`GF modern AJAX: CleanTalk's generic check ${mode === "wrap" ? "wrapped (unrecognizable)" : "moved to plugins_loaded priority 1"} refuses marked submissions before it runs; ordinary ones keep it`, async () => {
     await setOptions({ pirax_harness_gf_ajax: true, pirax_harness_ct_ajax_rebind: mode });
     try {
@@ -445,7 +443,7 @@ for (const mode of ["wrap", "early"] as const) {
   }, 300_000);
 }
 
-test("GF modern AJAX: the marker only in a field a GF form filter adds is refused before CleanTalk's generic check; ordinary submissions with that field keep it", async () => {
+if (AUDITS_GF) test("GF modern AJAX: the marker only in a field a GF form filter adds is refused before CleanTalk's generic check; ordinary submissions with that field keep it", async () => {
   await setOptions({ pirax_harness_gf_ajax: true, pirax_harness_gf_dynamic_field: h.fixtures.gf });
   try {
     const m = await mark();
@@ -488,7 +486,7 @@ async function gfAjaxCounted(message: string, options?: Parameters<typeof gfAjax
   return { ...result, reads: (await gfMetaReads()) - before };
 }
 
-test("GF modern AJAX before GF initializes: ordinary requests read no stored form; a marked one reads it only under the audited GF core, and another GF version refuses it before any form read or CleanTalk request", async () => {
+if (AUDITS_GF) test("GF modern AJAX before GF initializes: ordinary requests read no stored form; a marked one reads it only under the audited GF core, and another GF version refuses it before any form read or CleanTalk request", async () => {
   await setOptions({ pirax_harness_gf_ajax: true, pirax_harness_gf_meta_probe: true });
   try {
     let m = await mark();
@@ -535,7 +533,7 @@ test("GF modern AJAX before GF initializes: ordinary requests read no stored for
   }
 }, 300_000);
 
-test("GF modern AJAX from a logged-in admin: with CleanTalk's logged-in protection off it binds no generic check; on, marked submissions have it removed and ordinary ones keep it (it runs, and skips this admin)", async () => {
+if (AUDITS_GF) test("GF modern AJAX from a logged-in admin: with CleanTalk's logged-in protection off it binds no generic check; on, marked submissions have it removed and ordinary ones keep it (it runs, and skips this admin)", async () => {
   const original = await h.php<number | null>(`$s = get_option('cleantalk_settings'); return isset($s['data__protect_logged_in']) ? (int) $s['data__protect_logged_in'] : null;`);
   const protect = (value: number | null) =>
     h.php(`$s = get_option('cleantalk_settings'); if (null === ${lit(value)}) unset($s['data__protect_logged_in']); else $s['data__protect_logged_in'] = ${lit(value)}; update_option('cleantalk_settings', $s); return true;`);
@@ -789,24 +787,23 @@ test("CleanTalk re-registered during a marked submission's own dispatch is remov
   try {
     let m = await mark();
     const ff = await ffSubmit(`Pirax late ${marker}`);
-    const gf = await gfSubmit(`Pirax late ${marker}`);
+    if (AUDITS_GF) expect((await gfSubmit(`Pirax late ${marker}`)).ok).toBe(true);
     await h.drainQueues();
     let done = await since(m);
     expect(ff.status).toBe(200);
-    expect(gf.ok).toBe(true);
     expect(cleantalkAttempts(done.http)).toEqual([]);
-    expect(done.env.length).toBe(2);
+    expect(done.env.length).toBe(AUDITS_GF ? 2 : 1);
     expectRedirected(done.env);
     expect(done.added).toEqual([]);
 
     m = await mark();
     const ordinaryFf = await ffSubmit("ordinary late CleanTalk");
-    const ordinaryGf = await gfSubmit("ordinary late CleanTalk");
+    if (AUDITS_GF) expect((await gfSubmit("ordinary late CleanTalk")).ok).toBe(true);
     await h.drainQueues();
     done = await since(m);
-    expect([ordinaryFf.status, ordinaryGf.ok]).toEqual([200, true]);
+    expect(ordinaryFf.status).toBe(200);
     expect(done.http.filter((r) => r.purpose === "cleantalk-moderation" && r.hooks.includes("fluentform/before_insert_submission")).length).toBeGreaterThanOrEqual(1);
-    expect(done.http.filter((r) => r.purpose === "cleantalk-moderation" && r.hooks.includes("gform_entry_is_spam")).length).toBeGreaterThanOrEqual(1);
+    if (AUDITS_GF) expect(done.http.filter((r) => r.purpose === "cleantalk-moderation" && r.hooks.includes("gform_entry_is_spam")).length).toBeGreaterThanOrEqual(1);
   } finally {
     await setOptions({ pirax_harness_ct_late: null });
   }
@@ -816,20 +813,25 @@ test("CleanTalk re-registered during a marked submission's own dispatch is remov
 // AC3/AC4 — exact versions at the native gates, and the panel
 
 test("admin panel on the full stack: exact versions audited per form plugin and both ready", async () => {
-  const [gf, ff] = [await panel("gf"), await panel("ff")];
-  expect(gf.rows).toEqual([
-    ["Gravity Forms", PINS.gf, "audited"],
-    ["Anti-Spam by CleanTalk", PINS.cleantalk, "audited"],
-    ["FluentSMTP", PINS.fluent_smtp, "audited"],
-  ]);
+  if (AUDITS_GF) {
+    const gf = await panel("gf");
+    expect(gf.rows).toEqual([
+      ["Gravity Forms", PINS.gf!, "audited"],
+      ["Anti-Spam by CleanTalk", PINS.cleantalk!, "audited"],
+      ["FluentSMTP", PINS.fluent_smtp!, "audited"],
+    ]);
+    expect(gf.verdict).toBe("ready");
+    expect(gf.hooks).toEqual({});
+  }
+  const ff = await panel("ff");
   expect(ff.rows).toEqual([
-    ["Fluent Forms", PINS.ff, "audited"],
-    ["Fluent Forms Pro", PINS.ff_pro, "audited"],
-    ["Anti-Spam by CleanTalk", PINS.cleantalk, "audited"],
-    ["FluentSMTP", PINS.fluent_smtp, "audited"],
+    ["Fluent Forms", PINS.ff!, "audited"],
+    ["Fluent Forms Pro", PINS.ff_pro!, "audited"],
+    ["Anti-Spam by CleanTalk", PINS.cleantalk!, "audited"],
+    ["FluentSMTP", PINS.fluent_smtp!, "audited"],
   ]);
-  expect([gf.verdict, ff.verdict]).toEqual(["ready", "ready"]);
-  expect([gf.hooks, ff.hooks]).toEqual([{}, {}]);
+  expect(ff.verdict).toBe("ready");
+  expect(ff.hooks).toEqual({});
 });
 
 /**
@@ -837,17 +839,17 @@ test("admin panel on the full stack: exact versions audited per form plugin and 
  * form, the others: the next patch). withAlteredFile() requires the declaration to occur exactly once.
  */
 const VERSIONS = [
-  { name: "CleanTalk", label: "Anti-Spam by CleanTalk", file: "cleantalk-spam-protect/cleantalk.php", declare: (v: string) => `Version: ${v}\n`, pin: PINS.cleantalk, wrong: `${PINS.cleantalk}.1`, gf: true },
-  { name: "Fluent Forms Pro", label: "Fluent Forms Pro", file: "fluentformpro/fluentformpro.php", declare: (v: string) => `define('FLUENTFORMPRO_VERSION', '${v}');`, pin: PINS.ff_pro, wrong: nextPatch(PINS.ff_pro), gf: false },
-  { name: "FluentSMTP", label: "FluentSMTP", file: "fluent-smtp/boot.php", declare: (v: string) => `define('FLUENTMAIL_PLUGIN_VERSION', '${v}');`, pin: PINS.fluent_smtp, wrong: nextPatch(PINS.fluent_smtp), gf: true },
+  { name: "CleanTalk", label: "Anti-Spam by CleanTalk", file: "cleantalk-spam-protect/cleantalk.php", declare: (v: string) => `Version: ${v}\n`, pin: PINS.cleantalk!, wrong: `${PINS.cleantalk}.1`, gf: true },
+  { name: "Fluent Forms Pro", label: "Fluent Forms Pro", file: "fluentformpro/fluentformpro.php", declare: (v: string) => `define('FLUENTFORMPRO_VERSION', '${v}');`, pin: PINS.ff_pro!, wrong: nextPatch(PINS.ff_pro!), gf: false },
+  { name: "FluentSMTP", label: "FluentSMTP", file: "fluent-smtp/boot.php", declare: (v: string) => `define('FLUENTMAIL_PLUGIN_VERSION', '${v}');`, pin: PINS.fluent_smtp!, wrong: nextPatch(PINS.fluent_smtp!), gf: true },
 ].map((v) => ({ ...v, search: v.declare(v.pin), replace: v.declare(v.wrong), reason: `${v.label} ${v.wrong} is not the audited ${v.pin}`, awaiting: `${AWAITING}${v.label} ${v.wrong}` }));
 
 for (const v of VERSIONS) {
   test(`${v.name} at another version blocks marked ${v.gf ? "FF and GF" : "FF (not GF)"} at the native gates with the version-only message; the panel shows the version and still lists callbacks`, async () => {
     await withAlteredFile(v.file, v.search, v.replace, async () => {
-      const [gf, ff] = [await panel("gf"), await panel("ff")];
+      const ff = await panel("ff");
       expect(ff.verdict).toContain(v.reason);
-      expect(gf.verdict.includes(v.reason)).toBe(v.gf);
+      if (AUDITS_GF) expect((await panel("gf")).verdict.includes(v.reason)).toBe(v.gf);
       if (v.name === "CleanTalk") {
         // Its bindings are only audited for the pinned version: now they are unaudited callbacks, still listed.
         expect(ff.hooks["fluentform/before_insert_submission"]).toEqual(["closure:cleantalk-spam-protect/lib/Cleantalk/Antispam/Integrations.php"]);
@@ -856,59 +858,64 @@ for (const v of VERSIONS) {
       await clearLastBlock();
       const m = await mark();
       const ff1 = await ffSubmit(`Pirax version ${marker}`);
-      const gf1 = await gfSubmit(`Pirax version ${marker}`);
+      const gf1 = AUDITS_GF ? await gfSubmit(`Pirax version ${marker}`) : undefined;
       await h.drainQueues();
       const done = await since(m);
       const last = await lastBlock();
-      await note(`version gate: ${v.name}`, { ff: ff1.status, ffMessage: ffRejection(ff1.body), gf: gf1.ok, added: done.added, feeds: done.feeds, last: last && { message: last.message, reasons: last.reasons } });
+      await note(`version gate: ${v.name}`, { ff: ff1.status, ffMessage: ffRejection(ff1.body), gf: gf1?.ok, added: done.added, feeds: done.feeds, last: last && { message: last.message, reasons: last.reasons } });
       expect(ff1.status).toBe(423);
       expect(ffRejection(ff1.body)).toBe(v.awaiting);
-      expect(last).toMatchObject({ plugin: v.gf ? "gf" : "ff", message: v.awaiting });
+      expect(last).toMatchObject({ plugin: AUDITS_GF && v.gf ? "gf" : "ff", message: v.awaiting });
       expect(last.reasons).toContain(v.reason);
       expect(done.feeds).toEqual([]);
       expect(done.http.filter((r) => r.purpose === "webhook-capture")).toEqual([]);
-      if (v.gf) {
-        expect(gf1.ok).toBe(false);
-        expect(gf1.text).toContain(v.awaiting);
-        expect(gf1.text).not.toContain(BLOCKED);
-        expect(done.env).toEqual([]);
-      } else {
-        expect(gf1).toMatchObject({ ok: true, text: "Pirax GF thanks" });
-        expect(done.env.map((e) => e.subject)).toEqual([`[pirax-test ${ID}] gf-${h.fixtures.gf} notification A`]);
-        expectRedirected(done.env);
-      }
+      if (AUDITS_GF) {
+        if (v.gf) {
+          expect(gf1!.ok).toBe(false);
+          expect(gf1!.text).toContain(v.awaiting);
+          expect(gf1!.text).not.toContain(BLOCKED);
+          expect(done.env).toEqual([]);
+        } else {
+          expect(gf1!).toMatchObject({ ok: true, text: "Pirax GF thanks" });
+          expect(done.env.map((e) => e.subject)).toEqual([`[pirax-test ${ID}] gf-${h.fixtures.gf} notification A`]);
+          expectRedirected(done.env);
+        }
+      } else expect(done.env).toEqual([]);
       expect(done.added).toEqual([]);
       expect(cleantalkAttempts(done.http)).toEqual([]);
       expect(tokenBearing(done.http)).toEqual([]);
 
-      // GF modern AJAX: a wrong CleanTalk version is refused before CleanTalk's generic check can run;
-      // the other versions are refused later by the submission gate, with that check already removed.
-      await setOptions({ pirax_harness_gf_ajax: true });
-      try {
-        const m2 = await mark();
-        const ajax = await gfAjaxSubmit(`Pirax version ${marker}`);
-        await h.drainQueues();
-        const done2 = await since(m2);
-        await note(`version gate (GF modern AJAX): ${v.name}`, { gf: ajax.ok, http: done2.http, added: done2.added });
-        if (v.gf) {
-          expect(ajax.ok).toBe(false);
-          expect(ajax.text).toContain(v.awaiting);
-          expect(ajax.text).not.toContain(BLOCKED);
-          expect(done2.env).toEqual([]);
-        } else {
-          expect(ajax).toMatchObject({ ok: true, text: "Pirax GF thanks" });
-          expectRedirected(done2.env);
+      if (AUDITS_GF) {
+        // GF modern AJAX: a wrong CleanTalk version is refused before CleanTalk's generic check can run;
+        // the other versions are refused later by the submission gate, with that check already removed.
+        await setOptions({ pirax_harness_gf_ajax: true });
+        try {
+          const m2 = await mark();
+          const ajax = await gfAjaxSubmit(`Pirax version ${marker}`);
+          await h.drainQueues();
+          const done2 = await since(m2);
+          await note(`version gate (GF modern AJAX): ${v.name}`, { gf: ajax.ok, http: done2.http, added: done2.added });
+          if (v.gf) {
+            expect(ajax.ok).toBe(false);
+            expect(ajax.text).toContain(v.awaiting);
+            expect(ajax.text).not.toContain(BLOCKED);
+            expect(done2.env).toEqual([]);
+          } else {
+            expect(ajax).toMatchObject({ ok: true, text: "Pirax GF thanks" });
+            expectRedirected(done2.env);
+          }
+          expect(done2.added).toEqual([]);
+          expect(cleantalkAttempts(done2.http)).toEqual([]);
+          expect(tokenBearing(done2.http)).toEqual([]);
+        } finally {
+          await setOptions({ pirax_harness_gf_ajax: null });
+          await clearLastBlock();
         }
-        expect(done2.added).toEqual([]);
-        expect(cleantalkAttempts(done2.http)).toEqual([]);
-        expect(tokenBearing(done2.http)).toEqual([]);
-      } finally {
-        await setOptions({ pirax_harness_gf_ajax: null });
-        await clearLastBlock();
       }
     });
     // Restored: ready again for both.
-    expect([(await panel("gf")).verdict, (await panel("ff")).verdict]).toEqual(["ready", "ready"]);
+    if (AUDITS_GF) expect((await panel("gf")).verdict).toBe("ready");
+    expect((await panel("ff")).verdict).toBe("ready");
   }, 300_000);
 }
 
@@ -995,7 +1002,7 @@ test("retained evidence names every version and ZIP hash and contains no token o
   const evidence = await h.saveEvidence();
   expect(evidence.files).toEqual(expect.arrayContaining(["http.jsonl", "envelopes.jsonl", "simulator.jsonl", "manifest.json"]));
   const manifest = await Bun.file(`${h.artifactDir}/manifest.json`).json();
-  expect(manifest.versions).toMatchObject({ gf: PINS.gf, ff: PINS.ff, ffPro: PINS.ff_pro, cleantalk: PINS.cleantalk, fluentSmtp: PINS.fluent_smtp });
-  expect(Object.keys(manifest.zips).sort()).toEqual(["cleantalk", "fluentSmtp", "fluentform", "fluentformpro", "gravityforms"]);
+  expect(manifest.versions).toMatchObject({ ...(AUDITS_GF && { gf: PINS.gf }), ff: PINS.ff, ffPro: PINS.ff_pro, cleantalk: PINS.cleantalk, fluentSmtp: PINS.fluent_smtp });
+  expect(Object.keys(manifest.zips).sort()).toEqual(["cleantalk", "fluentSmtp", "fluentform", "fluentformpro", ...(AUDITS_GF ? ["gravityforms"] : [])]);
   expect(await findSecret(h.artifactDir, [h.token, process.env.GRAVITY_FORMS_ZIP!, process.env.FLUENT_FORMS_PRO_ZIP!])).toEqual([]);
 }, 120_000);

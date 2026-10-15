@@ -7,7 +7,7 @@ import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { loadDeployment } from "../../src/deployment";
 import { findSecret } from "./artifacts";
-import { startHarness, type Harness, type MailRecord } from "./harness";
+import { AUDITS_GF, startHarness, type Harness, type MailRecord } from "./harness";
 
 // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
 setDefaultTimeout(180_000);
@@ -167,12 +167,17 @@ const orphans = () =>
       'ffMeta' => $n("SELECT COUNT(*) FROM {$p}fluentform_submission_meta m LEFT JOIN {$p}fluentform_submissions s ON s.id = m.response_id WHERE m.response_id > 0 AND s.id IS NULL"),
       'ffDetails' => $n("SELECT COUNT(*) FROM {$p}fluentform_entry_details d LEFT JOIN {$p}fluentform_submissions s ON s.id = d.submission_id WHERE s.id IS NULL"),
       'ffLogs' => $n("SELECT COUNT(*) FROM {$p}fluentform_logs l LEFT JOIN {$p}fluentform_submissions s ON s.id = l.source_id WHERE l.source_type = 'submission_item' AND s.id IS NULL"),
-      'ffActions' => $n("SELECT COUNT(*) FROM {$p}ff_scheduled_actions a LEFT JOIN {$p}fluentform_submissions s ON s.id = a.origin_id WHERE s.id IS NULL"),
-      'gfMeta' => $n("SELECT COUNT(*) FROM {$p}gf_entry_meta m LEFT JOIN {$p}gf_entry e ON e.id = m.entry_id WHERE e.id IS NULL"),
-      'gfNotes' => $n("SELECT COUNT(*) FROM {$p}gf_entry_notes m LEFT JOIN {$p}gf_entry e ON e.id = m.entry_id WHERE e.id IS NULL"),
+      'ffActions' => $n("SELECT COUNT(*) FROM {$p}ff_scheduled_actions a LEFT JOIN {$p}fluentform_submissions s ON s.id = a.origin_id WHERE s.id IS NULL"),${AUDITS_GF ? GF_ORPHANS : ""}
     ];
   `);
-const NO_ORPHANS = { ffMeta: 0, ffDetails: 0, ffLogs: 0, ffActions: 0, gfMeta: 0, gfNotes: 0 };
+const GF_ORPHANS = `
+      'gfMeta' => $n("SELECT COUNT(*) FROM {$p}gf_entry_meta m LEFT JOIN {$p}gf_entry e ON e.id = m.entry_id WHERE e.id IS NULL"),
+      'gfNotes' => $n("SELECT COUNT(*) FROM {$p}gf_entry_notes m LEFT JOIN {$p}gf_entry e ON e.id = m.entry_id WHERE e.id IS NULL"),`;
+const NO_ORPHANS = { ffMeta: 0, ffDetails: 0, ffLogs: 0, ffActions: 0, ...(AUDITS_GF && { gfMeta: 0, gfNotes: 0 }) };
+
+/** Drop Gravity Forms rows (plugin gf, or labels gf…) when the deployment does not audit gf. */
+const auditedItems = <T extends { plugin: "gf" | "ff" }>(items: readonly T[]): T[] => items.filter((i) => AUDITS_GF || i.plugin === "ff");
+const audited = <T,>(rows: Record<string, T>): Record<string, T> => Object.fromEntries(Object.entries(rows).filter(([label]) => AUDITS_GF || !label.startsWith("gf")));
 
 /** GF field values containing the configured token. */
 const gfTokenValues = () =>
@@ -185,7 +190,7 @@ const asPending = () =>
 // ---------------------------------------------------------------------------------------------
 // AC2/AC3 — Gravity Forms
 
-test("GF marked browser submission: both notifications redirected synchronously, no feeds, entry deleted after mail", async () => {
+if (AUDITS_GF) test("GF marked browser submission: both notifications redirected synchronously, no feeds, entry deleted after mail", async () => {
   expect(await h.php<boolean>("return (bool) get_option('gform_enable_async_notifications');")).toBe(true);
   const before = await counts();
   const tokenValues = await gfTokenValues();
@@ -194,7 +199,7 @@ test("GF marked browser submission: both notifications redirected synchronously,
   await setOptions({ pirax_harness_competing_filters: true, pirax_harness_gf_async_feeds: true });
   let result: Submitted;
   try {
-    result = await gfSubmit(h.fixtures.gf, h.fixtures.page, gfValues(`Pirax check ${marker}`));
+    result = await gfSubmit(h.fixtures.gf!, h.fixtures.page, gfValues(`Pirax check ${marker}`));
   } finally {
     await setOptions({ pirax_harness_competing_filters: null, pirax_harness_gf_async_feeds: null });
   }
@@ -223,12 +228,12 @@ test("GF marked browser submission: both notifications redirected synchronously,
   expect(await h.php<boolean>("return (bool) get_option('gform_enable_async_notifications');")).toBe(true);
 }, 180_000);
 
-test("GF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries", async () => {
+if (AUDITS_GF) test("GF controls: unmarked, wrong-token and empty-token submissions keep recipients, feeds and entries", async () => {
   const before = await counts();
   // The ordinary control runs its feed through GF's background feed processor (the marked test's mode).
   await setOptions({ pirax_harness_gf_async_feeds: true });
   try {
-    expect((await gfSubmit(h.fixtures.gf, h.fixtures.page, gfValues("ordinary message"))).ok).toBe(true);
+    expect((await gfSubmit(h.fixtures.gf!, h.fixtures.page, gfValues("ordinary message"))).ok).toBe(true);
     await h.drainQueues();
   } finally {
     await setOptions({ pirax_harness_gf_async_feeds: null });
@@ -236,10 +241,10 @@ test("GF controls: unmarked, wrong-token and empty-token submissions keep recipi
   const asyncFeed = (await h.feeds()).slice(before.feeds);
   expect(asyncFeed.map((f) => f.plugin)).toEqual(["gf"]);
   expect(asyncFeed[0]!.request).toMatch(/action=wp_gf_pirax-harness-ledger_feed_processor/);
-  expect((await gfSubmit(h.fixtures.gf, h.fixtures.page, gfValues(`Pirax check ${WRONG}-${ID}`))).ok).toBe(true);
+  expect((await gfSubmit(h.fixtures.gf!, h.fixtures.page, gfValues(`Pirax check ${WRONG}-${ID}`))).ok).toBe(true);
   await setOptions({ pirax_form_test_token: "" });
   try {
-    expect((await gfSubmit(h.fixtures.gf, h.fixtures.page, gfValues(`Pirax check ${marker}`))).ok).toBe(true);
+    expect((await gfSubmit(h.fixtures.gf!, h.fixtures.page, gfValues(`Pirax check ${marker}`))).ok).toBe(true);
   } finally {
     await setOptions({ pirax_form_test_token: h.token });
   }
@@ -334,8 +339,9 @@ test("FF controls: unmarked, wrong-token and empty-token submissions keep recipi
 // ---------------------------------------------------------------------------------------------
 // AC4 — CAPTCHA
 
-test("GF reCAPTCHA v2 with failing siteverify: marked passes, unmarked fails; other errors and honeypot still apply", async () => {
-  const { gf, page } = h.fixtures.captcha;
+if (AUDITS_GF) test("GF reCAPTCHA v2 with failing siteverify: marked passes, unmarked fails; other errors and honeypot still apply", async () => {
+  const { page } = h.fixtures.captcha;
+  const gf = h.fixtures.captcha.gf!;
   const values = (message: string, name = "Pirax Visitor") => ({ input_1: name, input_2: message });
 
   let before = await counts();
@@ -413,9 +419,11 @@ test("an integration outside the suppressible feed paths blocks marked submissio
   await setOptions({ pirax_harness_direct_dispatch: true });
   try {
     const before = await counts();
-    const gf = await gfSubmit(h.fixtures.gf, h.fixtures.page, gfValues(`Pirax check ${marker}`));
-    expect(gf.ok).toBe(false);
-    expect(gf.text).toContain(BLOCKED);
+    if (AUDITS_GF) {
+      const gf = await gfSubmit(h.fixtures.gf!, h.fixtures.page, gfValues(`Pirax check ${marker}`));
+      expect(gf.ok).toBe(false);
+      expect(gf.text).toContain(BLOCKED);
+    }
     const ff = await ffSubmit(h.fixtures.ff, h.fixtures.page, ffValues(`Pirax check ${marker}`));
     expect(ff.ok).toBe(false);
     expect(ff.text).toContain(BLOCKED);
@@ -428,10 +436,10 @@ test("an integration outside the suppressible feed paths blocks marked submissio
     expect(await asPending()).toBe(0);
 
     // Ordinary submissions are untouched, direct integration included.
-    expect((await gfSubmit(h.fixtures.gf, h.fixtures.page, gfValues("ordinary message"))).ok).toBe(true);
+    if (AUDITS_GF) expect((await gfSubmit(h.fixtures.gf!, h.fixtures.page, gfValues("ordinary message"))).ok).toBe(true);
     expect((await ffSubmit(h.fixtures.ff, h.fixtures.page, ffValues("ordinary message"))).ok).toBe(true);
     await h.drainQueues();
-    expect((await h.feeds()).slice(before.feeds).map((f) => f.plugin).sort()).toEqual(["ff", "ff-direct", "gf", "gf-direct"]);
+    expect((await h.feeds()).slice(before.feeds).map((f) => f.plugin).sort()).toEqual(["ff", "ff-direct", ...(AUDITS_GF ? (["gf", "gf-direct"] as const) : [])]);
     expectOriginal((await h.mail()).slice(before.mail));
   } finally {
     await setOptions({ pirax_harness_direct_dispatch: null });
@@ -442,9 +450,11 @@ test("payment and post-creation paths are rejected for marked submissions", asyn
   const { gf, ff, page } = h.fixtures.unsupported;
   const before = await counts();
   const posts = await h.php<number>("return (int) wp_count_posts('post')->publish + (int) wp_count_posts('post')->draft;");
-  const gfResult = await gfSubmit(gf, page, { input_1: "Pirax post", input_2: `Pirax check ${marker}` });
-  expect(gfResult.ok).toBe(false);
-  expect(gfResult.text).toContain(BLOCKED);
+  if (AUDITS_GF) {
+    const gfResult = await gfSubmit(gf!, page, { input_1: "Pirax post", input_2: `Pirax check ${marker}` });
+    expect(gfResult.ok).toBe(false);
+    expect(gfResult.text).toContain(BLOCKED);
+  }
   const ffResult = await ffSubmit(ff, page, ffValues(`Pirax check ${marker}`));
   expect(ffResult.ok).toBe(false);
   expect(ffResult.text).toContain(BLOCKED);
@@ -458,18 +468,22 @@ test("payment and post-creation paths are rejected for marked submissions", asyn
 test("malformed or ambiguous markers and an invalid redirect reject safely; nothing reaches original recipients", async () => {
   const before = await counts();
   for (const value of [`Pirax check ${h.token}-ABC123`, `Pirax check ${marker} and ${h.token}-def456`, `Pirax check ${h.token}`]) {
-    const gf = await gfSubmit(h.fixtures.gf, h.fixtures.page, gfValues(value));
-    expect(gf.ok).toBe(false);
-    expect(gf.text).toContain(MARKER);
+    if (AUDITS_GF) {
+      const gf = await gfSubmit(h.fixtures.gf!, h.fixtures.page, gfValues(value));
+      expect(gf.ok).toBe(false);
+      expect(gf.text).toContain(MARKER);
+    }
     const ff = await ffSubmit(h.fixtures.ff, h.fixtures.page, ffValues(value));
     expect(ff.ok).toBe(false);
     expect(ff.text).toContain(MARKER);
   }
   await setOptions({ pirax_form_test_redirect: "a@operator.test,b@operator.test" });
   try {
-    const gf = await gfSubmit(h.fixtures.gf, h.fixtures.page, gfValues(`Pirax check ${marker}`));
-    expect(gf.ok).toBe(false);
-    expect(gf.text).toContain(CONFIG);
+    if (AUDITS_GF) {
+      const gf = await gfSubmit(h.fixtures.gf!, h.fixtures.page, gfValues(`Pirax check ${marker}`));
+      expect(gf.ok).toBe(false);
+      expect(gf.text).toContain(CONFIG);
+    }
     const ff = await ffSubmit(h.fixtures.ff, h.fixtures.page, ffValues(`Pirax check ${marker}`));
     expect(ff.ok).toBe(false);
     expect(ff.text).toContain(CONFIG);
@@ -703,7 +717,7 @@ test("hourly sweep: real cron deletes only old token entries across pages, with 
     ...Array.from({ length: 120 }, (_, i) => ({ label: `gfBulk${i}`, plugin: "gf", value: `${h.token}-bulk${String(i).padStart(4, "0")}`, age: 7200 }) as const),
     ...Array.from({ length: 120 }, (_, i) => ({ label: `ffBulk${i}`, plugin: "ff", value: `${h.token}-bulk${String(i).padStart(4, "0")}`, age: 7200 }) as const),
   ] as const;
-  const ids = await seed(items);
+  const ids = await seed(auditedItems(items));
   const plugin = Object.fromEntries(items.map((i) => [i.label, i.plugin]));
   const pendingBefore = await asPending();
   expect(pendingBefore).toBeGreaterThanOrEqual(2);
@@ -714,7 +728,7 @@ test("hourly sweep: real cron deletes only old token entries across pages, with 
   const state = await exists(ids, plugin);
   await note("sweep: after", { rows: await ffRows(special), asPending: await asPending(), kept: Object.keys(state).filter((k) => state[k]) });
   const kept = Object.entries(state).filter(([, v]) => v).map(([k]) => k).sort();
-  expect(kept).toEqual(["ffActiveOld", "ffMarkedYoung", "ffOrdinaryOld", "gfMarkedYoung", "gfOrdinaryOld", "gfSourceOnlyOld"]);
+  expect(kept).toEqual(["ffActiveOld", "ffMarkedYoung", "ffOrdinaryOld", "gfMarkedYoung", "gfOrdinaryOld", "gfSourceOnlyOld"].filter((k) => AUDITS_GF || k.startsWith("ff")));
   expect(await ffRows([ids.ffMarkedOld, ids.ffStaleOld])).toEqual([]);
   expect((await ffRows([ids.ffOrdinaryOld])).map((r) => r.status)).toEqual(["pending"]);
   expect((await ffRows([ids.ffActiveOld])).map((r) => r.status)).toEqual(["processing"]);
@@ -732,48 +746,52 @@ test("sweep: literal token with SQL wildcards, empty token no-op, and strict one
   const legacy = "pirax%legacy_token-with_wild";
   await setOptions({ pirax_form_test_token: legacy });
   try {
-    const ids = await seed([
-      { label: "gfLiteral", plugin: "gf", value: `check ${legacy}-abc123`, age: 3700 },
-      { label: "gfLookalike", plugin: "gf", value: "check piraxXlegacyXtoken-withXwild-abc123", age: 3700 },
-      { label: "ffLiteral", plugin: "ff", value: `check ${legacy}-abc123`, age: 3700 },
-      { label: "ffLookalike", plugin: "ff", value: "check pirax legacy token-with wild-abc123", age: 3700 },
-    ]);
-    const plugin = { gfLiteral: "gf", gfLookalike: "gf", ffLiteral: "ff", ffLookalike: "ff" } as const;
+    const ids = await seed(
+      auditedItems([
+        { label: "gfLiteral", plugin: "gf", value: `check ${legacy}-abc123`, age: 3700 },
+        { label: "gfLookalike", plugin: "gf", value: "check piraxXlegacyXtoken-withXwild-abc123", age: 3700 },
+        { label: "ffLiteral", plugin: "ff", value: `check ${legacy}-abc123`, age: 3700 },
+        { label: "ffLookalike", plugin: "ff", value: "check pirax legacy token-with wild-abc123", age: 3700 },
+      ]),
+    );
+    const plugin = audited({ gfLiteral: "gf", gfLookalike: "gf", ffLiteral: "ff", ffLookalike: "ff" } as const);
     await h.runCron(["pirax_form_test_sweep"]);
-    expect(await exists(ids, plugin)).toEqual({ gfLiteral: false, gfLookalike: true, ffLiteral: false, ffLookalike: true });
+    expect(await exists(ids, plugin)).toEqual(audited({ gfLiteral: false, gfLookalike: true, ffLiteral: false, ffLookalike: true }));
 
     await setOptions({ pirax_form_test_token: "" });
-    const empty = await seed([
-      { label: "gfOld", plugin: "gf", value: `check ${legacy}-abc123`, age: 7200 },
-      { label: "ffOld", plugin: "ff", value: `check ${legacy}-abc123`, age: 7200 },
-    ]);
+    const empty = await seed(
+      auditedItems([
+        { label: "gfOld", plugin: "gf", value: `check ${legacy}-abc123`, age: 7200 },
+        { label: "ffOld", plugin: "ff", value: `check ${legacy}-abc123`, age: 7200 },
+      ]),
+    );
     await h.runCron(["pirax_form_test_sweep"]);
-    expect(await exists(empty, { gfOld: "gf", ffOld: "ff" })).toEqual({ gfOld: true, ffOld: true });
+    expect(await exists(empty, audited({ gfOld: "gf", ffOld: "ff" } as const))).toEqual(audited({ gfOld: true, ffOld: true }));
   } finally {
     await setOptions({ pirax_form_test_token: h.token });
   }
 
   // Strictly older than one hour: seed and sweep within one second so time() is shared.
   const boundary = await h.php<{ exact: boolean[]; older: boolean[] }>(`
-    global $wpdb; $p = $wpdb->prefix; $value = 'boundary ' . get_option('pirax_form_test_token') . '-abc123';
+    global $wpdb; $p = $wpdb->prefix; $value = 'boundary ' . get_option('pirax_form_test_token') . '-abc123'; $gf = ${AUDITS_GF};
     for ($try = 0; $try < 5; $try++) {
       while (fmod(microtime(true), 1) > 0.3) usleep(10000);
       $t = time(); $ids = [];
       foreach ([3600, 3601] as $age) {
-        $ids[$age]['gf'] = GFAPI::add_entry(['form_id' => ${h.fixtures.gf}, '1' => 'Seed', '2' => 'seed@example.test', '3' => $value, 'date_created' => gmdate('Y-m-d H:i:s', $t - $age)]);
+        if ($gf) $ids[$age]['gf'] = GFAPI::add_entry(['form_id' => ${h.fixtures.gf}, '1' => 'Seed', '2' => 'seed@example.test', '3' => $value, 'date_created' => gmdate('Y-m-d H:i:s', $t - $age)]);
         $local = wp_date('Y-m-d H:i:s', $t - $age);
         $wpdb->insert("{$p}fluentform_submissions", ['form_id' => ${h.fixtures.ff}, 'serial_number' => 1, 'response' => wp_json_encode(['message' => $value]), 'status' => 'unread', 'created_at' => $local, 'updated_at' => $local]);
         $ids[$age]['ff'] = $wpdb->insert_id;
       }
       do_action('pirax_form_test_sweep');
-      $alive = fn($age) => [(bool) GFAPI::get_entry($ids[$age]['gf']) && !is_wp_error(GFAPI::get_entry($ids[$age]['gf'])), (bool) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$p}fluentform_submissions WHERE id = %d", $ids[$age]['ff']))];
+      $alive = fn($age) => [...($gf ? [(bool) GFAPI::get_entry($ids[$age]['gf']) && !is_wp_error(GFAPI::get_entry($ids[$age]['gf']))] : []), (bool) $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM {$p}fluentform_submissions WHERE id = %d", $ids[$age]['ff']))];
       $result = ['exact' => $alive(3600), 'older' => $alive(3601)];
-      foreach ($ids as $pair) { GFAPI::delete_entry($pair['gf']); $wpdb->delete("{$p}fluentform_submissions", ['id' => $pair['ff']]); }
+      foreach ($ids as $pair) { if ($gf) GFAPI::delete_entry($pair['gf']); $wpdb->delete("{$p}fluentform_submissions", ['id' => $pair['ff']]); }
       if (time() === $t) return $result;
     }
     throw new RuntimeException('could not complete the boundary check within one second');
   `);
-  expect(boundary).toEqual({ exact: [true, true], older: [false, false] });
+  expect(boundary).toEqual(AUDITS_GF ? { exact: [true, true], older: [false, false] } : { exact: [true], older: [false] });
 }, 300_000);
 
 test("retained evidence contains no token", async () => {

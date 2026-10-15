@@ -8,7 +8,7 @@ import { join, resolve } from "node:path";
 import type { BrowserContext, Page } from "playwright";
 import { loadDeployment } from "../../src/deployment";
 import { findSecret } from "./artifacts";
-import { startHarness, type Harness, type MailRecord } from "./harness";
+import { AUDITS_GF, gfOnly, startHarness, type Harness, type MailRecord } from "./harness";
 import { exactMatrix, nextPatch, PINS } from "./version-fixtures";
 
 // Playground round trips exceed Bun's 5 s default. Bun 1.4 scopes this to the calling file, so every suite sets it.
@@ -22,9 +22,9 @@ const ID = "abc123";
 const BLOCKED = `${config.forms.refusalPrefix} integrations could not be suppressed`;
 const DUMMY_CAPTCHA = "pirax-dummy-recaptcha-response";
 /** Genuinely different versions than the pins, for wrong-version cases. */
-const GF_NEXT = nextPatch(PINS.gf);
-const FF_NEXT = nextPatch(PINS.ff);
-const SMTP_NEXT = nextPatch(PINS.fluent_smtp);
+const GF_NEXT = PINS.gf && nextPatch(PINS.gf);
+const FF_NEXT = nextPatch(PINS.ff!);
+const SMTP_NEXT = nextPatch(PINS.fluent_smtp!);
 
 /** A PHP expression decoding a JSON value (single-quoted literal, so `$` and `\` stay literal). */
 const lit = (v: unknown) => `json_decode('${JSON.stringify(v).replace(/\\/g, "\\\\").replace(/'/g, "\\'")}', true)`;
@@ -301,7 +301,7 @@ const gfBatches = () =>
     return (object) $out;
   `);
 
-test("GF sweep: an old token entry's queued notifications (entry snapshots included) and feeds are removed before deletion; ordinary queued work runs; active worker defers", async () => {
+if (AUDITS_GF) test("GF sweep: an old token entry's queued notifications (entry snapshots included) and feeds are removed before deletion; ordinary queued work runs; active worker defers", async () => {
   const ids = await h.php<{ old: number; ordinary: number; lock: string }>(`
     $gf = ${h.fixtures.gf};
     $container = GFForms::get_service_container();
@@ -368,15 +368,17 @@ test("GF sweep: an old token entry's queued notifications (entry snapshots inclu
 // Criterion 5 — exact audited versions
 
 test("compatibility gate accepts exactly the pinned GF and FF versions", async () => {
-  const [gf, ff] = [exactMatrix(PINS.gf), exactMatrix(PINS.ff)];
-  const result = await h.php<any>(`
+  const [gf, ff] = [PINS.gf && exactMatrix(PINS.gf), exactMatrix(PINS.ff!)];
+  const result = await h.php<any>(
+    AUDITS_GF
+      ? `
     $audited = fn($plugin, $versions) => array_combine($versions, array_map(fn($v) => Pirax\\FormTest\\version_is_audited($plugin, $v), $versions));
     $form = GFAPI::get_form(${h.fixtures.gf});
     $ffForm = wpFluent()->table('fluentform_forms')->find(${h.fixtures.ff});
     $real = GFForms::$version;
     $out = [
       'installed' => [$real, FLUENTFORM_VERSION],
-      'gf' => $audited('gf', ${lit(Object.keys(gf))}),
+      'gf' => $audited('gf', ${lit(Object.keys(gf!))}),
       'ff' => $audited('ff', ${lit(Object.keys(ff))}),
       'supported' => [Pirax\\FormTest\\gf_supported($form), Pirax\\FormTest\\ff_supported($ffForm)],
     ];
@@ -384,26 +386,40 @@ test("compatibility gate accepts exactly the pinned GF and FF versions", async (
     $out['nextPatch'] = Pirax\\FormTest\\gf_supported($form);
     GFForms::$version = $real;
     return $out;
-  `);
-  expect(result).toEqual({
-    installed: [PINS.gf, PINS.ff],
-    gf,
-    ff,
-    supported: [true, true],
-    nextPatch: false,
-  });
+  `
+      : `
+    $audited = fn($plugin, $versions) => array_combine($versions, array_map(fn($v) => Pirax\\FormTest\\version_is_audited($plugin, $v), $versions));
+    $ffForm = wpFluent()->table('fluentform_forms')->find(${h.fixtures.ff});
+    return [
+      'installed' => [FLUENTFORM_VERSION],
+      'ff' => $audited('ff', ${lit(Object.keys(ff))}),
+      'supported' => [Pirax\\FormTest\\ff_supported($ffForm)],
+    ];
+  `,
+  );
+  expect(result).toEqual(
+    AUDITS_GF
+      ? {
+          installed: [PINS.gf, PINS.ff],
+          gf,
+          ff,
+          supported: [true, true],
+          nextPatch: false,
+        }
+      : { installed: [PINS.ff], ff, supported: [true] },
+  );
 }, 60_000);
 
 test("optional plugin pins are exact strings, and on this stack (none of them active) both reports are ready with core versions only", async () => {
-  const [ffPro, cleantalk, fluentSmtp] = [exactMatrix(PINS.ff_pro, [""]), exactMatrix(PINS.cleantalk, [""]), exactMatrix(PINS.fluent_smtp, [""])];
+  const [ffPro, cleantalk, fluentSmtp] = [exactMatrix(PINS.ff_pro!, [""]), exactMatrix(PINS.cleantalk!, [""]), exactMatrix(PINS.fluent_smtp!, [""])];
   const result = await h.php<any>(`
     $audited = fn($plugin, $versions) => array_combine($versions, array_map(fn($v) => Pirax\\FormTest\\version_is_audited($plugin, $v), $versions));
     $report = fn($plugin) => array_intersect_key(Pirax\\FormTest\\compatibility_report($plugin), array_flip(['versions', 'unaudited', 'reasons', 'ready']));
     return [
       'ff_pro' => $audited('ff_pro', ${lit(Object.keys(ffPro))}),
       'cleantalk' => $audited('cleantalk', ${lit(Object.keys(cleantalk))}),
-      'fluent_smtp' => $audited('fluent_smtp', ${lit(Object.keys(fluentSmtp))}),
-      'gf' => $report('gf'),
+      'fluent_smtp' => $audited('fluent_smtp', ${lit(Object.keys(fluentSmtp))}),${gfOnly(`
+      'gf' => $report('gf'),`)}
       'ff' => $report('ff'),
     ];
   `);
@@ -411,7 +427,7 @@ test("optional plugin pins are exact strings, and on this stack (none of them ac
     ff_pro: ffPro,
     cleantalk,
     fluent_smtp: fluentSmtp,
-    gf: { versions: { gf: { version: PINS.gf, audited: true } }, unaudited: [], reasons: [], ready: true },
+    ...(AUDITS_GF && { gf: { versions: { gf: { version: PINS.gf, audited: true } }, unaudited: [], reasons: [], ready: true } }),
     ff: { versions: { ff: { version: PINS.ff, audited: true } }, unaudited: [], reasons: [], ready: true },
   });
 }, 60_000);
@@ -423,13 +439,13 @@ test("version-only diagnosis: reflected source directories decide callback owner
     $message = fn($causes = []) => ($F . 'block_message')(($F . 'compatibility_facts')('gf'), $causes);
     $synthetic = fn($versions, $unaudited = [], $unrecognized = []) => ($F . 'block_message')(['versions' => $versions, 'unaudited' => $unaudited, 'unrecognized' => $unrecognized], []);
     $v = fn($version, $audited) => ['version' => $version, 'audited' => $audited];
-    $probes = [
+    $probes = [${gfOnly(`
       WP_PLUGIN_DIR . '/gravityforms/pirax-owner-probe.php' => 'function pirax_probe_gf() {} class Pirax_Probe_GF { public function m() {} public static function s() {} public function __invoke() {} } function pirax_probe_gf_closure() { return function () {}; }',
       WP_PLUGIN_DIR . '/gravityforms-lookalike/pirax-owner-probe.php' => 'namespace Gravity_Forms\\Pirax_Probe; function lookalike() {} class GF_Probe { public function m() {} }',
-      WPMU_PLUGIN_DIR . '/pirax-owner-probe/pirax-owner-probe.php' => 'class GFForms_Pirax_Probe { public static function s() {} } function gravityforms_pirax_probe() {}',
+      WPMU_PLUGIN_DIR . '/pirax-owner-probe/pirax-owner-probe.php' => 'class GFForms_Pirax_Probe { public static function s() {} } function gravityforms_pirax_probe() {}',`)}
     ];
-    $real = GFForms::$version;
-    $out = [];
+${gfOnly(`    $real = GFForms::$version;
+`)}    $out = [];
     try {
       foreach ($probes as $file => $code) {
         wp_mkdir_p(dirname($file));
@@ -437,23 +453,23 @@ test("version-only diagnosis: reflected source directories decide callback owner
         require $file;
       }
       $eval = eval('return function () {};');
-      $out['owners'] = [
+      $out['owners'] = [${gfOnly(`
         'function' => $owner('pirax_probe_gf'),
         'method' => $owner([new Pirax_Probe_GF(), 'm']),
         'static string' => $owner('Pirax_Probe_GF::s'),
         'invokable' => $owner(new Pirax_Probe_GF()),
         'closure' => $owner(pirax_probe_gf_closure()),
-        'gf core' => $owner('GFFeedAddOn::maybe_process_feed'),
-        'ff core' => $owner([FluentForm\\App\\Services\\FormBuilder\\Notifications\\EmailNotificationActions::class, 'notify']),
+        'gf core' => $owner('GFFeedAddOn::maybe_process_feed'),`)}
+        'ff core' => $owner([FluentForm\\App\\Services\\FormBuilder\\Notifications\\EmailNotificationActions::class, 'notify']),${gfOnly(`
         'lookalike directory' => $owner('Gravity_Forms\\Pirax_Probe\\lookalike'),
         'lookalike method' => $owner(['Gravity_Forms\\Pirax_Probe\\GF_Probe', 'm']),
         'mu-plugin GF-like class' => $owner('GFForms_Pirax_Probe::s'),
-        'mu-plugin GF-like function' => $owner('gravityforms_pirax_probe'),
+        'mu-plugin GF-like function' => $owner('gravityforms_pirax_probe'),`)}
         'eval' => $owner($eval),
         'internal' => $owner('strlen'),
         'undefined' => $owner('pirax_probe_undefined'),
       ];
-
+${gfOnly(`
       $out['audited GF'] = $message();
       GFForms::$version = '${GF_NEXT}';
       $out['GF next patch'] = $message();
@@ -475,15 +491,15 @@ test("version-only diagnosis: reflected source directories decide callback owner
       $out['audited GF with GF-directory callbacks'] = $message();
       remove_all_filters('gform_pre_submission');
       remove_all_filters('gform_entry_created');
-
+`)}
       $out['report order, each owner once'] = $synthetic(['ff' => $v('${FF_NEXT}', false), 'ff_pro' => $v('${PINS.ff_pro}', true), 'cleantalk' => $v('${PINS.cleantalk}', true), 'fluent_smtp' => $v('${SMTP_NEXT}', false)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => 'fluent_smtp'], ['hook' => 'b', 'priority' => 10, 'id' => 'y', 'owner' => 'fluent_smtp'], ['hook' => 'c', 'priority' => 10, 'id' => 'z', 'owner' => 'ff']]);
       $out['callback of an audited plugin'] = $synthetic(['ff' => $v('${FF_NEXT}', false), 'ff_pro' => $v('${PINS.ff_pro}', true)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => 'ff_pro']]);
-      $out['unowned callback'] = $synthetic(['ff' => $v('${FF_NEXT}', false)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => null]]);
+      $out['unowned callback'] = $synthetic(['ff' => $v('${FF_NEXT}', false)], [['hook' => 'a', 'priority' => 10, 'id' => 'x', 'owner' => null]]);${gfOnly(`
       $out['missing core'] = $synthetic(['gf' => $v(null, false), 'cleantalk' => $v('${PINS.cleantalk}.1', false)]);
-      $out['unreadable optional version'] = $synthetic(['gf' => $v('${GF_NEXT}', false), 'cleantalk' => $v('', false)]);
+      $out['unreadable optional version'] = $synthetic(['gf' => $v('${GF_NEXT}', false), 'cleantalk' => $v('', false)]);`)}
       $out['unrecognized audited binding'] = $synthetic(['ff' => $v('${FF_NEXT}', false), 'cleantalk' => $v('${PINS.cleantalk}', true)], [], ['fluentform/before_insert_submission']);
       $out['nothing mismatched'] = $synthetic(['ff' => $v('${PINS.ff}', true)]);
-
+${gfOnly(`
       // The submission boundary: still rejected, with the message and last-block record chosen together.
       global $wpdb;
       $form = GFAPI::get_form(${h.fixtures.gf});
@@ -497,12 +513,12 @@ test("version-only diagnosis: reflected source directories decide callback owner
       $out['prepare with a post field'] = [($F . 'prepare_marked_submission')('gf', $form), ($F . 'blocked_message')(), get_option('pirax_form_test_last_block')['reasons']];
       GFForms::$version = $real;
       $out['prepare audited'] = [($F . 'prepare_marked_submission')('gf', GFAPI::get_form(${h.fixtures.gf})), ($F . 'blocked_message')()];
-      ($F . 'restore_suppressed')();
+`)}      ($F . 'restore_suppressed')();
     } finally {
-      GFForms::$version = $real;
+${gfOnly(`      GFForms::$version = $real;
       remove_all_filters('gform_pre_submission');
       remove_all_filters('gform_entry_created');
-      delete_option('pirax_form_test_last_block');
+`)}      delete_option('pirax_form_test_last_block');
       foreach (array_keys($probes) as $file) {
         if (file_exists($file)) unlink($file);
       }
@@ -514,46 +530,56 @@ test("version-only diagnosis: reflected source directories decide callback owner
   const AWAITING = `${config.forms.refusalPrefix} awaiting audit of `;
   await note("version-only diagnosis", result);
   expect(result.owners).toEqual({
-    function: "gf",
-    method: "gf",
-    "static string": "gf",
-    invokable: "gf",
-    closure: "gf",
-    "gf core": "gf",
+    ...(AUDITS_GF && {
+      function: "gf",
+      method: "gf",
+      "static string": "gf",
+      invokable: "gf",
+      closure: "gf",
+      "gf core": "gf",
+    }),
     "ff core": "ff",
-    "lookalike directory": null,
-    "lookalike method": null,
-    "mu-plugin GF-like class": null,
-    "mu-plugin GF-like function": null,
+    ...(AUDITS_GF && {
+      "lookalike directory": null,
+      "lookalike method": null,
+      "mu-plugin GF-like class": null,
+      "mu-plugin GF-like function": null,
+    }),
     eval: null,
     internal: null,
     undefined: null,
   });
   expect(result).toMatchObject({
-    "audited GF": BLOCKED,
-    "GF next patch": `${AWAITING}Gravity Forms ${GF_NEXT}`,
-    "GF next patch with its own callbacks": `${AWAITING}Gravity Forms ${GF_NEXT}`,
-    "public callback records": [["hook", "priority", "id"], ["hook", "priority", "id"]],
-    "GF next patch with an independent cause": BLOCKED,
-    "GF next patch plus mu-plugin callback": BLOCKED,
-    "GF next patch plus lookalike directory callback": BLOCKED,
-    "GF next patch plus eval callback": BLOCKED,
-    "GF version ''": BLOCKED,
-    [`GF version '${GF_NEXT}<b>'`]: BLOCKED,
-    "audited GF with GF-directory callbacks": BLOCKED,
+    ...(AUDITS_GF && {
+      "audited GF": BLOCKED,
+      "GF next patch": `${AWAITING}Gravity Forms ${GF_NEXT}`,
+      "GF next patch with its own callbacks": `${AWAITING}Gravity Forms ${GF_NEXT}`,
+      "public callback records": [["hook", "priority", "id"], ["hook", "priority", "id"]],
+      "GF next patch with an independent cause": BLOCKED,
+      "GF next patch plus mu-plugin callback": BLOCKED,
+      "GF next patch plus lookalike directory callback": BLOCKED,
+      "GF next patch plus eval callback": BLOCKED,
+      "GF version ''": BLOCKED,
+      [`GF version '${GF_NEXT}<b>'`]: BLOCKED,
+      "audited GF with GF-directory callbacks": BLOCKED,
+    }),
     "report order, each owner once": `${AWAITING}Fluent Forms ${FF_NEXT}, FluentSMTP ${SMTP_NEXT}`,
     "callback of an audited plugin": BLOCKED,
     "unowned callback": BLOCKED,
-    "missing core": BLOCKED,
-    "unreadable optional version": BLOCKED,
+    ...(AUDITS_GF && {
+      "missing core": BLOCKED,
+      "unreadable optional version": BLOCKED,
+    }),
     "unrecognized audited binding": BLOCKED,
     "nothing mismatched": BLOCKED,
-    prepare: [false, `${AWAITING}Gravity Forms ${GF_NEXT}`],
-    record: { message: `${AWAITING}Gravity Forms ${GF_NEXT}`, reasons: [`Gravity Forms ${GF_NEXT} is not the audited ${PINS.gf}`], form: h.fixtures.gf, paths: false },
-    "prepare with a post field": [false, BLOCKED, [`Gravity Forms ${GF_NEXT} is not the audited ${PINS.gf}`, "the form has post-creation fields"]],
-    "prepare audited": [true, BLOCKED],
+    ...(AUDITS_GF && {
+      prepare: [false, `${AWAITING}Gravity Forms ${GF_NEXT}`],
+      record: { message: `${AWAITING}Gravity Forms ${GF_NEXT}`, reasons: [`Gravity Forms ${GF_NEXT} is not the audited ${PINS.gf}`], form: h.fixtures.gf, paths: false },
+      "prepare with a post field": [false, BLOCKED, [`Gravity Forms ${GF_NEXT} is not the audited ${PINS.gf}`, "the form has post-creation fields"]],
+      "prepare audited": [true, BLOCKED],
+    }),
   });
-  expect(["no", "off"]).toContain(result.autoload);
+  if (AUDITS_GF) expect(["no", "off"]).toContain(result.autoload);
 }, 60_000);
 
 test("retained evidence contains no token", async () => {

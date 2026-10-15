@@ -1,7 +1,7 @@
 // Real WordPress Playground harness for plugin tests (plan D10–D12).
 //
 // startHarness() boots a disposable loopback WordPress (via playground.ts under Node) with the
-// licensed Gravity Forms GF_VERSION ZIP (GRAVITY_FORMS_ZIP) and Fluent Forms FF_VERSION from wordpress.org,
+// licensed Gravity Forms GF_VERSION ZIP (GRAVITY_FORMS_ZIP; only when the deployment audits gf, AUDITS_GF) and Fluent Forms FF_VERSION from wordpress.org,
 // installs the test-only mu-plugin, seeds native fixtures (fixtures.php) and returns a Harness.
 // startHarness({ compatibility: true }) adds the licensed Fluent Forms Pro ZIP (FLUENT_FORMS_PRO_ZIP)
 // and pinned CleanTalk and FluentSMTP (all vendor pins come from the selected deployment's audited versions), with third-party HTTP contained and FluentSMTP's Simulator
@@ -31,14 +31,22 @@ import { PHP_VERSION, WP_VERSION } from "./platform";
 
 /**
  * Vendor pins: the selected deployment's audited versions (DEPLOYMENT, read at import), exactly as the helper built
- * for it audits them; both licensed ZIPs must match too.
+ * for it audits them; both licensed ZIPs must match too. Only gf is optional (AUDITS_GF): the suites need the rest.
  */
 const PINS = readAuditedVersions();
-export const GF_VERSION = PINS.gf;
-export const FF_VERSION = PINS.ff;
-export const FF_PRO_VERSION = PINS.ff_pro;
-export const CLEANTALK_VERSION = PINS.cleantalk;
-export const FLUENT_SMTP_VERSION = PINS.fluent_smtp;
+const { gf: GF_PIN, ff, ff_pro, cleantalk, fluent_smtp } = PINS;
+if (!ff || !ff_pro || !cleantalk || !fluent_smtp) {
+  const missing = (["ff", "ff_pro", "cleantalk", "fluent_smtp"] as const).filter((key) => !PINS[key]);
+  throw new Error(`Deployment ${process.env.DEPLOYMENT} does not audit ${missing.join(", ")}: the native plugin suites need ff, ff_pro, cleantalk and fluent_smtp`);
+}
+export const AUDITS_GF: boolean = GF_PIN !== undefined;
+/** Test code (PHP or text) that exists only when the deployment audits gf, else "". */
+export const gfOnly = (code: string): string => (AUDITS_GF ? code : "");
+export const GF_VERSION: string | undefined = GF_PIN;
+export const FF_VERSION: string = ff;
+export const FF_PRO_VERSION: string = ff_pro;
+export const CLEANTALK_VERSION: string = cleantalk;
+export const FLUENT_SMTP_VERSION: string = fluent_smtp;
 /** Platform pins: not audited vendor packages. */
 export { PHP_VERSION, WP_VERSION };
 
@@ -100,18 +108,19 @@ export interface Harness {
   artifactDir: string;
   /** True for startHarness({ compatibility: true }). */
   compatibility: boolean;
-  versions: { gf: string; ff: string; wp: string; php: string; ffPro?: string; cleantalk?: string; fluentSmtp?: string };
+  versions: { gf?: string; ff: string; wp: string; php: string; ffPro?: string; cleantalk?: string; fluentSmtp?: string };
   users: { admin: User; editor: User; subscriber: User };
+  /** Every gf fixture is null when the deployment does not audit gf (!AUDITS_GF). */
   fixtures: {
-    gf: number;
+    gf: number | null;
     ff: number;
     page: string;
-    feeds: { gf: number };
-    async: { gf: boolean };
+    feeds: { gf: number | null };
+    async: { gf: boolean | null };
     /** reCAPTCHA v2 forms (GF captcha field with honeypot abort; FF recaptcha element) on one page. */
-    captcha: { gf: number; ff: number; page: string };
+    captcha: { gf: number | null; ff: number; page: string };
     /** GF form with a post field and FF payment form: side effects outside the feed paths. */
-    unsupported: { gf: number; ff: number; page: string };
+    unsupported: { gf: number | null; ff: number; page: string };
     /** Compatibility stack: the enabled Pro WebHook feed (fluentform_form_meta id) on `ff` and its loopback capture URL. */
     stack?: { webhook: number; capture: string };
   };
@@ -140,14 +149,14 @@ export interface Harness {
 /** Validate prerequisites; errors name the missing credential, never its value. */
 export function preflight(env: Record<string, string | undefined> = process.env, { compatibility = false } = {}) {
   const problems: string[] = [];
-  const gfZip = env.GRAVITY_FORMS_ZIP ?? "";
+  const gfZip = AUDITS_GF ? (env.GRAVITY_FORMS_ZIP ?? "") : "";
   const proZip = compatibility ? (env.FLUENT_FORMS_PRO_ZIP ?? "") : "";
   const token = env.FORM_TEST_TOKEN ?? "";
   const zip = (name: string, value: string, what: string) => {
     if (!value) problems.push(`${name} is not set (absolute path to the licensed ${what} ZIP)`);
     else if (!isAbsolute(value) || !existsSync(value) || !statSync(value).isFile()) problems.push(`${name} does not name an existing absolute file`);
   };
-  zip("GRAVITY_FORMS_ZIP", gfZip, "Gravity Forms");
+  if (AUDITS_GF) zip("GRAVITY_FORMS_ZIP", gfZip, "Gravity Forms");
   if (compatibility) zip("FLUENT_FORMS_PRO_ZIP", proZip, "Fluent Forms Pro");
   if (!token) problems.push("FORM_TEST_TOKEN is not set");
   for (const tool of ["node", "zip", "unzip"]) if (!Bun.which(tool)) problems.push(`required tool '${tool}' is not on PATH`);
@@ -211,7 +220,7 @@ export async function startHarness({ run = "run", compatibility = false }: { run
   await mkdir(artifactDir, { recursive: true });
 
   const [gfVersion, ffZip, extras] = await Promise.all([
-    pinnedVersion(gfZip, "gravityforms/gravityforms.php", "GRAVITY_FORMS_ZIP", GF_VERSION),
+    GF_VERSION === undefined ? undefined : pinnedVersion(gfZip, "gravityforms/gravityforms.php", "GRAVITY_FORMS_ZIP", GF_VERSION),
     wordpressOrgZip("fluentform", FF_VERSION, "fluentform.php", "Fluent Forms"),
     compatibility
       ? Promise.all([
@@ -221,19 +230,25 @@ export async function startHarness({ run = "run", compatibility = false }: { run
         ]).then(([, cleantalk, fluentSmtp]) => ({ cleantalk, fluentSmtp }))
       : undefined,
   ]);
-  const versions: Harness["versions"] = { gf: gfVersion, ff: FF_VERSION, wp: WP_VERSION, php: PHP_VERSION };
+  const versions: Harness["versions"] = { ...(gfVersion && { gf: gfVersion }), ff: FF_VERSION, wp: WP_VERSION, php: PHP_VERSION };
   if (extras) Object.assign(versions, { ffPro: FF_PRO_VERSION, cleantalk: CLEANTALK_VERSION, fluentSmtp: FLUENT_SMTP_VERSION });
 
-  // The child reads the licensed ZIP paths from its environment (Pro only for the compatibility stack),
-  // never the token or the helper signing seed.
-  const { FORM_TEST_TOKEN: _omit, FLUENT_FORMS_PRO_ZIP: _pro, PIRAX_HELPER_SIGNING_KEY: _seed, ...childEnv } = process.env;
+  // The child reads the licensed ZIP paths from its environment (GF only when audited, Pro only for the
+  // compatibility stack), never the token or the helper signing seed.
+  const { FORM_TEST_TOKEN: _omit, GRAVITY_FORMS_ZIP: _gf, FLUENT_FORMS_PRO_ZIP: _pro, PIRAX_HELPER_SIGNING_KEY: _seed, ...childEnv } = process.env;
   const child = Bun.spawn(
     [
       "node",
       join(import.meta.dir, "playground.ts"),
-      JSON.stringify({ ffZip, extras, muPlugin: join(import.meta.dir, "mu-plugin.php"), wp: WP_VERSION, php: PHP_VERSION }),
+      JSON.stringify({ gf: AUDITS_GF, ffZip, extras, muPlugin: join(import.meta.dir, "mu-plugin.php"), wp: WP_VERSION, php: PHP_VERSION }),
     ],
-    { cwd: ROOT, env: compatibility ? { ...childEnv, FLUENT_FORMS_PRO_ZIP: proZip } : childEnv, stdin: "pipe", stdout: "pipe", stderr: "pipe" },
+    {
+      cwd: ROOT,
+      env: { ...childEnv, ...(AUDITS_GF && { GRAVITY_FORMS_ZIP: gfZip }), ...(compatibility && { FLUENT_FORMS_PRO_ZIP: proZip }) },
+      stdin: "pipe",
+      stdout: "pipe",
+      stderr: "pipe",
+    },
   );
   const killChild = () => child.kill("SIGKILL");
   process.once("exit", killChild);
@@ -322,10 +337,13 @@ export async function startHarness({ run = "run", compatibility = false }: { run
     php<QueueState>(`
       global $wpdb;
       $gf = [];
-      $container = GFForms::get_service_container();
-      $processors = array_map([$container, 'get'], ['notifications_processor', 'feeds_processor']); // GF_Background_Process_Service_Provider::NOTIFICATIONS / ::FEEDS
-      // GF 3.x also runs each feed add-on's asynchronous feeds in its own processor.
-      foreach (GFAddOn::get_registered_addons(true) as $addon) if ($addon instanceof GFFeedAddOn) $processors[] = gf_feed_processor($addon);
+      $processors = [];
+      if (class_exists('GFForms')) {
+        $container = GFForms::get_service_container();
+        $processors = array_map([$container, 'get'], ['notifications_processor', 'feeds_processor']); // GF_Background_Process_Service_Provider::NOTIFICATIONS / ::FEEDS
+        // GF 3.x also runs each feed add-on's asynchronous feeds in its own processor.
+        foreach (GFAddOn::get_registered_addons(true) as $addon) if ($addon instanceof GFFeedAddOn) $processors[] = gf_feed_processor($addon);
+      }
       foreach ($processors as $processor) {
         $identifier = (fn() => $this->identifier)->call($processor);
         $gf[$identifier] = ['active' => $processor->is_active(), 'nonce' => wp_create_nonce($identifier)];
@@ -382,7 +400,7 @@ export async function startHarness({ run = "run", compatibility = false }: { run
     entries: () =>
       php(`
         global $wpdb;
-        $gf = $wpdb->get_results("SELECT 'gf' AS plugin, id, form_id AS form, date_created AS created FROM {$wpdb->prefix}gf_entry", ARRAY_A);
+        $gf = class_exists('GFForms') ? $wpdb->get_results("SELECT 'gf' AS plugin, id, form_id AS form, date_created AS created FROM {$wpdb->prefix}gf_entry", ARRAY_A) : [];
         $ff = $wpdb->get_results("SELECT 'ff' AS plugin, id, form_id AS form, created_at AS created FROM {$wpdb->prefix}fluentform_submissions", ARRAY_A);
         $rows = array_map(fn($r) => ['id' => (int) $r['id'], 'form' => (int) $r['form']] + $r, array_merge($gf, $ff));
         return ['gf' => count($gf), 'ff' => count($ff), 'rows' => $rows];
@@ -507,7 +525,7 @@ export async function startHarness({ run = "run", compatibility = false }: { run
               versions,
               fixtures: h.fixtures,
               zips: {
-                gravityforms: await sha256(gfZip),
+                ...(AUDITS_GF && { gravityforms: await sha256(gfZip) }),
                 fluentform: await sha256(ffZip),
                 ...(extras && { fluentformpro: await sha256(proZip), cleantalk: await sha256(extras.cleantalk), fluentSmtp: await sha256(extras.fluentSmtp) }),
               },

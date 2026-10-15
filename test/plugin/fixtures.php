@@ -18,8 +18,10 @@ foreach ( array( 'editor' => 'editor', 'subscriber' => 'subscriber' ) as $login 
 	$users[ $login ] = array( 'id' => (int) $id, 'login' => $login, 'password' => "pirax-local-$login" );
 }
 
-// Gravity Forms: GF finishes its install routine lazily; run it now so its tables exist.
-if ( class_exists( 'GFForms' ) ) {
+// Gravity Forms, only when installed (the deployment audits gf): every gf fixture is null otherwise.
+// GF finishes its install routine lazily; run it now so its tables exist.
+$gf_active = class_exists( 'GFForms' );
+if ( $gf_active ) {
 	GFForms::setup( true );
 }
 $notification = static function ( $id, $to, $label ) {
@@ -39,29 +41,33 @@ $notification = static function ( $id, $to, $label ) {
 		'disableAutoformat' => false,
 	);
 };
-$gf_id = GFAPI::add_form(
-	array(
-		'title'         => 'Pirax GF contact',
-		'fields'        => array(
-			array( 'id' => 1, 'type' => 'text', 'label' => 'Name', 'isRequired' => true ),
-			array( 'id' => 2, 'type' => 'email', 'label' => 'Email', 'isRequired' => true ),
-			array( 'id' => 3, 'type' => 'textarea', 'label' => 'Message' ),
-		),
-		'notifications' => array(
-			'pirax00000001' => $notification( 'pirax00000001', 'owner@client.test', 'A' ),
-			'pirax00000002' => $notification( 'pirax00000002', 'owner-2@client.test', 'B' ),
-		),
-		'confirmations' => array(
-			'pirax0000000c' => array( 'id' => 'pirax0000000c', 'name' => 'Default', 'isDefault' => true, 'type' => 'message', 'message' => 'Pirax GF thanks' ),
-		),
-	)
-);
-if ( is_wp_error( $gf_id ) ) {
-	throw new RuntimeException( $gf_id->get_error_message() );
-}
-$gf_feed = GFAPI::add_feed( $gf_id, array( 'feedName' => 'Pirax ledger' ), 'pirax-harness-ledger' );
-if ( is_wp_error( $gf_feed ) ) {
-	throw new RuntimeException( $gf_feed->get_error_message() );
+$gf_id   = null;
+$gf_feed = null;
+if ( $gf_active ) {
+	$gf_id = GFAPI::add_form(
+		array(
+			'title'         => 'Pirax GF contact',
+			'fields'        => array(
+				array( 'id' => 1, 'type' => 'text', 'label' => 'Name', 'isRequired' => true ),
+				array( 'id' => 2, 'type' => 'email', 'label' => 'Email', 'isRequired' => true ),
+				array( 'id' => 3, 'type' => 'textarea', 'label' => 'Message' ),
+			),
+			'notifications' => array(
+				'pirax00000001' => $notification( 'pirax00000001', 'owner@client.test', 'A' ),
+				'pirax00000002' => $notification( 'pirax00000002', 'owner-2@client.test', 'B' ),
+			),
+			'confirmations' => array(
+				'pirax0000000c' => array( 'id' => 'pirax0000000c', 'name' => 'Default', 'isDefault' => true, 'type' => 'message', 'message' => 'Pirax GF thanks' ),
+			),
+		)
+	);
+	if ( is_wp_error( $gf_id ) ) {
+		throw new RuntimeException( $gf_id->get_error_message() );
+	}
+	$gf_feed = GFAPI::add_feed( $gf_id, array( 'feedName' => 'Pirax ledger' ), 'pirax-harness-ledger' );
+	if ( is_wp_error( $gf_feed ) ) {
+		throw new RuntimeException( $gf_feed->get_error_message() );
+	}
 }
 
 // Fluent Forms: clone the demo contact form FF creates on activation, with native notifications and a ledger feed.
@@ -109,41 +115,45 @@ update_option( 'pirax_ledger_settings', array( 'apiKey' => '', 'status' => true 
 
 // Adapter fixtures (AC4/AC6): reCAPTCHA v2 forms whose siteverify the mu-plugin answers with
 // success:false, and forms with side effects outside the suppressible feed paths.
-update_option( 'rg_gforms_captcha_public_key', 'pirax-local-site-key' );
-update_option( 'rg_gforms_captcha_private_key', 'pirax-local-secret-key' );
-update_option( 'rg_gforms_captcha_type', 'checkbox' );
-$gf_form = static function ( $title, array $fields, array $extra = array() ) use ( $notification ) {
-	$id = GFAPI::add_form(
-		$extra + array(
-			'title'         => $title,
-			'fields'        => $fields,
-			'notifications' => array( 'pirax00000003' => $notification( 'pirax00000003', 'owner-3@client.test', 'C' ) ),
-			'confirmations' => array(
-				'pirax0000000c' => array( 'id' => 'pirax0000000c', 'name' => 'Default', 'isDefault' => true, 'type' => 'message', 'message' => 'Pirax GF thanks' ),
-			),
+$gf_captcha = null;
+$gf_post    = null;
+if ( $gf_active ) {
+	update_option( 'rg_gforms_captcha_public_key', 'pirax-local-site-key' );
+	update_option( 'rg_gforms_captcha_private_key', 'pirax-local-secret-key' );
+	update_option( 'rg_gforms_captcha_type', 'checkbox' );
+	$gf_form = static function ( $title, array $fields, array $extra = array() ) use ( $notification ) {
+		$id = GFAPI::add_form(
+			$extra + array(
+				'title'         => $title,
+				'fields'        => $fields,
+				'notifications' => array( 'pirax00000003' => $notification( 'pirax00000003', 'owner-3@client.test', 'C' ) ),
+				'confirmations' => array(
+					'pirax0000000c' => array( 'id' => 'pirax0000000c', 'name' => 'Default', 'isDefault' => true, 'type' => 'message', 'message' => 'Pirax GF thanks' ),
+				),
+			)
+		);
+		if ( is_wp_error( $id ) ) {
+			throw new RuntimeException( $id->get_error_message() );
+		}
+		return (int) $id;
+	};
+	$gf_captcha = $gf_form(
+		'Pirax GF captcha',
+		array(
+			array( 'id' => 1, 'type' => 'text', 'label' => 'Name', 'isRequired' => true ),
+			array( 'id' => 2, 'type' => 'textarea', 'label' => 'Message' ),
+			array( 'id' => 3, 'type' => 'captcha', 'label' => 'CAPTCHA', 'captchaType' => '' ),
+		),
+		array( 'enableHoneypot' => true, 'honeypotAction' => 'abort' )
+	);
+	$gf_post = $gf_form(
+		'Pirax GF post',
+		array(
+			array( 'id' => 1, 'type' => 'post_title', 'label' => 'Title', 'isRequired' => true ),
+			array( 'id' => 2, 'type' => 'textarea', 'label' => 'Message' ),
 		)
 	);
-	if ( is_wp_error( $id ) ) {
-		throw new RuntimeException( $id->get_error_message() );
-	}
-	return (int) $id;
-};
-$gf_captcha = $gf_form(
-	'Pirax GF captcha',
-	array(
-		array( 'id' => 1, 'type' => 'text', 'label' => 'Name', 'isRequired' => true ),
-		array( 'id' => 2, 'type' => 'textarea', 'label' => 'Message' ),
-		array( 'id' => 3, 'type' => 'captcha', 'label' => 'CAPTCHA', 'captchaType' => '' ),
-	),
-	array( 'enableHoneypot' => true, 'honeypotAction' => 'abort' )
-);
-$gf_post = $gf_form(
-	'Pirax GF post',
-	array(
-		array( 'id' => 1, 'type' => 'post_title', 'label' => 'Title', 'isRequired' => true ),
-		array( 'id' => 2, 'type' => 'textarea', 'label' => 'Message' ),
-	)
-);
+}
 
 update_option( '_fluentform_reCaptcha_details', array( 'siteKey' => 'pirax-local-site-key', 'secretKey' => 'pirax-local-secret-key', 'api_version' => 'v2_visible' ), false );
 $ff_form = static function ( $title, array $fields, $has_payment = 0 ) use ( $wpdb, $now, $settings, $ff_id ) {
@@ -180,15 +190,18 @@ $extra_page = static function ( $title, $content ) {
 	}
 	return get_permalink( $id );
 };
-$captcha_page     = $extra_page( 'Pirax captcha forms', "[gravityform id=\"$gf_captcha\" title=\"false\" ajax=\"false\"]\n\n[fluentform id=\"$ff_captcha\"]" );
-$unsupported_page = $extra_page( 'Pirax unsupported forms', "[gravityform id=\"$gf_post\" title=\"false\" ajax=\"false\"]\n\n[fluentform id=\"$ff_payment\"]" );
+$gf_shortcode     = static function ( $id ) use ( $gf_active ) {
+	return $gf_active ? "[gravityform id=\"$id\" title=\"false\" ajax=\"false\"]\n\n" : '';
+};
+$captcha_page     = $extra_page( 'Pirax captcha forms', $gf_shortcode( $gf_captcha ) . "[fluentform id=\"$ff_captcha\"]" );
+$unsupported_page = $extra_page( 'Pirax unsupported forms', $gf_shortcode( $gf_post ) . "[fluentform id=\"$ff_payment\"]" );
 
 $page = wp_insert_post(
 	array(
 		'post_type'    => 'page',
 		'post_status'  => 'publish',
 		'post_title'   => 'Pirax forms',
-		'post_content' => "[gravityform id=\"$gf_id\" title=\"false\" ajax=\"false\"]\n\n[fluentform id=\"$ff_id\"]",
+		'post_content' => $gf_shortcode( $gf_id ) . "[fluentform id=\"$ff_id\"]",
 	),
 	true
 );
@@ -229,12 +242,12 @@ if ( defined( 'PIRAX_HARNESS_COMPAT' ) ) {
 }
 
 return $stack + array(
-	'gf'    => (int) $gf_id,
+	'gf'    => $gf_active ? (int) $gf_id : null,
 	'ff'    => $ff_id,
 	'page'  => get_permalink( $page ),
 	'users' => $users,
-	'feeds' => array( 'gf' => (int) $gf_feed ),
-	'async' => array( 'gf' => (bool) get_option( 'gform_enable_async_notifications' ) ),
+	'feeds' => array( 'gf' => $gf_active ? (int) $gf_feed : null ),
+	'async' => array( 'gf' => $gf_active ? (bool) get_option( 'gform_enable_async_notifications' ) : null ),
 	'captcha'     => array( 'gf' => $gf_captcha, 'ff' => $ff_captcha, 'page' => $captcha_page ),
 	'unsupported' => array( 'gf' => $gf_post, 'ff' => $ff_payment, 'page' => $unsupported_page ),
 );

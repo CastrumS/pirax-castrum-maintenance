@@ -7,7 +7,7 @@ import { createInterface } from "node:readline";
 import { runCLI } from "@wp-playground/cli";
 
 const MARK = "@@pirax-playground@@";
-const config: { ffZip: string; muPlugin: string; wp: string; php: string; extras?: { cleantalk: string; fluentSmtp: string } } =
+const config: { gf: boolean; ffZip: string; muPlugin: string; wp: string; php: string; extras?: { cleantalk: string; fluentSmtp: string } } =
   JSON.parse(process.argv[2]!);
 const send = (message: object) => process.stdout.write(`${MARK}${JSON.stringify(message)}\n`);
 const literal = (name: string, path: string) => ({
@@ -16,9 +16,10 @@ const literal = (name: string, path: string) => ({
   contents: new Uint8Array(readFileSync(path)),
 });
 
-// GRAVITY_FORMS_ZIP is read here, never passed on the command line (it would show in process lists).
-const gfZip = process.env.GRAVITY_FORMS_ZIP;
-if (!gfZip) throw new Error("GRAVITY_FORMS_ZIP is not set");
+// GRAVITY_FORMS_ZIP is read here, never passed on the command line (it would show in process lists),
+// and only when the deployment audits Gravity Forms.
+const gfZip = config.gf ? process.env.GRAVITY_FORMS_ZIP : undefined;
+if (config.gf && !gfZip) throw new Error("GRAVITY_FORMS_ZIP is not set");
 // FLUENT_FORMS_PRO_ZIP likewise, and only for the compatibility stack.
 const proZip = config.extras && process.env.FLUENT_FORMS_PRO_ZIP;
 if (config.extras && !proZip) throw new Error("FLUENT_FORMS_PRO_ZIP is not set");
@@ -41,7 +42,7 @@ const server = await runCLI({
         path: "/wordpress/wp-content/mu-plugins/pirax-harness.php",
         data: readFileSync(config.muPlugin, "utf8"),
       },
-      install("gravityforms.zip", gfZip),
+      ...(config.gf ? [install("gravityforms.zip", gfZip!)] : []),
       install("fluentform.zip", config.ffZip),
       ...(config.extras
         ? [

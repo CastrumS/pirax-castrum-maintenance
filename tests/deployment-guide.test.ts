@@ -68,7 +68,7 @@ function resolvesInConfig(field: string): boolean {
   return true;
 }
 
-// Returns the cited name when a path, workflow file token is missing; undefined when it exists or is not checked.
+// Returns the cited name when a path or workflow file token is missing; undefined when it exists or is not checked.
 function missingToken(token: string): string | undefined {
   const bare = stripEdges(token.split("#")[0]!).replaceAll("<name>", "pirax");
   if (bare.includes("<") || GENERATED_PREFIXES.some((prefix) => bare.startsWith(prefix))) return undefined;
@@ -88,7 +88,7 @@ function missingNames(section: string): string[] {
       const problem = missingToken(token);
       if (problem !== undefined) missing.add(problem);
     }
-    for (const match of line.matchAll(/\bbun run ([^\s`]+)/g)) {
+    for (const match of line.matchAll(/\bbun (?:--?\S+ )*run ([^\s`]+)/g)) {
       const script = stripEdges(match[1]!);
       if (!script.includes("<") && !Object.hasOwn(PACKAGE.scripts, script)) missing.add(`bun run ${script}`);
     }
@@ -115,11 +115,12 @@ test("missingNames reports every invented name, inline and in fenced blocks", ()
     "",
     "```sh",
     "bun run no-such",
+    "bun --env-file=.env run no-such-flag",
     "scripts/no-such.ts NO_SUCH_SECRET no-such.yml",
     "```",
   ].join("\n");
   expect(missingNames(text).sort()).toEqual(
-    ["FORM_TEST", "NO_SUCH_SECRET", "bun run no-such", "no-such.yml", "scripts/no-such.ts", "weeklyCheck.nope"].sort(),
+    ["FORM_TEST", "NO_SUCH_SECRET", "bun run no-such", "bun run no-such-flag", "no-such.yml", "scripts/no-such.ts", "weeklyCheck.nope"].sort(),
   );
 });
 
@@ -133,6 +134,7 @@ test("missingNames reports nothing for real names, provider values and placehold
     "",
     "```sh",
     "bun run build:plugin",
+    "bun --env-file=.env run mail:selftest",
     "```",
   ].join("\n");
   expect(missingNames(text)).toEqual([]);

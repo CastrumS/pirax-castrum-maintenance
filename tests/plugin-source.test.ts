@@ -2,15 +2,17 @@ import { expect, test } from "bun:test";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { PIN_KEYS, parseAuditedVersions, pinKeys, parseHelperVersion, readAuditedVersions, readHelperVersion } from "../scripts/plugin-source";
+import { PIN_KEYS, parseAuditedVersions, pinKeys, parseHelperVersion, readAuditedVersions, readHelperVersion, type PinKey } from "../scripts/plugin-source";
 import { auditedLine, renderPlugin } from "../scripts/render-plugin";
 import { DeploymentConfigError, loadDeployment } from "../src/deployment";
 import { FIXTURE_VERSIONS, fixtureConfig, fixtureKeys, writeDeployment } from "../test/fixtures/deployment";
-import { nearMisses, nextPatch, pinLine, PINS, withHelperVersion } from "../test/plugin/version-fixtures";
+import { nearMisses, nextPatch, withHelperVersion } from "../test/plugin/version-fixtures";
 
 const ROOT = resolve(import.meta.dir, "..");
 const PIRAX = { env: { DEPLOYMENT: "pirax" } };
 const pirax = loadDeployment(PIRAX);
+/** Pirax's pins, matching the rendered Pirax helper whichever deployment is selected. */
+const PINS = readAuditedVersions(PIRAX);
 /** The rendered Pirax helper, as its ZIP carries it: the strict parsers read built PHP, never templates. */
 const rendered = Object.fromEntries(renderPlugin(pirax).map((f) => [f.path, f.contents]));
 const COMPATIBILITY = rendered[`${pirax.config.plugin.slug}/includes/compatibility.php`]!;
@@ -37,7 +39,7 @@ const edited = (text: string, edit: (text: string) => string) => {
   return after;
 };
 
-const line = pinLine;
+const line = (key: PinKey, version: string | undefined = PINS[key]) => auditedLine(key, version);
 
 test("the selected deployment holds exactly the five known pins, and the rendered table carries each once", () => {
   const audited = readAuditedVersions(PIRAX);

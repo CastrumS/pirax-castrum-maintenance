@@ -93,7 +93,7 @@ function missingNames(section: string): string[] {
       if (!script.includes("<") && !Object.hasOwn(PACKAGE.scripts, script)) missing.add(`bun run ${script}`);
     }
     for (const name of line.match(UPPER_NAME) ?? []) {
-      if (!NAME_TEXT.includes(name)) missing.add(name);
+      if (!new RegExp(`\\b${name}\\b`).test(NAME_TEXT)) missing.add(name);
     }
   }
   for (const span of spans) {
@@ -111,7 +111,7 @@ test("missingNames reports every invented name, inline and in fenced blocks", ()
   const text = [
     "## New deployment",
     "",
-    "Inline: `scripts/no-such.ts` `NO_SUCH_SECRET` `bun run no-such` `no-such.yml` `weeklyCheck.nope`.",
+    "Inline: `scripts/no-such.ts` `NO_SUCH_SECRET` `FORM_TEST` `bun run no-such` `no-such.yml` `weeklyCheck.nope`.",
     "",
     "```sh",
     "bun run no-such",
@@ -119,7 +119,7 @@ test("missingNames reports every invented name, inline and in fenced blocks", ()
     "```",
   ].join("\n");
   expect(missingNames(text).sort()).toEqual(
-    ["NO_SUCH_SECRET", "bun run no-such", "no-such.yml", "scripts/no-such.ts", "weeklyCheck.nope"].sort(),
+    ["FORM_TEST", "NO_SUCH_SECRET", "bun run no-such", "no-such.yml", "scripts/no-such.ts", "weeklyCheck.nope"].sort(),
   );
 });
 

@@ -104,7 +104,8 @@ A second company runs its own copy of this repository: its own GitHub repository
 1. Clone without tags and keep this repository as `upstream`:
 
    ```sh
-   git clone --no-tags <upstream URL>
+   git clone --no-tags <upstream URL> <folder>
+   cd <folder>
    git remote rename origin upstream
    git config remote.upstream.tagOpt --no-tags
    ```
@@ -148,6 +149,8 @@ Create `deployments/<name>/`. The name is lowercase letters and digits, in words
 
 Do not create `deployments/<name>/heartbeat.txt`: the heartbeat job creates it.
 
+Add `DEPLOYMENT=<name>` to `.env` now: the mail commands below need it.
+
 ### Signing key
 
 Generate the seed into `.env`, print its public key for `channel.publicKey`, and store the seed as a repository secret:
@@ -189,7 +192,7 @@ bun --env-file=.env scripts/weekly/check.ts --selftest
 
 ### Selection and secrets
 
-1. Add `DEPLOYMENT=<name>` to `.env` and set the repository variable:
+1. Set the repository variable:
 
    ```sh
    gh variable set DEPLOYMENT --body <name> --repo <owner>/<repo>
@@ -261,11 +264,13 @@ git fetch upstream
 git merge upstream/main
 bun install
 bun run typecheck
-bun --no-env-file test tests
+DEPLOYMENT=pirax bun --no-env-file test tests
 git push origin main
 ```
 
-Merges are conflict-free because each deployment's jobs write only its own folder. The exception is the updater ciphertext: if `.github/audit/gplvault-updater.zip.gpg` conflicts, keep the copy's own with `git checkout --ours .github/audit/gplvault-updater.zip.gpg` and `git add .github/audit/gplvault-updater.zip.gpg`. An upstream helper fix reaches the copy's sites with its next audited release: the next re-audit that finds a vendor change bumps and publishes it. There is no manual release path that keeps the audit gate.
+`DEPLOYMENT=pirax` makes the shared tests run against `deployments/pirax/`, which the copy keeps unchanged.
+
+Merges are conflict-free because each deployment's jobs write only its own folder. The exception is the updater ciphertext: if `.github/audit/gplvault-updater.zip.gpg` conflicts, keep the copy's own with `git checkout --ours .github/audit/gplvault-updater.zip.gpg` and `git add .github/audit/gplvault-updater.zip.gpg`. The merge then finishes with `git commit --no-edit`, before the push. An upstream helper fix reaches the copy's sites with its next audited release: the next re-audit that finds a vendor change bumps and publishes it. There is no manual release path that keeps the audit gate.
 
 ## Commands
 
@@ -277,7 +282,7 @@ Local checker commands require `DEPLOYMENT` (for example `DEPLOYMENT=pirax`), ev
 | `bun run check <slug\|all> [--sites file]` | Capture/compare, then check forms; publish a private report, including expected failures. Never changes baselines. | Yes |
 | `bun run forms <slug\|all> [--sites file]` | Desktop forms-only check; no visual capture/comparison or baseline access. | Yes |
 | `bun run approve <slug> [pagePath] [--sites file]` | Promote exact actual PNG/health bytes from the latest completed remote check containing that site. | Yes |
-| `bun --no-env-file test tests` | Credential-free unit/helper, CLI and local browser tests; browser cases require installed Chromium. `bunfig.toml` excludes `issues/**` worktrees from discovery. | No |
+| `DEPLOYMENT=pirax bun --no-env-file test tests` | Credential-free unit/helper, CLI and local browser tests; browser cases require installed Chromium. `bunfig.toml` excludes `issues/**` worktrees from discovery. | No |
 | `bun --env-file=.env test` | Full suite, including native [plugin](test/plugin/README.md) and [forms](test/forms/README.md) integration and scoped real R2; budget about 55 minutes. The release CLI tests in it also need network and an authenticated `gh`. Needs licensed GF and Fluent Forms Pro ZIPs, forms/IMAP and R2 configuration. On a clean checkout run `bun run build:plugin` first: the forms suite uploads the existing `dist/pirax-form-test.zip` and can run before a plugin suite builds it. Missing prerequisites fail, never skip. | Yes |
 | `bun --env-file=.env run test:forms` | Browser/config/mail helpers, native Playground checker, scoped report tests and awaiting-audit state/command tests. | Yes |
 | `bun --env-file=.env run mail:selftest` | Independent real SMTP/IMAP proof; sends one message and leaves it in the dedicated mailbox. | No |
@@ -440,7 +445,7 @@ bunx playwright show-trace runs/<runId>/traces/<slug>/desktop/<pageKey>.trace.zi
 
 ## Form checks
 
-**`form_helper: true` is operator attestation, not proof of installation, matching token or audited versions.** Verify the built helper ZIP, settings, notification path and integrations before opting in. A missing/mismatched helper can process a marker as ordinary data and involve clients. Keep unverified sites false. Opt in one site at a time, only in the order in [Opt in a site](#opt-in-a-site); tests do not authorize a rollout. Follow the [helper install/rollout guide](plugin/pirax-form-test/README.md#rollout).
+**`form_helper: true` is operator attestation, not proof of installation, matching token or audited versions.** Verify the built helper ZIP, settings, notification path and integrations before opting in. A missing/mismatched helper can process a marker as ordinary data and involve clients. Keep unverified sites false. Opt in one site at a time, with explicit operator go-ahead for each site, only in the order in [Opt in a site](#opt-in-a-site); tests do not authorize a rollout. Follow the [helper install/rollout guide](plugin/pirax-form-test/README.md#rollout).
 
 Both commands scan each listed page once for forms at desktop 1440×900, separately from visual desktop/mobile contexts. Only the site's [designated test form](#designated-test-form) is ever filled. If it is a supported Gravity Forms or Fluent Forms form, it gets deterministic test data, `FORM_TEST_ADDRESS` in email fields, and an intact `<FORM_TEST_TOKEN>-<id>` in the first usable textarea or plain text input. Each attempt has a fresh cryptographic 12-character lowercase alphanumeric ID. Hidden nonces/honeypots are preserved. Required checkbox groups use native GF/FF markers (`aria-required` and GF required-field containers): one usable choice per group, plus every individually HTML-required checkbox; optional groups are left unchanged. A designated form with uploads (even hidden), missing/constrained marker fields, external actions, custom/multistep/payment/password flows or GF drafts is unsupported. Unknown or unnumbered forms (such as a GF `gform_0`) cannot match a designation and are always skipped. FF hCaptcha/Turnstile is not verified; no CAPTCHA solving is attempted. Invisible/reCAPTCHA v3 browser flows remain unverified: their client-side execution may be blocked by the frozen request policy and time out as `failed`, even when the helper bypasses server CAPTCHA validation. Specialized GF phone formats/widgets (US Standard and International formatted) are also unverified and may falsely reject fixed test data; do not infer support from basic telephone-input filling.
 

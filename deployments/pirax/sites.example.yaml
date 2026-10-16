@@ -1,8 +1,8 @@
-# Copy to sites.yaml and list your own sites. Committed; never put secrets here.
+# Copy to deployments/<name>/sites.yaml and list your own sites. Committed; never put secrets here.
 sites:
   - slug: acme                 # lowercase-hyphen, unique
     url: https://acme.example.com  # no trailing slash
-    form_helper: false         # true once pirax-form-test is installed and configured on this site
+    form_helper: false         # true only through README → New deployment → Opt in a site
     mask: ['#hero-slider']     # optional, CSS selectors masked on every page
     max_diff_pixel_ratio: 0.01 # optional, default 0.01
     # optional: the only form ever filled on this site, attempted at most once per run (submitted

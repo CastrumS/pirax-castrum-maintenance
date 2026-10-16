@@ -76,6 +76,8 @@ Run `scripts/reaudit/run.ts` locally only in a disposable checkout: it rewrites 
 
 Production commands require [Bun](https://bun.sh) 1.4 or newer, Playwright Chromium with its system libraries, and private Cloudflare R2 access. The forms pass additionally requires `zip`/`unzip` for private trace sanitation. Node 24, OpenSSL and WordPress downloads are additional integration-selftest requirements only; see [Visual selftest](#visual-selftest).
 
+To run a separate copy of this repository for another company, follow [New deployment](#new-deployment).
+
 ```sh
 bun install
 bunx playwright install chromium
@@ -92,6 +94,178 @@ Create `.env` in the repository root with the four names from `.env.example`:
 | `S3_BUCKET` | The exact name of the bucket you created. |
 
 `.env` is gitignored. `.env.example` lists the names with empty values and is committed. Never commit real values or paste them into issues or logs.
+
+## New deployment
+
+A second company runs its own copy of this repository: its own GitHub repository, deployment folder, signing key, R2 bucket, mailbox and helper releases. Follow these sections in order. Secrets go only in the copy's `.env` and its repository secrets, never in git. Placeholders: `<name>` is the deployment name, `<owner>/<repo>` the copy's GitHub repository, `<slug>` a site or plugin slug.
+
+### Copy the repository
+
+1. Clone without tags and keep this repository as `upstream`:
+
+   ```sh
+   git clone --no-tags <upstream URL>
+   git remote rename origin upstream
+   git config remote.upstream.tagOpt --no-tags
+   ```
+
+2. Create a new **public** GitHub repository, then push to it:
+
+   ```sh
+   git remote add origin <its URL>
+   git push -u origin main
+   ```
+
+3. Install the tools as in [Setup](#setup) (`bun install`, `bunx playwright install chromium`).
+
+No tags, because `scripts/release-plugin.ts` refuses a version whose tag exists locally, and the copy starts at Pirax's helper version, whose `v<version>` tag exists upstream. Public, because sites download the helper's release files without credentials.
+
+### Deployment folder
+
+Create `deployments/<name>/`. The name is lowercase letters and digits, in words joined by single hyphens. Never edit or delete `deployments/pirax/`: upstream jobs keep writing there, so a local change conflicts on the next pull.
+
+`deployments/<name>/config.json`: copy `deployments/pirax/config.json` and replace every field.
+
+| Field | Set to |
+| --- | --- |
+| `plugin.name`, `plugin.author`, `plugin.description` | The helper's visible name, author and description in wp-admin. |
+| `plugin.slug` | The helper's folder and ZIP name, lowercase words joined by hyphens. |
+| `plugin.updateUri` | `https://github.com/<owner>/<repo>` |
+| `channel.repository` | `<owner>/<repo>` |
+| `channel.releasesRoot` | `https://github.com/<owner>/<repo>/releases` |
+| `channel.publicKey` | The public key printed in [Signing key](#signing-key). |
+| `notice.recipient` | The address that receives failure notices and the weekly summary. |
+| `notice.subjectPrefix` | The prefix of their subjects, for example `[<name>-audit]`. |
+| `forms.refusalPrefix` | The start of the helper's refusal message, for example `<Company> test blocked:`. |
+| `forms.text`, `forms.message` | The checker's filler for text fields and the message field. |
+| `weeklyCheck.enabled` | `false` until [Weekly check in GitHub Actions](#weekly-check-in-github-actions). |
+| `weeklyCheck.timeZone` | IANA zone for times in the weekly summary, for example `America/New_York`. |
+| `audited` | Only the plugins this deployment audits, from `gf`, `ff`, `ff_pro`, `cleantalk`, `fluent_smtp`. `ff_pro` needs `ff`. A deployment without Gravity Forms sites omits `gf`. |
+
+`deployments/<name>/versions.json`: Pirax's current pins from `deployments/pirax/versions.json` for exactly the keys in `audited`, and Pirax's `helperVersion`.
+
+`deployments/<name>/sites.yaml`: `sites: []` to start. The format is in `deployments/pirax/sites.example.yaml` and [Site list](#site-list).
+
+Do not create `deployments/<name>/heartbeat.txt`: the heartbeat job creates it.
+
+### Signing key
+
+Generate the seed into `.env`, print its public key for `channel.publicKey`, and store the seed as a repository secret:
+
+```sh
+bun -e 'console.log("PIRAX_HELPER_SIGNING_KEY=" + Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64"))' >> .env
+bun --env-file=.env -e 'import { rawPublicKey, signingKey } from "./scripts/release-plugin.ts"; console.log(rawPublicKey(signingKey()))'
+bun --env-file=.env -e 'process.stdout.write(process.env.PIRAX_HELPER_SIGNING_KEY)' | gh secret set PIRAX_HELPER_SIGNING_KEY --repo <owner>/<repo>
+```
+
+Keep the seed in `.env` too. `PIRAX_HELPER_SIGNING_KEY` is an internal name and stays the same in every deployment.
+
+### R2 bucket and test mailbox
+
+**R2.** In the Cloudflare dashboard → R2, create a bucket, then fill `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_ENDPOINT` and `S3_BUCKET` in `.env` as in the [Setup table](#setup).
+
+**Mailbox.** It must be a Google account, because the failure notice and the weekly summary send through `smtp.gmail.com:465` with `IMAP_USER` and `IMAP_PASSWORD`. Use a dedicated Google Workspace account, not a personal inbox. Formats are in [Forms/mail configuration](#formsmail-configuration).
+
+1. Turn on 2-Step Verification and create an app password. The account is `IMAP_USER`, the app password is `IMAP_PASSWORD`.
+2. Have the Workspace admin allow IMAP. Set `IMAP_HOST` to `imap.gmail.com` and `IMAP_PORT` to `993`.
+3. Use a plus-address of the account as `FORM_TEST_ADDRESS`.
+4. Create a Gmail filter for that plus-address that applies one label. The label name is `IMAP_FOLDER`. Set `IMAP_SPAM_FOLDER` to `[Gmail]/Spam`.
+5. Set `SMTP_HOST` and `SMTP_PORT` to Gmail's `smtp.gmail.com:465` host and port, and `SMTP_USER` and `SMTP_PASSWORD` to the same account and app password. Only `mail:selftest` uses them.
+6. Generate `FORM_TEST_TOKEN`:
+
+   ```sh
+   bun -e 'console.log("FORM_TEST_TOKEN=" + Buffer.from(crypto.getRandomValues(new Uint8Array(24))).toString("base64"))' >> .env
+   ```
+
+**GPL Vault.** Add `GPLVAULT_LICENSE_KEY` and `GPLVAULT_PRODUCT_ID` from the GPL Vault account, and `GPLVAULT_UPDATER_PASSPHRASE`, a random value of at least 16 characters (the `FORM_TEST_TOKEN` command with this name), to `.env`. See [Automatic re-audit](#automatic-re-audit) for what uses them.
+
+Prove mail works. Each sends one harmless message:
+
+```sh
+bun --env-file=.env run mail:selftest
+bun --env-file=.env scripts/reaudit/notify.ts --selftest
+bun --env-file=.env scripts/weekly/check.ts --selftest
+```
+
+### Selection and secrets
+
+1. Add `DEPLOYMENT=<name>` to `.env` and set the repository variable:
+
+   ```sh
+   gh variable set DEPLOYMENT --body <name> --repo <owner>/<repo>
+   ```
+
+2. Check that every name is set. This prints names only:
+
+   ```sh
+   bun --env-file=.env -e 'console.log(["DEPLOYMENT","PIRAX_HELPER_SIGNING_KEY","S3_ACCESS_KEY_ID","S3_SECRET_ACCESS_KEY","S3_ENDPOINT","S3_BUCKET","IMAP_HOST","IMAP_PORT","IMAP_USER","IMAP_PASSWORD","IMAP_FOLDER","IMAP_SPAM_FOLDER","FORM_TEST_ADDRESS","FORM_TEST_TOKEN","SMTP_HOST","SMTP_PORT","SMTP_USER","SMTP_PASSWORD","GPLVAULT_LICENSE_KEY","GPLVAULT_PRODUCT_ID","GPLVAULT_UPDATER_PASSPHRASE"].map(k => k + ": " + (process.env[k] ? "present" : "absent")).join("\n"))'
+   ```
+
+3. The `PIRAX_HELPER_SIGNING_KEY` secret from [Signing key](#signing-key) must exist first: `scripts/reaudit/setup.ts` refuses without it.
+4. Replace the updater ciphertext. `.github/audit/gplvault-updater.zip.gpg` is encrypted with Pirax's passphrase, and `setup.ts` refuses a ciphertext its passphrase cannot decrypt. Remove it, run `setup.ts` to write and verify the copy's own, then commit only that file. `setup.ts` reads the updater ZIP from `~/Downloads/gplvault-updater.zip`, or from `--source <path>`. It sets the `GPLVAULT_UPDATER_PASSPHRASE`, `GPLVAULT_LICENSE_KEY`, `GPLVAULT_PRODUCT_ID`, `IMAP_USER` and `IMAP_PASSWORD` secrets.
+
+   ```sh
+   git rm .github/audit/gplvault-updater.zip.gpg
+   bun --env-file=.env scripts/reaudit/setup.ts
+   git add .github/audit/gplvault-updater.zip.gpg
+   git commit -m "Encrypt this deployment's updater" -- .github/audit/gplvault-updater.zip.gpg
+   git push origin main
+   ```
+
+5. Set the weekly check's ten secrets:
+
+   ```sh
+   for n in S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY S3_ENDPOINT S3_BUCKET IMAP_HOST IMAP_PORT IMAP_FOLDER IMAP_SPAM_FOLDER FORM_TEST_ADDRESS FORM_TEST_TOKEN; do
+     bun --env-file=.env -e "process.stdout.write(process.env.$n)" | gh secret set "$n" --repo <owner>/<repo>
+   done
+   ```
+
+`gh secret list --repo <owner>/<repo>` shows names only.
+
+### First helper
+
+In this order:
+
+1. Commit and push `deployments/<name>/`.
+2. `bun run build:plugin` builds `dist/<slug>.zip`.
+3. `bun --env-file=.env scripts/release-plugin.ts` publishes `v<helperVersion>`. It needs an authenticated `gh` with write access, HEAD pushed and `plugin/pirax-form-test/` clean. See [Releasing](plugin/pirax-form-test/README.md#releasing).
+4. Upload `dist/<slug>.zip` on each site by hand, as in [Install](plugin/pirax-form-test/README.md#install) step 2.
+5. Run both re-audit workflows. Each must succeed:
+
+   ```sh
+   gh workflow run reaudit.yml --ref main --repo <owner>/<repo>
+   gh workflow run reaudit-watchdog.yml --ref main --repo <owner>/<repo>
+   ```
+
+Release before the first re-audit: an unchanged audit fails until `v<version>` exists and verifies.
+
+### Opt in a site
+
+This is the only allowed order. On 2026-10-07 sites were opted in before the helper token was set, and marked tests reached clients as ordinary enquiries. The site is already listed in `deployments/<name>/sites.yaml` with `form_helper: false` and has the helper installed.
+
+1. In wp-admin → Settings → `<plugin.name>`, set **Marker token** to the `FORM_TEST_TOKEN` value and **Redirect address** to the `FORM_TEST_ADDRESS` value, and save.
+2. The [Compatibility panel](plugin/pirax-form-test/README.md#compatibility-panel) section for the designated form's plugin says `ready`. `ready` is not a rollout approval.
+3. In `deployments/<name>/sites.yaml`, set `test_form` and `form_helper: true` for this one site only, and commit.
+4. `bun run forms <slug>` reports `delivered`. Any other outcome: set `form_helper: false` and commit before anything else. For `delivered-spam`, fix the mailbox filter, then rerun this step.
+
+The next site starts at step 1 only after step 4 passed. Never set two sites to `true` in one commit.
+
+### Weekly check in GitHub Actions
+
+`weeklyCheck.enabled: true` turns it on. `.github/workflows/weekly-check.yml` runs Saturdays at 06:00 UTC and on `gh workflow run weekly-check.yml --repo <owner>/<repo>`. Its gate job reads the flag with no secrets. Its check job runs `check all` and sends one summary email to `notice.recipient`, with times in `weeklyCheck.timeZone`. It needs the ten secrets from [Selection and secrets](#selection-and-secrets) plus `IMAP_USER` and `IMAP_PASSWORD`. Pirax keeps its local timer and `enabled: false`.
+
+### Pulling upstream fixes
+
+```sh
+git fetch upstream
+git merge upstream/main
+bun install
+bun run typecheck
+bun --no-env-file test tests
+git push origin main
+```
+
+Merges are conflict-free because each deployment's jobs write only its own folder. The exception is the updater ciphertext: if `.github/audit/gplvault-updater.zip.gpg` conflicts, keep the copy's own with `git checkout --ours .github/audit/gplvault-updater.zip.gpg` and `git add .github/audit/gplvault-updater.zip.gpg`. An upstream helper fix reaches the copy's sites with its next audited release: the next re-audit that finds a vendor change bumps and publishes it. There is no manual release path that keeps the audit gate.
 
 ## Commands
 
@@ -266,7 +440,7 @@ bunx playwright show-trace runs/<runId>/traces/<slug>/desktop/<pageKey>.trace.zi
 
 ## Form checks
 
-**`form_helper: true` is operator attestation, not proof of installation, matching token or audited versions.** Verify the built helper ZIP, settings, notification path and integrations before opting in. A missing/mismatched helper can process a marker as ordinary data and involve clients. Keep unverified sites false. Roll out one site, then a group, then all, with explicit operator go-ahead at every stage; tests do not authorize a rollout. Follow the [helper install/rollout guide](plugin/pirax-form-test/README.md#rollout).
+**`form_helper: true` is operator attestation, not proof of installation, matching token or audited versions.** Verify the built helper ZIP, settings, notification path and integrations before opting in. A missing/mismatched helper can process a marker as ordinary data and involve clients. Keep unverified sites false. Opt in one site at a time, only in the order in [Opt in a site](#opt-in-a-site); tests do not authorize a rollout. Follow the [helper install/rollout guide](plugin/pirax-form-test/README.md#rollout).
 
 Both commands scan each listed page once for forms at desktop 1440×900, separately from visual desktop/mobile contexts. Only the site's [designated test form](#designated-test-form) is ever filled. If it is a supported Gravity Forms or Fluent Forms form, it gets deterministic test data, `FORM_TEST_ADDRESS` in email fields, and an intact `<FORM_TEST_TOKEN>-<id>` in the first usable textarea or plain text input. Each attempt has a fresh cryptographic 12-character lowercase alphanumeric ID. Hidden nonces/honeypots are preserved. Required checkbox groups use native GF/FF markers (`aria-required` and GF required-field containers): one usable choice per group, plus every individually HTML-required checkbox; optional groups are left unchanged. A designated form with uploads (even hidden), missing/constrained marker fields, external actions, custom/multistep/payment/password flows or GF drafts is unsupported. Unknown or unnumbered forms (such as a GF `gform_0`) cannot match a designation and are always skipped. FF hCaptcha/Turnstile is not verified; no CAPTCHA solving is attempted. Invisible/reCAPTCHA v3 browser flows remain unverified: their client-side execution may be blocked by the frozen request policy and time out as `failed`, even when the helper bypasses server CAPTCHA validation. Specialized GF phone formats/widgets (US Standard and International formatted) are also unverified and may falsely reject fixed test data; do not infer support from basic telephone-input filling.
 

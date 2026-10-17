@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, errors, type Browser, type Page } from "playwright";
 import { challengeReason } from "../capture.ts";
 import { EnvError, EnvFormatError } from "../env.ts";
 import { readImapConfig } from "../mail/config.ts";
@@ -39,6 +39,11 @@ export async function scanPageForms(site: Site, listedPage: SitePage, options: F
       if (!response || response.status() >= 400 || new URL(page.url()).origin !== new URL(site.url).origin) throw new Error('Page navigation failed.');
       // A bounded post-load window for ordinary plugin initialization. No submit authorization exists.
       await page.waitForTimeout(200);
+      // One ordinary non-submitting interaction releases delay-until-interaction scripts (Perfmatters, WP Rocket); policy not frozen, POSTs still blocked.
+      await page.mouse.move(200, 200); await page.mouse.move(600, 400); await page.mouse.wheel(0, 1);
+      // Bounded: an FF form still uninitialized here is reported by the per-form check, never a visit failure.
+      await page.waitForFunction(() => [...document.querySelectorAll('form.frm-fluent-form')].every(f => f.classList.contains('ff-form-loaded')), undefined, { timeout: 5_000 })
+        .catch((error: unknown) => { if (!(error instanceof errors.TimeoutError)) throw error; });
       if (!/^https?:/.test(page.url()) || new URL(page.url()).origin !== new URL(site.url).origin) throw new Error('Page changed during discovery.');
       if (challengeReason(await response.allHeaders(), await page.content())) throw new Error('Page challenge/interstitial; forms were not verified.');
       return await work(page, policy);
@@ -65,6 +70,7 @@ export async function scanPageForms(site: Site, listedPage: SitePage, options: F
       try {
         results.push(await visit(`form-${index + 1}`, async (page, policy) => {
           if (!await sameForm(page, descriptor)) return result('failed', 'Form identity changed since discovery; not submitted.');
+          if (descriptor.plugin === 'fluent' && !await formLocator(page, descriptor).evaluate(f => f.classList.contains('ff-form-loaded'))) return result('failed', 'Fluent Forms script did not initialize; not submitted.');
           policy.freeze(); // Before even the first input/change event: all GET/POST serialization blocked.
           const preflight = await inspectForm(formLocator(page, descriptor), options.texts);
           if (preflight.state !== 'ready') return result(preflight.state, preflight.detail);

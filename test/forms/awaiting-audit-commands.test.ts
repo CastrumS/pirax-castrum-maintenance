@@ -29,7 +29,7 @@ const synthetic = { FORM_TEST_TOKEN: "fixture-Commands+Token/=456", FORM_TEST_AD
 let reply: "awaiting" | "generic" | "confirm" = "awaiting", version = "Fluent Forms Pro 6.2.16", posts = 0;
 const gf = (id: number) => `<div class="gform_wrapper" id="gform_wrapper_${id}"><form id="gform_${id}" method="post"><input type="hidden" name="gform_submit" value="${id}"><input name="input_1"><textarea name="input_3"></textarea><button type="submit">Send</button></form></div>`;
 const ff = `<div class="fluentform"><form class="frm-fluent-form" id="fluentform_2" data-form_id="2"><input name="email" type="email"><textarea name="message"></textarea><button type="submit">Send</button></form></div>`;
-const ffScript = `<script>document.querySelector('#fluentform_2').onsubmit=async e=>{e.preventDefault();const form=e.target;const r=await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});const j=await r.json();form.parentElement.insertAdjacentHTML('beforeend',j.success?'<div class="ff-message-success">FF accepted</div>':'<div class="ff-errors-in-stack"><div class="error text-danger" role="alert"><span class="error-text">'+j.message+'</span></div></div>')};</script>`;
+const ffScript = `<script>document.querySelector('#fluentform_2').onsubmit=async e=>{e.preventDefault();const form=e.target;const r=await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});const j=await r.json();form.parentElement.insertAdjacentHTML('beforeend',j.success?'<div class="ff-message-success">FF accepted</div>':'<div class="ff-errors-in-stack"><div class="error text-danger" role="alert"><span class="error-text">'+j.message+'</span></div></div>')};document.querySelector('#fluentform_2').classList.add('ff-form-loaded');</script>`;
 const refusal = () => reply === "generic" ? "Pirax test blocked: integrations could not be suppressed" : awaiting + version;
 const html = (body: string) => new Response(`<!doctype html><meta charset="utf-8"><title>Fixture</title>${body}`, { headers: { "content-type": "text/html" } });
 // Started, with the mailbox listener and ImapFlow observer, only inside the test's cleanup protection.
@@ -43,7 +43,7 @@ const fixture = async (req: Request) => {
       : html(`<div class="gform_wrapper" id="gform_wrapper_${id}"><div class="gform_validation_errors" id="gform_${id}_validation_container"><h2 class="gform_submission_error">There was a problem with your submission.</h2></div><p class="pirax-form-test-rejected">${refusal()}</p></div>`);
   }
   // The designated GF #1 is followed by a skipped duplicate and an undesignated FF; /other is all skipped.
-  if (url.pathname === "/gf/") return html(gf(1) + gf(1) + ff);
+  if (url.pathname === "/gf/") return html(gf(1) + gf(1) + ff + "<script>for(const f of document.querySelectorAll('form.frm-fluent-form'))f.classList.add('ff-form-loaded')</script>");
   if (url.pathname === "/ff/") return html(ff + gf(1) + ffScript);
   if (url.pathname === "/other/") return html(gf(3) + gf(4));
   if (url.pathname === "/empty/") return html("<p>No forms</p>");

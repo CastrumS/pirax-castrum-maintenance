@@ -23,13 +23,20 @@ const pirax = loadDeployment({ env: { DEPLOYMENT: "pirax" } }).config.forms;
 const acme = fixtureConfig(fixtureKeys().publicKey).forms;
 const runDir = resolve("runs", `forms-browser-${crypto.randomUUID()}`);
 let browser: Browser;
-let writes = 0, traps = 0, sockets = 0, chunkReads = 0, thanks = 0;
+let writes = 0, traps = 0, sockets = 0, chunkReads = 0, thanks = 0, delayedReads = 0;
 const gfChunk = '/wp-content/plugins/gravityforms/assets/js/dist/vendor-theme-dompurify.b0876f45cc06deeb8174.min.js';
 const gf = (id = 1, fields = '<input name="input_1" required><input name="input_2" type="email" required><textarea name="input_3"></textarea>', extra = "") => `<div class="gform_wrapper" id="gform_wrapper_${id}"><form id="gform_${id}" method="post" ${extra}><input type="hidden" name="gform_submit" value="${id}"><input type="hidden" name="nonce" value="untouched">${fields}<button type="submit">Send</button></form></div>`;
 const ff = `<div class="fluentform"><form class="frm-fluent-form" id="fluentform_2" data-form_id="2"><input name="email" type="email"><textarea name="message"></textarea><button type="submit">Send</button></form></div>`;
-const ffScript = `<script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const form=e.target;await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});form.parentElement.insertAdjacentHTML('beforeend','<div class="ff-message-success">FF accepted</div>')};</script>`;
+// FF's submit handler; it marks its form initialized as Fluent Forms' own script does. Block-scoped so it never clashes.
+const ffHandler = `{const f=document.querySelector('form');f.onsubmit=async e=>{e.preventDefault();const form=e.target;await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});form.parentElement.insertAdjacentHTML('beforeend','<div class="ff-message-success">FF accepted</div>')};f.classList.add('ff-form-loaded');}`;
+const ffScript = `<script>${ffHandler}</script>`;
+// FF initialization for pages that only need the form ready, not a submit handler.
+const ffInit = "<script>for(const f of document.querySelectorAll('form.frm-fluent-form'))f.classList.add('ff-form-loaded')</script>";
+// Delay-until-interaction (Perfmatters, WP Rocket style): the script loads only on the first mousemove or wheel.
+// Headless Chromium fires one trusted mousemove at (0,0) after first layout; ignoring it keeps "no interaction" observable.
+const ffLoader = (src: string) => `<script>{let done=false;const load=e=>{if(done||e.type==='mousemove'&&!e.clientX&&!e.clientY)return;done=true;const s=document.createElement('script');s.src='${src}';document.head.append(s)};addEventListener('mousemove',load);addEventListener('wheel',load);}</script>`;
 // FF "redirect to a page" confirmation: FF answers the POST with the target, then its script navigates there.
-const ffRedirect = (mode: string) => ff.replace('<button', `<input type="hidden" name="_ff_confirm" value="${mode}"><button`) + `<script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const form=e.target;const r=await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});const j=await r.json();if(j.data&&j.data.result&&j.data.result.redirectUrl)location.href=j.data.result.redirectUrl;};</script>`;
+const ffRedirect = (mode: string) => ff.replace('<button', `<input type="hidden" name="_ff_confirm" value="${mode}"><button`) + `<script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const form=e.target;const r=await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});const j=await r.json();if(j.data&&j.data.result&&j.data.result.redirectUrl)location.href=j.data.result.redirectUrl;};document.querySelector('form').classList.add('ff-form-loaded');</script>`;
 const trapScript = `<script>
 new WebSocket('ws://'+location.host+'/socket');
 fetch('/trap',{method:'POST',body:'onload'}).catch(()=>{});
@@ -75,7 +82,7 @@ const gfRefusals: Record<string, string> = {
 };
 // FF's stack placement: an alert div holding the message span and a dismiss "×" span.
 const ffStack = (text: string) => `<div class="ff-errors-in-stack"><div class="error text-danger" role="alert"><span class="error-text" data-name="pirax_form_test">${text}</span><span class="error-clear">&times;</span></div></div>`;
-const ffAfterPost = (markup: string, where = "form.parentElement") => ff + `<script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const form=e.target;await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});${where}.insertAdjacentHTML('beforeend',${JSON.stringify(markup)})};</script>`;
+const ffAfterPost = (markup: string, where = "form.parentElement") => ff + `<script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const form=e.target;await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});${where}.insertAdjacentHTML('beforeend',${JSON.stringify(markup)})};document.querySelector('form').classList.add('ff-form-loaded');</script>`;
 let shifting = 0;
 let hiddenShifting = 0;
 const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv) {
@@ -84,6 +91,8 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
   if (url.pathname === "/trap") { traps++; return new Response("trap"); }
   if (url.pathname === "/hvala-vam/") { thanks++; return html("Hvala vam"); }
   if (url.pathname === gfChunk) { chunkReads++; return new Response('window.nativeChunkLoaded=true;', { headers: { 'content-type': 'text/javascript' } }); }
+  if (url.pathname === "/delayed/ff-submit.js") { delayedReads++; return new Response(ffHandler, { headers: { 'content-type': 'text/javascript' } }); }
+  if (url.pathname === "/delayed/ff-captcha.js") { delayedReads++; return new Response("{const f=document.querySelector('form');f.classList.add('ff-form-loaded');fetch('/trap',{method:'POST',body:'delayed'}).catch(()=>{})}", { headers: { 'content-type': 'text/javascript' } }); }
   if (req.method === "POST") {
     writes++;
     const data = await req.formData();
@@ -104,14 +113,17 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
     case "/ordinary-mentions": return html('<title>Cloudflare setup</title>CAPTCHA protects our contact form.');
     case "/missing": return html("Missing", 404);
     case "/traps": return html(gf() + trapScript);
-    case "/multi": return html(gf() + gf(3) + ff + '<form><input name="search"></form>');
+    case "/multi": return html(gf() + gf(3) + ff + '<form><input name="search"></form>' + ffInit);
     case "/unrelated": return html(gf() + gf(3) + `<script>document.querySelector('button').addEventListener('click',()=>{const f=document.querySelector('#gform_3');f.submit();fetch('/trap',{method:'POST',body:'unrelated'}).catch(()=>{});fetch('/trap?get=unrelated').catch(()=>{});});</script>`);
     case "/save-trap": return html(gf() + `<script>document.querySelector('button').onclick=()=>{const i=document.createElement('input');i.type='hidden';i.name='gform_save';i.value='1';document.querySelector('form').append(i);};</script>`);
     case "/autonomous": return html(gf() + `<script>const f=document.querySelector('form');f.method='get';f.action='/trap';f.submit();f.requestSubmit();</script>`);
     case "/upload": return html(gf(1, '<textarea name="input_3"></textarea><input type="file" hidden>'));
     case "/constrained": return html(gf(1, '<textarea name="input_3" maxlength="3"></textarea>'));
-    case "/ambiguous-ff": return html(ff.replace('<div class="fluentform">', '').replace('</form></div>', '</form>'));
+    case "/ambiguous-ff": return html(ff.replace('<div class="fluentform">', '').replace('</form></div>', '</form>') + ffInit);
     case "/ff": return html(ff + ffScript);
+    case "/ff-delayed": return html(ff + ffLoader("/delayed/ff-submit.js"));
+    // FF markup whose script never runs: the form never becomes initialized.
+    case "/ff-never": return html(ff + gf(1) + recorder);
     case "/ff-redirect": return html(ffRedirect("redirect"));
     case "/ff-redirect-no-entry": return html(ffRedirect("redirect-no-entry"));
     case "/gf-ajax": return html(gf(1, '<textarea name="input_3"></textarea><input type="hidden" name="gform_submission_method" data-js="gform_submission_method_1" value="ajax">') + `<script>window.gform_theme_config={common:{form:{ajax:{ajaxurl:location.origin+'/wp-admin/admin-ajax.php'}}}};document.querySelector('form').onsubmit=async e=>{e.preventDefault();const data=new FormData(e.target);data.append('action','gform_submit_form');data.append('form_id','1');const response=await fetch('/wp-admin/admin-ajax.php',{method:'POST',body:data});const body=await response.text();await fetch('${gfChunk}?field='+encodeURIComponent(data.get('input_3'))).catch(()=>{});await fetch('${gfChunk}').catch(()=>{});await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='${gfChunk}';s.onload=resolve;s.onerror=reject;document.head.append(s)});if(window.nativeChunkLoaded)document.body.innerHTML=body;};</script>`);
@@ -127,7 +139,9 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
     case "/stale": return html(gf() + '<div id="gform_confirmation_message_1">Old</div>');
     case "/ff-stale": return html(ff + '<div class="ff-message-success">Foreign success</div>');
     case "/ff-foreign": return html(ff + `<script>document.querySelector('form').onsubmit=e=>{e.preventDefault();document.body.insertAdjacentHTML('beforeend','<div class="ff-message-success">Foreign</div>')}</script>`);
-    case "/captcha": return html(ff.replace('<textarea', '<div class="cf-turnstile"></div><textarea'));
+    case "/captcha": return html(ff.replace('<textarea', '<div class="cf-turnstile"></div><textarea') + ffInit);
+    // A delayed script that initializes FF and also tries an unapproved write.
+    case "/ff-delayed-captcha": return html(ff.replace('<textarea', '<div class="cf-turnstile"></div><textarea') + ffLoader("/delayed/ff-captcha.js") + recorder);
     case "/scope-a": case "/scope-b": return html(scopeForms + ffScript.replace("querySelector('form')", "querySelector('#fluentform_2')") + recorder);
     case "/duplicates": case "/reject-duplicates": return html(gf() + gf() + recorder);
     // The first instance changes shape between discovery and its fresh form context.
@@ -430,6 +444,49 @@ test("scanner no forms is empty, navigation error is failed, CAPTCHA is not-veri
       [{ page: "/multi", plugin: "gravity", id: 3 }, ["gravity:skipped", "gravity:not-verified", "fluent:skipped", "unknown:skipped"]],
       [{ page: "/multi", plugin: "fluent", id: 2 }, ["gravity:skipped", "gravity:skipped", "fluent:not-verified", "unknown:skipped"]],
     ] as const) expect(shape(await scanPageForms(local(["/multi"], false, test_form), { path: "/multi", mask: [] }, { runDir, texts: pirax }))).toEqual([...expected]);
+  });
+});
+test("delay-until-interaction FF scripts are released before submission, like an ordinary FF page", async () => {
+  await withEnv(mailbox, async () => {
+    for (const path of ["/ff", "/ff-delayed"]) {
+      const before = { writes, delayedReads };
+      const results = await scanPageForms(local([path], true, { page: path, plugin: "fluent", id: 2 }), { path, mask: [] }, { runDir, texts: pirax, deliveryTimeoutMs: 2_000 });
+      expect(shape(results)).toEqual(["fluent:failed"]);
+      expect(results[0]!.detail).toContain("Native Fluent Forms confirmation");
+      expect(writes - before.writes).toBe(1);
+      if (path === "/ff-delayed") expect(delayedReads - before.delayedReads).toBeGreaterThanOrEqual(1);
+    }
+  });
+  // Negative control: without an interaction the delayed script never loads.
+  const before = delayedReads;
+  await visit("/ff-delayed", async page => {
+    await page.waitForTimeout(500);
+    expect(await page.locator("form").evaluate(f => f.classList.contains("ff-form-loaded"))).toBe(false);
+  });
+  expect(delayedReads).toBe(before);
+});
+test("a designated FF form that never initializes is refused before any typing or POST", async () => {
+  await withEnv(mailbox, async () => {
+    const before = writes;
+    const { results, events } = await watched(local(["/ff-never"], true, { page: "/ff-never", plugin: "fluent", id: 2 }), "/ff-never");
+    expect(shape(results)).toEqual(["fluent:failed", "gravity:skipped"]);
+    expect(results[0]!.detail).toBe("Fluent Forms script did not initialize; not submitted.");
+    expect(writes - before).toBe(0);
+    expect(events).toEqual([]);
+  });
+  await withEnv(fill, async () => {
+    const { results } = await watched(local(["/ff-never"], false, { page: "/ff-never", plugin: "gravity", id: 1 }), "/ff-never");
+    expect(shape(results)).toEqual(["fluent:skipped", "gravity:not-verified"]);
+  });
+});
+test("the release interaction lets no delayed-script write through; CAPTCHA stays not-verified", async () => {
+  await withEnv(mailbox, async () => {
+    const before = { writes, traps, delayedReads };
+    const { results, events } = await watched(local(["/ff-delayed-captcha"], true, { page: "/ff-delayed-captcha", plugin: "fluent", id: 2 }), "/ff-delayed-captcha");
+    expect(shape(results)).toEqual(["fluent:not-verified"]);
+    expect(delayedReads - before.delayedReads).toBeGreaterThanOrEqual(2);
+    expect({ writes, traps }).toEqual({ writes: before.writes, traps: before.traps });
+    expect(events).toEqual([]);
   });
 });
 test("selected submit blocks unrelated same-origin writes/GETs and autonomous native GET submit", async () => {

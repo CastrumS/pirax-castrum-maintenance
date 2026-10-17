@@ -77,6 +77,7 @@ const gfRefusals: Record<string, string> = {
 const ffStack = (text: string) => `<div class="ff-errors-in-stack"><div class="error text-danger" role="alert"><span class="error-text" data-name="pirax_form_test">${text}</span><span class="error-clear">&times;</span></div></div>`;
 const ffAfterPost = (markup: string, where = "form.parentElement") => ff + `<script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const form=e.target;await fetch('/wp-admin/admin-ajax.php?t='+Date.now(),{method:'POST',body:new URLSearchParams({action:'fluentform_submit',form_id:'2',data:new URLSearchParams(new FormData(form)).toString()})});${where}.insertAdjacentHTML('beforeend',${JSON.stringify(markup)})};</script>`;
 let shifting = 0;
+let hiddenShifting = 0;
 const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv) {
   const url = new URL(req.url);
   if (url.pathname === "/socket") { sockets++; return srv.upgrade(req, { data: undefined }) ? undefined : new Response(); }
@@ -131,6 +132,8 @@ const server = Bun.serve({ hostname: "127.0.0.1", port: 0, async fetch(req, srv)
     case "/duplicates": case "/reject-duplicates": return html(gf() + gf() + recorder);
     // The first instance changes shape between discovery and its fresh form context.
     case "/shifting": return html(gf(1, `<textarea name="input_3"></textarea>${shifting++ % 2 ? '<input name="input_4">' : ''}`) + gf() + recorder);
+    // A late hidden injection (CleanTalk style) appears after discovery, so the identity ignores it.
+    case "/hidden-shifting": return html(gf().replace('<button', (hiddenShifting++ % 2 ? '<input type="hidden" name="apbct_visible_fields" value="input_1,input_2">' : '') + '<button') + gf() + recorder);
     default: return html(gf());
   }
 }, websocket: { message() {} } });
@@ -187,6 +190,27 @@ test("detects actual distinct plugin forms once and preserves unknown identities
     expect(new Set(forms.map(f => f.selector)).size).toBe(4);
     expect(page.viewportSize()).toEqual({ width: 1440, height: 900 });
   });
+});
+test("form identity ignores hidden inputs but not renamed, added or retyped controls", async () => {
+  const f0 = '<input name="input_1" type="text"><textarea name="input_3"></textarea>';
+  const content = [
+    `<form method="post">${f0}</form>`,
+    `<form method="post">${f0}<input type="hidden" name="apbct_visible_fields" value="x"></form>`,
+    `<form method="post"><input name="input_1" type="text"><input type="HIDDEN" name="n" value="y"><textarea name="input_3"></textarea></form>`,
+    `<form method="post"><input name="input_9" type="text"><textarea name="input_3"></textarea></form>`,
+    `<form method="post">${f0}<input type="text" name="input_4"></form>`,
+    `<form method="post">${f0}<input type="hidden" name="x"></form>`,
+    `<form method="post">${f0}<input type="text" name="x"></form>`,
+  ].join("");
+  await visit("/empty", async page => {
+    const ids = (await detectForms(page)).map(f => f.identity);
+    expect(ids).toHaveLength(7);
+    expect(ids[1]).toBe(ids[0]);
+    expect(ids[2]).toBe(ids[0]);
+    expect(ids[3]).not.toBe(ids[0]);
+    expect(ids[4]).not.toBe(ids[0]);
+    expect(ids[5]).not.toBe(ids[6]);
+  }, content);
 });
 test("fills basic controls with full random marker, preserving hidden/honeypot data", async () => {
   const ids = new Set(Array.from({ length: 100 }, newSubmissionId));
@@ -538,6 +562,7 @@ test("duplicate designated instances: only the first is attempted; rejected, uns
       ["/duplicates", { page: "/duplicates", plugin: "gravity", id: 1 }, ["gravity:failed", "gravity:skipped"], 1, "form-0:gform_1"],
       ["/reject-duplicates", { page: "/reject-duplicates", plugin: "gravity", id: 1 }, ["gravity:rejected", "gravity:skipped"], 1, "form-0:gform_1"],
       ["/shifting", { page: "/shifting", plugin: "gravity", id: 1 }, ["gravity:failed", "gravity:skipped"], 0, null],
+      ["/hidden-shifting", { page: "/hidden-shifting", plugin: "gravity", id: 1 }, ["gravity:failed", "gravity:skipped"], 1, "form-0:gform_1"],
       ["/scope-a", { page: "/scope-a", plugin: "gravity", id: 5 }, ["gravity:skipped", "gravity:skipped", "fluent:skipped", "unknown:skipped", "gravity:unsupported", "gravity:skipped"], 0, null],
     ] as const) {
       const before = { writes, traps };
@@ -549,7 +574,8 @@ test("duplicate designated instances: only the first is attempted; rejected, uns
       const skipped = results.filter(r => r.outcome === "skipped");
       if (path === "/scope-a") expect(skipped.every(r => r.detail === notDesignated)).toBe(true);
       else expect(skipped.map(r => r.detail)).toEqual(["Duplicate of the designated test form (only the first is attempted); not filled or submitted."]);
-      if (path === "/duplicates") expect(results[0]!.detail).toMatch(/Submission [a-z0-9]{12}\. IMAP connect failed/);
+      if (path === "/duplicates" || path === "/hidden-shifting") expect(results[0]!.detail).toMatch(/Submission [a-z0-9]{12}\. IMAP connect failed/);
+      if (path === "/hidden-shifting") expect(results[0]!.detail).not.toBe("Form identity changed since discovery; not submitted.");
       if (path === "/shifting") expect(results[0]!.detail).toBe("Form identity changed since discovery; not submitted.");
       if (path === "/scope-a") expect(results[4]!.detail).toMatch(/password/);
     }

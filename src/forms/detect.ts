@@ -7,7 +7,7 @@ export type FormDescriptor = {
   plugin: FormResult["plugin"];
   ordinal: number;
   pluginId: string | null;
-  /** Structural digest, never values/nonces. Checked again in each fresh context. */
+  /** Structural digest of non-hidden controls, never values/nonces; late hidden injections keep it. Checked again in each fresh context. */
   identity: string;
 };
 /** Actual forms only, one traversal so overlapping adapter selectors cannot duplicate a form. */
@@ -21,7 +21,7 @@ export async function detectForms(page: Page): Promise<FormDescriptor[]> {
     const pluginId = id && /^[1-9]\d*$/.test(id) ? id : null;
     const uniqueId = f.id && [...document.querySelectorAll("[id]")].filter(e => e.id === f.id).length === 1;
     const selector = uniqueId && /^(?:gform_|fluentform_)[1-9]\d*$/.test(f.id) ? `#${f.id}` : `form >> nth=${ordinal}`;
-    return { ordinal, selector, plugin, pluginId, shape: JSON.stringify([f.id, f.className, f.getAttribute("action"), f.method, [...f.elements].map(e => [e.tagName, e.getAttribute("type"), e.getAttribute("name")])]) };
+    return { ordinal, selector, plugin, pluginId, shape: JSON.stringify([f.id, f.className, f.getAttribute("action"), f.method, [...f.elements].filter(e => !(e instanceof HTMLInputElement && e.type === "hidden")).map(e => [e.tagName, e.getAttribute("type"), e.getAttribute("name")])]) };
   }));
   return forms.map(({ shape, ...f }) => ({ ...f, plugin: f.plugin as FormResult["plugin"], identity: createHash("sha256").update(shape).digest("hex") }));
 }

@@ -547,14 +547,6 @@ if ( get_option( 'pirax_harness_ct_rebind' ) ) {
 		20
 	);
 }
-
-/*
- * pirax_harness_ff_payment_callback: a callback other than FF core's payment handler on
- * fluentform/before_insert_payment_form, so the audit must still report that hook as unaudited.
- */
-if ( get_option( 'pirax_harness_ff_payment_callback' ) ) {
-	add_action( 'fluentform/before_insert_payment_form', static function () {}, 10, 0 );
-}
 if ( get_option( 'pirax_harness_ct_ajax_rebind' ) ) {
 	add_action(
 		'plugin_loaded',
@@ -587,6 +579,14 @@ if ( get_option( 'pirax_harness_ct_late' ) ) {
 			return $result;
 		}
 	);
+}
+
+/*
+ * pirax_harness_ff_payment_callback: a callback other than FF core's payment handler on
+ * fluentform/before_insert_payment_form, so the audit must still report that hook as unaudited.
+ */
+if ( get_option( 'pirax_harness_ff_payment_callback' ) ) {
+	add_action( 'fluentform/before_insert_payment_form', static function () {}, 10, 0 );
 }
 
 /*

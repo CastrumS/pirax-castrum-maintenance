@@ -120,7 +120,7 @@ Tested only on a single WordPress 7.1.2 / PHP 8.3 site. The plugin header declar
 **Fail closed (both).** A marked submission is rejected before anything is saved or dispatched (for FF, before CAPTCHA) when any of these is true:
 
 - a core or active optional plugin is not at its audited version (table above);
-- a callback outside the small audited inventory is hooked on the submission side-effect, feed-dispatch or notification hooks, including GF's form-specific `<hook>_<form id>` variants (in `includes/compatibility.php`). Examples: FF Pro modules not listed below (such as Inventory, Post/CPT, payments, user registration or AffiliateWP), GF payment or user-registration add-ons, or custom `gform_after_submission` code;
+- a callback outside the small audited inventory is hooked on the submission side-effect, feed-dispatch or notification hooks, including GF's form-specific `<hook>_<form id>` variants (in `includes/compatibility.php`). Examples: FF Pro modules not listed below (such as Inventory, Post/CPT, user registration or AffiliateWP), GF payment or user-registration add-ons, or custom `gform_after_submission` code;
 - CleanTalk's check is switched on for the submission but its audited binding cannot be recognized or removed (see below). For a GF modern AJAX submission this is decided, and the request refused, before CleanTalk's generic AJAX check can run;
 - the GF form has post-creation fields;
 - the FF form is a payment form (`has_payment`) or not an ordinary form: its type must be `form` or empty (FF stores its own activation demo form, often reused as the contact form, with an empty type); `post` and other types are rejected.

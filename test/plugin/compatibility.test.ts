@@ -125,10 +125,10 @@ const ffValues = (message: string) => ({ "names[first_name]": "Stack", email: "v
 const gfValues = (message: string) => ({ input_1: "Stack Visitor", input_2: "visitor@example.test", input_3: message });
 
 /** Submit the rendered FF contact form; `hidden` adds hidden fields (e.g. Pro's saved-state hash). */
-async function ffSubmit(message: string, hidden: Record<string, string> = {}) {
+async function ffSubmit(message: string, hidden: Record<string, string> = {}, target: { form: number; page: string } = { form: h.fixtures.ff, page: h.fixtures.page }) {
   const { page } = visitor;
-  await page.goto(h.fixtures.page);
-  const form = page.locator(`form[data-form_id='${h.fixtures.ff}']`);
+  await page.goto(target.page);
+  const form = page.locator(`form[data-form_id='${target.form}']`);
   for (const [name, value] of Object.entries(ffValues(message))) await form.locator(`[name='${name}']`).fill(value);
   await form.evaluate((f, fields) => {
     for (const [name, value] of Object.entries(fields)) f.appendChild(Object.assign(document.createElement("input"), { type: "hidden", name, value }));
@@ -923,6 +923,10 @@ for (const v of VERSIONS) {
 const inventoryModule = (on: boolean) =>
   h.php(`$m = (array) get_option('fluentform_global_modules_status', []); $m['inventory_module'] = '${on ? "yes" : "no"}'; update_option('fluentform_global_modules_status', $m); return true;`);
 
+/** Switch FF core's payment module, which registers its payment handler on fluentform/before_insert_payment_form. */
+const paymentModule = (on: boolean) =>
+  h.php(`$s = (array) get_option('__fluentform_payment_module_settings', []); $s['status'] = '${on ? "yes" : "no"}'; update_option('__fluentform_payment_module_settings', $s); return true;`);
+
 test("an unaudited optional Pro module (Inventory) keeps blocking marked FF with the generic message; the panel names its callbacks", async () => {
   const module = inventoryModule;
   await module(true);
@@ -953,6 +957,69 @@ test("an unaudited optional Pro module (Inventory) keeps blocking marked FF with
   } finally {
     await module(false);
     await h.php(`delete_option('pirax_form_test_last_block'); return true;`);
+  }
+  expect((await panel("ff")).verdict).toBe("ready");
+}, 300_000);
+
+test("FF's payment module: its core handler is audited, so marked ordinary FF is accepted; a payment form and another callback on the payment hook stay blocked", async () => {
+  try {
+    await paymentModule(true);
+    // The module really registered core's handler, which the panel no longer lists as unaudited.
+    expect(await h.php<string[]>(`global $wp_filter; $ids = []; foreach ($wp_filter['fluentform/before_insert_payment_form']->callbacks ?? [] as $cbs) { foreach ($cbs as $cb) { $ids[] = \\Pirax\\FormTest\\callback_id($cb['function']); } } return $ids;`)).toEqual([
+      "FluentForm\\App\\Modules\\Payments\\PaymentHandler::maybeHandlePayment",
+    ]);
+    const ready = await panel("ff");
+    await note("payment module on: ff panel", { verdict: ready.verdict, hooks: ready.hooks });
+    expect(ready.verdict).toBe("ready");
+    expect(ready.hooks["fluentform/before_insert_payment_form"]).toBeUndefined();
+
+    // A marked ordinary FF submission is accepted as without the module.
+    const m = await mark();
+    const ff = await ffSubmit(`Pirax payment module ${marker}`);
+    expect(ff.status).toBe(200);
+    expect(ff.body?.success).toBe(true);
+    expect(ff.body?.data?.result?.message).toBe("Thank you for your message. We will get in touch with you shortly");
+    const submitted = await since(m);
+    expect(cleantalkAttempts(submitted.http)).toEqual([]);
+    expect(submitted.jobs).toEqual({ ff: [], as: [] });
+    expect(submitted.added).toEqual([]);
+    await h.drainQueues();
+    const done = await since(m);
+    expect(cleantalkAttempts(done.http)).toEqual([]);
+    expect(done.http.filter((r) => r.purpose === "webhook-capture")).toEqual([]);
+    expect(done.feeds).toEqual([]);
+    expect(done.added).toEqual([]);
+    expect(done.entries.rows).toEqual(m.entries.rows);
+    expect(done.env.map((e) => e.subject)).toEqual([`[pirax-test ${ID}] ff-${h.fixtures.ff} notification A`]);
+    expectRedirected(done.env);
+    expect(done.sim.map((s) => ({ to: s.to, subject: s.subject, provider: s.provider, status: s.status, tagged: s.headers.filter((x) => /^x-pirax-form-test:/i.test(x)) }))).toEqual([
+      { to: [REDIRECT], subject: `[pirax-test ${ID}] ff-${h.fixtures.ff} notification A`, provider: "Simulator", status: "sent", tagged: [`X-Pirax-Form-Test: ${ID}`] },
+    ]);
+    expect(done.mail.map((x) => x.to)).toEqual([[REDIRECT]]);
+    expect(tokenBearing(done.http)).toEqual([]);
+
+    // The payment form stays refused.
+    const pm = await mark();
+    const payment = await ffSubmit(`Pirax payment form ${marker}`, {}, { form: h.fixtures.unsupported.ff, page: h.fixtures.unsupported.page });
+    expect(payment.status).toBe(423);
+    expect(ffRejection(payment.body)).toBe(BLOCKED);
+    await h.drainQueues();
+    const refused = await since(pm);
+    expect(refused.added).toEqual([]);
+    expect(refused.env).toEqual([]);
+    const last = await lastBlock();
+    expect(last).toMatchObject({ plugin: "ff", form: h.fixtures.unsupported.ff, message: BLOCKED });
+    expect(last.reasons).toContain("the form is a payment form");
+
+    // Any other callback on the payment hook stays unaudited.
+    await setOptions({ pirax_harness_ff_payment_callback: true });
+    const extra = await panel("ff");
+    expect(extra.verdict).toBe("blocked: 1 unaudited callback(s) on submission hooks");
+    expect(extra.hooks["fluentform/before_insert_payment_form"]).toEqual(["closure:pirax-harness.php"]);
+  } finally {
+    await paymentModule(false);
+    await setOptions({ pirax_harness_ff_payment_callback: null });
+    await clearLastBlock();
   }
   expect((await panel("ff")).verdict).toBe("ready");
 }, 300_000);

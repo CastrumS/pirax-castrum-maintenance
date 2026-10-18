@@ -81,7 +81,8 @@ function audited_hooks( $plugin ) {
 			// Native honeypot and token spam checks.
 			'fluentform/before_insert_submission'           => array( $ff_actions ),
 			'fluentform_before_insert_submission'           => array(),
-			'fluentform/before_insert_payment_form'         => array(),
+			// FF core's payment handler (payment module on); the hook fires only for has_payment forms, which ff_supported() refuses.
+			'fluentform/before_insert_payment_form'         => array( 'FluentForm\App\Modules\Payments\PaymentHandler::maybeHandlePayment' ),
 			'fluentform_before_insert_payment_form'         => array(),
 			// Native on-submit payment emails; redirected like any marked mail.
 			'fluentform/notify_on_form_submit'              => array( $ff_email . 'notifyOnSubmitPaymentForm' ),

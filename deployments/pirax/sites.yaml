@@ -20,6 +20,7 @@ sites:
       - /shop/
       - /product/belle/
       - /journal/
+      - /category/uncategorized/
       - /qualitaets-und-kaufberater-fuer-sonnenbrillen/
       - /review/tino-m/
       - /about/
@@ -53,6 +54,7 @@ sites:
       - /organizacja/kadra/
       - /terapia/
       - /aktualnosci/
+      - /category/uncategorized/
       - /26-02-2021-zabawy-z-gazetami/
       - /galeria/
       - /galeria/integracja-sensoryczna-2/
@@ -133,6 +135,7 @@ sites:
       - /najcesca-pitanja/
       - /blog/
       - /blog/karaoke-party/
+      - /blog/category/uncategorized-hr/
       - /kontakt/                       # no form found
 
   - slug: bravarskiservis
@@ -152,6 +155,7 @@ sites:
       - /blog/
       - path: /blog/kako-dodatno-osigurati-ulazna-vrata/
         hide: ['#_posts_grid-16-261']              # related posts in random order
+      - /blog/category/uncategorized-hr/
       - /emergency-locksmith-zagreb/
       - /kontakt/                       # Fluent #5 + reCAPTCHA
 
@@ -188,6 +192,7 @@ sites:
       - /tip-izvodaca/bend/
       - /blog/
       - /latino-party-novi-vinodolski/
+      - /category/event/
       - /iskustva-klijenata/
       - /kontakt/                       # GF #4
 
@@ -198,6 +203,13 @@ sites:
     pages:
       - /                               # GF #1, site-wide
       - /hvala-vam/
+      - /o-nama/
+      - /team-building/
+      - /team-building/sportske-aktivnosti/
+      - /team-building/sportske-aktivnosti/mehanicki-bik/
+      - /eventi/
+      - /blog/
+      - /kontakt/
 
   - slug: instrukcijezasve
     url: https://instrukcijezasve.hr
@@ -206,11 +218,14 @@ sites:
     pages:
       - /                               # GF #6
       - /predmeti/
+      - /predmeti/matematika/
       - /oglasi/
       - /cjenik/
       - /upute-za-ucenike/
       - /recenzije/
       - /blog/
       - /trigonometrija-za-sve-jednostavni-savjeti-za-uspjesno-ucenje/
+      - /kategorija/za-ucenike/predmeti-za-ucenike/
+      - /pretraga/
       - /kontakt/                       # GF #4 + reCAPTCHA
       - /prijava-registracija/          # GF #1 + GF #0 login/registration: never submit (creates accounts)

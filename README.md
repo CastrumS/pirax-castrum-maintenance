@@ -255,7 +255,7 @@ The next site starts at step 1 only after step 4 passed. Never set two sites to 
 
 ### Weekly check in GitHub Actions
 
-`weeklyCheck.enabled: true` turns it on. `.github/workflows/weekly-check.yml` runs Saturdays at 06:00 UTC and on `gh workflow run weekly-check.yml --repo <owner>/<repo>`. Its gate job reads the flag with no secrets. Its check job runs `check all` and sends one summary email to `notice.recipient`, with times in `weeklyCheck.timeZone`. It needs the ten secrets from [Selection and secrets](#selection-and-secrets) plus `IMAP_USER` and `IMAP_PASSWORD`. Pirax keeps its local timer and `enabled: false`.
+`weeklyCheck.enabled: true` turns it on. `.github/workflows/weekly-check.yml` runs Fridays at 15:00 Europe/Zagreb and on `gh workflow run weekly-check.yml --repo <owner>/<repo>`. Its gate job reads the flag with no secrets. Its check job runs `check all` and sends one summary email to `notice.recipient`, with times in `weeklyCheck.timeZone`. It needs the ten secrets from [Selection and secrets](#selection-and-secrets) plus `IMAP_USER` and `IMAP_PASSWORD`.
 
 ### Pulling upstream fixes
 

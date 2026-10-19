@@ -147,7 +147,7 @@ describe("Pirax data", () => {
   });
 
   test("deployments/pirax keeps the weekly check off, in Europe/Zagreb", () => {
-    expect(pirax.config.weeklyCheck).toEqual({ enabled: false, timeZone: "Europe/Zagreb" });
+    expect(pirax.config.weeklyCheck).toEqual({ enabled: true, timeZone: "Europe/Zagreb" });
   });
 
   test("the committed versions.json is in canonical form, so a bump rewrites only changed values", () => {

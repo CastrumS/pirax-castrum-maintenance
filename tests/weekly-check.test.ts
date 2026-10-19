@@ -119,11 +119,9 @@ const cli = async (cwd: string, args: string[], env: Record<string, string> = {}
 const lastJson = (text: string) => JSON.parse(text.trim().split("\n").at(-1)!) as Record<string, unknown>;
 
 describe("weekly-check workflow", () => {
-  test("Saturday morning schedule and manual dispatch only; no permissions; DEPLOYMENT from vars", () => {
+  test("Friday 15:00 Zagreb schedule and manual dispatch only; no permissions; DEPLOYMENT from vars", () => {
     expect(Object.keys(WORKFLOW.on).sort()).toEqual(["schedule", "workflow_dispatch"]);
-    const schedule = WORKFLOW.on.schedule as { cron: string }[];
-    expect(schedule).toHaveLength(1);
-    expect(schedule[0]!.cron).toMatch(/^([0-9]|[1-5][0-9]) [5-9] \* \* 6$/);
+    expect(WORKFLOW.on.schedule).toEqual([{ cron: "0 15 * * 5", timezone: "Europe/Zagreb" }]);
     expect(WORKFLOW.permissions).toEqual({});
     expect(WORKFLOW.env).toEqual({ DEPLOYMENT: "${{ vars.DEPLOYMENT }}" });
   });
@@ -175,8 +173,8 @@ describe("weekly gate CLI without node_modules", () => {
   // --no-install: without it Bun would silently auto-install a missing package and hide the dependency.
   const gate = (args: string[], env: Record<string, string>) => cli(dir, ["--no-install", join(dir, "scripts/weekly/gate.ts"), ...args], env);
 
-  test("pirax (the real config) is disabled", async () => {
-    expect(await gate([], { DEPLOYMENT: "pirax" })).toMatchObject({ stdout: "enabled=false\n", code: 0 });
+  test("pirax (the real config) is enabled", async () => {
+    expect(await gate([], { DEPLOYMENT: "pirax" })).toMatchObject({ stdout: "enabled=true\n", code: 0 });
   });
   test("an enabled deployment is enabled", async () => {
     expect(await gate([], { DEPLOYMENT: "enabled" })).toMatchObject({ stdout: "enabled=true\n", code: 0 });

@@ -22,7 +22,7 @@
     "message": "Pirax test message"
   },
   "weeklyCheck": {
-    "enabled": false,
+    "enabled": true,
     "timeZone": "Europe/Zagreb"
   },
   "audited": ["gf", "ff", "ff_pro", "cleantalk", "fluent_smtp"]

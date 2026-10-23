@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "helperVersion": "0.3.9",
+  "helperVersion": "0.3.10",
   "audited": {
-    "gf": "3.2.0",
+    "gf": "3.2.0.1",
     "ff": "6.2.16",
     "ff_pro": "6.2.16",
     "cleantalk": "6.90",

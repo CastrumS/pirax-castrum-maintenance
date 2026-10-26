@@ -3,6 +3,8 @@ default_branch: main
 rebuttal: true
 fix_rounds: 3
 implement: subagents
+setup: bun install --frozen-lockfile
+env: [DEPLOYMENT, FORM_TEST_TOKEN, FORM_TEST_ADDRESS, GRAVITY_FORMS_ZIP, FLUENT_FORMS_PRO_ZIP]
 checks: 
   typecheck: bun run typecheck
   test: bun test

@@ -179,7 +179,7 @@ test("newer valid forms-only runs are skipped; a malformed newer forms manifest 
 test("baseline/check entrypoints finish after the lazy command import instead of deadlocking", () => {
   const unreachable = join(dir, "unreachable.yaml");
   require("node:fs").writeFileSync(unreachable, 'sites:\n  - slug: down\n    url: http://127.0.0.1:9\n    form_helper: false\n    pages: [/]\n');
-  const env = { PATH: process.env.PATH!, HOME: process.env.HOME!, DEPLOYMENT: "pirax", S3_ACCESS_KEY_ID: "id", S3_SECRET_ACCESS_KEY: "secret", S3_ENDPOINT: "http://127.0.0.1:9", S3_BUCKET: "bucket" };
+  const env = { PATH: process.env.PATH!, HOME: process.env.HOME!, DEPLOYMENT: "pirax", S3_ACCESS_KEY_ID: "id", S3_SECRET_ACCESS_KEY: "secret", S3_ENDPOINT: "http://127.0.0.1:9", S3_BUCKET: "bucket", FORM_TEST_TOKEN: "commands-Cli+Token/=0123456789" };
   for (const command of ["baseline", "check"]) {
     const child = Bun.spawnSync([process.execPath, "--no-env-file", "run", command, "down", "--sites", unreachable], { cwd: resolve("."), env, timeout: 90_000 });
     const out = child.stdout.toString();

@@ -26,6 +26,7 @@ cases.cli = cliCases;
 // The installed helper is the Pirax build (dist/pirax-form-test.zip), so its form texts are Pirax's.
 const texts = loadDeployment({ env: { DEPLOYMENT: 'pirax' } }).config.forms;
 const timing = { texts, deliveryTimeoutMs: 1_000, submissionTimeoutMs: 15_000 };
+const helperVersion = loadDeployment({ env: { DEPLOYMENT: 'pirax' } }).versions.helperVersion;
 beforeAll(async () => {
   await mkdir(workspace, { recursive: true, mode: 0o700 });
   harness = await startFormsHarness(workspace);
@@ -318,7 +319,7 @@ test('scoped production bun run forms local CLI submits only the designated form
 test('production check captures both widths unchanged on both scope pages and applies the same selection: one submission, five skips', async () => {
   const { pages, ids } = harness.fixtures;
   const site = siteFor([pages.scopeA, pages.scopeB], true, designate(pages.scopeB, 'gravity', ids.gf));
-  const options = { runsDir:join(workspace,'check'), log:()=>{}, forms:timing };
+  const options = { runsDir:join(workspace,'check'), log:()=>{}, forms:timing, helperVersion };
   const baseline = await runBaseline([site], store, options);
   expect(baseline.exitCode).toBe(0);
   const before = await observe();

@@ -11,6 +11,8 @@ export type Site = {
   slug: string;
   url: string;
   form_helper: boolean;
+  /** `false`: no helper is installed, so check never asks the site for its helper version. Absent: installed. */
+  helper?: false;
   mask: string[];
   /** Optional CSS selectors removed before every screenshot of this site (pop-ups, rotating sliders). */
   hide?: string[];
@@ -32,7 +34,7 @@ export class SitesConfigError extends Error {
   }
 }
 
-const SITE_KEYS = ["slug", "url", "form_helper", "mask", "hide", "max_diff_pixel_ratio", "pages", "test_form"];
+const SITE_KEYS = ["slug", "url", "form_helper", "helper", "mask", "hide", "max_diff_pixel_ratio", "pages", "test_form"];
 const PAGE_KEYS = ["path", "mask", "hide"];
 const TEST_FORM_KEYS = ["page", "plugin", "id"];
 export const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -100,6 +102,7 @@ export function loadSites(path = loadDeployment().paths.sites): Site[] {
     if (url.endsWith("/")) err("url", 'must not end with "/"');
 
     if (typeof form_helper !== "boolean") return err("form_helper", "required boolean");
+    if (raw.helper !== undefined && typeof raw.helper !== "boolean") err("helper", "must be true or false");
 
     const ratio = raw.max_diff_pixel_ratio === undefined ? 0.01 : raw.max_diff_pixel_ratio;
     if (typeof ratio !== "number" || !Number.isFinite(ratio) || ratio < 0 || ratio > 1) {
@@ -141,6 +144,7 @@ export function loadSites(path = loadDeployment().paths.sites): Site[] {
       slug,
       url,
       form_helper,
+      ...(raw.helper === false ? { helper: false as const } : {}),
       mask: masks(raw.mask, "mask", err),
       ...(raw.hide !== undefined ? { hide: masks(raw.hide, "hide", err) } : {}),
       max_diff_pixel_ratio: ratio,

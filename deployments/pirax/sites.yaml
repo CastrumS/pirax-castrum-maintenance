@@ -7,6 +7,7 @@
 # test_form: the one form per site that is filled each run (and, with form_helper: true,
 # submitted at most once); every other form is reported skipped, never filled or submitted.
 # A site without test_form has all its forms skipped. Never designate a login/registration form.
+# helper: false marks a site without the helper installed: check never asks it for its version.
 
 sites:
   - slug: suntos
@@ -199,6 +200,7 @@ sites:
   - slug: teambuildinghrvatska
     url: https://teambuildinghrvatska.hr
     form_helper: false
+    helper: false
     test_form: { page: /, plugin: gravity, id: 1 }
     pages:
       - /                               # GF #1, site-wide

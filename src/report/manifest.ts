@@ -1,5 +1,6 @@
 import { PNG } from "pngjs";
 import type { ViewportName } from "../capture.ts";
+import { STABLE_VERSION } from "../deployment.ts";
 import { parseHealth, type HealthSnapshot } from "../health.ts";
 import { pageKey, type Site } from "../sites.ts";
 import { isRunId } from "../store.ts";
@@ -64,9 +65,15 @@ function checkPageOk(page: Record<string, unknown>, slug: string): boolean {
 /** Forms-only pages carry form results and nothing that could pass as visual evidence. */
 const formsPageOk = (page: Record<string, unknown>) => !("viewports" in page) && formsOk(page.forms);
 
+const versionOk = (v: unknown) => typeof v === "string" && STABLE_VERSION.test(v);
+/** Exactly one HelperAnswer shape. */
+const helperOk = (v: unknown) => object(v) && (v.state === "no-helper" ? Object.keys(v).length === 1 : v.state === "unknown" ? Object.keys(v).length === 2 && typeof v.detail === "string" : v.state === "version" && Object.keys(v).length === 2 && versionOk(v.version));
+/** Optional on the report and on each site, so baseline and older check reports still load; reportOk vetted the sites. */
+const helpersOk = (report: Record<string, unknown>) => (report.helperVersion === undefined || versionOk(report.helperVersion)) && (report.sites as Record<string, unknown>[]).every(site => site.helper === undefined || helperOk(site.helper));
+
 /** A manifest is the remote completion marker; validate the entire model before using any evidence. Check runs only. */
 export function parseManifest(value: unknown, expectedRunId?: string): Manifest {
-  if (!object(value) || value.schemaVersion !== 1 || value.command !== "check" || !object(value.report) || "mode" in value.report || !reportOk(value.report, expectedRunId, checkPageOk)) return fail("invalid check manifest; run a new check before approval");
+  if (!object(value) || value.schemaVersion !== 1 || value.command !== "check" || !object(value.report) || "mode" in value.report || !reportOk(value.report, expectedRunId, checkPageOk) || !helpersOk(value.report)) return fail("invalid check manifest; run a new check before approval");
   return value as Manifest;
 }
 

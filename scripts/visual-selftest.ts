@@ -33,7 +33,7 @@ let tls: ReturnType<typeof startHttpsFixture> | undefined;
 let passed = false, prerequisite = false;
 let lastId = Date.now();
 const id = () => new Date(lastId = Math.max(Date.now(), lastId + 1)).toISOString().replaceAll(":", "-");
-const options = () => ({ runsDir, runId: id(), log: () => {}, forms: { texts: deployment!.config.forms } });
+const options = () => ({ runsDir, runId: id(), log: () => {}, forms: { texts: deployment!.config.forms }, helperVersion: deployment!.versions.helperVersion });
 async function check(name: string, fn: () => Promise<void>) {
   console.log(`run  ${name}`);
   try { await fn(); checks.push({ name, ok: true }); console.log(`ok   ${name}`); }

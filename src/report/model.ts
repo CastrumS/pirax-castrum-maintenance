@@ -50,9 +50,14 @@ export type PageResult = {
   forms?: FormResult[];
 };
 
-export type SiteResult = { slug: string; url: string; pages: PageResult[] };
+/** A site's answer to the check's version request (src/helper-version.ts). `no-helper`: marked `helper: false`, never asked. */
+export type HelperAnswer = { state: "no-helper" } | { state: "unknown"; detail: string } | { state: "version"; version: string };
 
-export type RunReport = { runId: string; sites: SiteResult[] };
+/** `helper`: set by check; absent in baseline reports and in reports from before the version request. */
+export type SiteResult = { slug: string; url: string; pages: PageResult[]; helper?: HelperAnswer };
+
+/** `helperVersion`: the deployment's current helperVersion when check ran, so a report keeps what current meant then. */
+export type RunReport = { runId: string; sites: SiteResult[]; helperVersion?: string };
 
 /** `reports/<runId>/manifest.json`, uploaded last as the completion marker. */
 export type Manifest = { schemaVersion: 1; command: "check"; report: RunReport };

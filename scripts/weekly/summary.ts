@@ -1,10 +1,11 @@
 // Weekly check summary email: a pure builder from the parsed check result { exitCode, report?, url? }. The input is a
 // strict whitelist; anything malformed gives a fixed fallback that echoes no part of it. A valid body carries only the
-// run time, exit meaning, site slugs, statuses, page-status counts and the private report link: never site URLs,
-// details, health or warnings. selftestInput is a synthetic result for the clearly labeled selftest email.
+// run time, exit meaning, site slugs, statuses, page-status counts, helper versions and the private report link: never
+// site URLs, details (unknown helper details included), health or warnings. selftestInput is a synthetic result for the
+// clearly labeled selftest email.
 import type { Deployment } from "../../src/deployment.ts";
 import { subjectTag } from "../../src/mail/imap.ts";
-import { aggregateStatus, pageStatus, type ResultStatus } from "../../src/report/html.ts";
+import { aggregateStatus, helperCounts, helperText, pageStatus, type ResultStatus } from "../../src/report/html.ts";
 import { parseManifest, ReportError } from "../../src/report/manifest.ts";
 import type { RunReport, ViewportResult } from "../../src/report/model.ts";
 
@@ -19,7 +20,7 @@ const object = (v: unknown): v is Record<string, unknown> => typeof v === "objec
 
 function reportOf(value: unknown): RunReport | null {
   // parseManifest validates the report's content but not unknown top-level report keys, so whitelist those here.
-  if (!object(value) || Object.keys(value).some((k) => k !== "runId" && k !== "sites")) return null;
+  if (!object(value) || Object.keys(value).some((k) => k !== "runId" && k !== "sites" && k !== "helperVersion")) return null;
   try {
     return parseManifest({ schemaVersion: 1, command: "check", report: value }).report;
   } catch (error) {
@@ -49,12 +50,15 @@ const counts = (states: ResultStatus[]) => STATUSES.map((s) => [s, states.filter
 
 function sitesLines(report: RunReport): string[] {
   const siteStates = report.sites.map((site) => aggregateStatus(site.pages.map(pageStatus)));
+  const current = report.helperVersion;
+  const helpers = helperCounts(report);
   return [
     `Sites: ${report.sites.length} (${counts(siteStates).map(([s, n]) => `${s} ${n}`).join(", ")})`,
+    ...(helpers === null ? [] : [helpers]),
     "",
     ...report.sites.map((site, i) => {
       const pages = counts(site.pages.map(pageStatus)).filter(([, n]) => n > 0).map(([s, n]) => `${n} ${s}`).join(", ");
-      return `${site.slug}: ${siteStates[i]} (${site.pages.length} pages: ${pages})`;
+      return `${site.slug}: ${siteStates[i]} (${site.pages.length} pages: ${pages})${site.helper && current !== undefined ? `; ${helperText(site.helper, current)}` : ""}`;
     }),
   ];
 }

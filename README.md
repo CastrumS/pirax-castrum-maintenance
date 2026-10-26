@@ -255,7 +255,7 @@ The next site starts at step 1 only after step 4 passed. Never set two sites to 
 
 ### Weekly check in GitHub Actions
 
-`weeklyCheck.enabled: true` turns it on. `.github/workflows/weekly-check.yml` runs Fridays at 15:00 Europe/Zagreb and on `gh workflow run weekly-check.yml --repo <owner>/<repo>`. Its gate job reads the flag with no secrets. Its check job runs `check all` and sends one summary email to `notice.recipient`, with times in `weeklyCheck.timeZone`. It needs the ten secrets from [Selection and secrets](#selection-and-secrets) plus `IMAP_USER` and `IMAP_PASSWORD`.
+`weeklyCheck.enabled: true` turns it on. `.github/workflows/weekly-check.yml` runs Fridays at 15:00 Europe/Zagreb and on `gh workflow run weekly-check.yml --repo <owner>/<repo>`. Its gate job reads the flag with no secrets. Its check job runs `check all` and sends one summary email to `notice.recipient`, with times in `weeklyCheck.timeZone`. The email and the report show each helper site's version against the deployment's `helperVersion`. A site is `current` only on an exact match. A site that gives no version reads `unknown`, never current, and a `helper: false` site reads `no helper` and is not asked. It needs the ten secrets from [Selection and secrets](#selection-and-secrets) plus `IMAP_USER` and `IMAP_PASSWORD`.
 
 ### Pulling upstream fixes
 
@@ -279,7 +279,7 @@ Local checker commands require `DEPLOYMENT` (for example `DEPLOYMENT=pirax`), ev
 | Command | What it does | Needs R2 |
 | --- | --- | --- |
 | `bun run baseline <slug\|all> [--sites file]` | Capture and replace PNG/raw-health baseline pairs at both widths. | Yes |
-| `bun run check <slug\|all> [--sites file]` | Capture/compare, then check forms; publish a private report, including expected failures. Never changes baselines. | Yes |
+| `bun run check <slug\|all> [--sites file]` | Capture/compare, ask each helper site for its version with `FORM_TEST_TOKEN`, then check forms; publish a private report, including expected failures. Never changes baselines. | Yes |
 | `bun run forms <slug\|all> [--sites file]` | Desktop forms-only check; no visual capture/comparison or baseline access. | Yes |
 | `bun run approve <slug> [pagePath] [--sites file]` | Promote exact actual PNG/health bytes from the latest completed remote check containing that site. | Yes |
 | `DEPLOYMENT=pirax bun --no-env-file test tests` | Credential-free unit/helper, CLI and local browser tests; browser cases require installed Chromium. `bunfig.toml` excludes `issues/**` worktrees from discovery. | No |
@@ -351,6 +351,7 @@ sites:
   - slug: acme                 # lowercase letters/digits, single internal hyphens, unique
     url: https://acme.example.com  # http(s), absolute, no trailing slash
     form_helper: false         # fill only; true authorizes submitting the designated test_form
+    helper: false              # optional; no helper installed, so check never asks its version (default: installed)
     mask: ['#hero-slider']     # optional, CSS selectors masked on every page (default [])
     hide: ['.newsletter-popup'] # optional, CSS selectors removed before every screenshot
     max_diff_pixel_ratio: 0.01 # optional, 0–1 (default 0.01)
@@ -372,7 +373,7 @@ sites:
 ```ts
 type Page = { path: string; mask: string[]; hide?: string[] };
 type TestForm = { page: string; plugin: "gravity" | "fluent"; id: number };
-type Site = { slug: string; url: string; form_helper: boolean; mask: string[]; hide?: string[]; max_diff_pixel_ratio: number; pages: Page[]; test_form?: TestForm };
+type Site = { slug: string; url: string; form_helper: boolean; helper?: false; mask: string[]; hide?: string[]; max_diff_pixel_ratio: number; pages: Page[]; test_form?: TestForm };
 ```
 
 Site and page masks stay separate in the loader; capture combines them. The loader checks nonblank strings; browser preflight checks CSS syntax.
@@ -429,7 +430,7 @@ state/awaiting-audit/<slug>.json                                   # per-site aw
 
 Each check saves `runs/<runId>/index.html`, `manifest.json` and the same relative actual/baseline/diff paths shown above. The HTML contains inline CSS and embedded PNGs, so a single private signed GET renders all available panels without public or unsigned asset requests. Site-derived text is escaped and scripts/external assets are disallowed. HTML uploads use `text/html; charset=utf-8`, JSON `application/json`, and PNGs `image/png`.
 
-The manifest is `{schemaVersion: 1, command: "check", report: RunReport}` from `src/report/model.ts`, recording site URL, page identity, capture/visual/health results and artifact paths. It uploads **last** as the completion marker. Publication then prunes to ten run directories. The CLI prints the local report path and confirms private publication, but withholds the bearer URL from logs: it contains credential identifiers that the privacy boundary would otherwise replace, producing an unusable link. Programmatic `runCheck`/`runForms` results retain `url`, the valid private link signed for **604800 seconds (seven days)**. Expected failed checks also publish reports. Upload/prune/presign errors return 1; an already-written local report survives. A local filesystem failure can prevent HTML creation in the first place.
+The manifest is `{schemaVersion: 1, command: "check", report: RunReport}` from `src/report/model.ts`, recording site URL, page identity, capture/visual/health results, artifact paths, each site's helper answer and the run's `helperVersion`. It uploads **last** as the completion marker. Publication then prunes to ten run directories. The CLI prints the local report path and confirms private publication, but withholds the bearer URL from logs: it contains credential identifiers that the privacy boundary would otherwise replace, producing an unusable link. Programmatic `runCheck`/`runForms` results retain `url`, the valid private link signed for **604800 seconds (seven days)**. Expected failed checks also publish reports. Upload/prune/presign errors return 1; an already-written local report survives. A local filesystem failure can prevent HTML creation in the first place.
 
 The API-returned URL is a **bearer capability**: anyone holding it can read the report. Do not paste it into issues, committed files or retained implementation logs. Seven days is signature expiry, not guaranteed retention: global last-ten pruning across all sites can remove it sooner, including a quiet site's latest approval source. Run a fresh check if that source has gone.
 

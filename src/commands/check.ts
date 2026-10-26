@@ -8,16 +8,22 @@ import { publishReport, saveArtifact, writeLocalReport } from "../report/writer.
 import { captureSelection, configurationError, dispatch, safeError, type CommandResult, type FormsRunOptions } from "./common.ts";
 import { populateForms } from "../forms/runner.ts";
 import { secretRedactor } from "../forms/evidence.ts";
+import { askHelpers, readHelperToken } from "../helper-version.ts";
 import { reportStatus } from "../report/html.ts";
 
-export async function runCheck(sites: Site[], store: Store, options: FormsRunOptions): Promise<CommandResult> {
+/** `helperVersion`: the selected deployment's current helper version, which each helper site's answer is compared with. */
+export type CheckRunOptions = FormsRunOptions & { helperVersion: string };
+
+export async function runCheck(sites: Site[], store: Store, options: CheckRunOptions): Promise<CommandResult> {
   const redact = secretRedactor();
   const log = (message: string) => (options.log ?? console.log)(redact(message));
   try { return await executeCheck(sites, store, { ...options, log }); }
   catch (error) { log(`check: ${safeError(error)}`); return { exitCode: configurationError(error) ? 2 : 1 }; }
 }
-async function executeCheck(sites: Site[], store: Store, options: FormsRunOptions): Promise<CommandResult> {
+async function executeCheck(sites: Site[], store: Store, options: CheckRunOptions): Promise<CommandResult> {
   if (!sites.length) return { exitCode: 0 };
+  // Before any capture: a missing or invalid token is a configuration error (exit 2) naming only FORM_TEST_TOKEN.
+  const token = readHelperToken();
   const log = options.log!;
   const result: CommandResult = await captureSelection(sites, options, async (site, key, capture, v, runDir) => {
     const prefix = `baselines/${site.slug}/${v.viewport}/`;
@@ -56,6 +62,10 @@ async function executeCheck(sites: Site[], store: Store, options: FormsRunOption
   });
   try {
     if (!result.report || !result.runDir) throw new ReportError("check has no report");
+    // Answers go only to the private report and the summary email, never to the log.
+    const answers = await askHelpers(sites, token, { ignoreHTTPSErrors: options.browser?.ignoreHTTPSErrors ?? false });
+    result.report.helperVersion = options.helperVersion;
+    for (const [i, site] of result.report.sites.entries()) site.helper = answers[i];
     for (const line of await populateForms(sites, result.report, { ...options.forms, runDir: result.runDir }, { store })) log(`Awaiting-audit state: ${line}`);
     if (["failure", "blocked"].includes(reportStatus(result.report))) result.exitCode = 1;
     result.localPath = await writeLocalReport(result.report, result.runDir);

@@ -69,7 +69,7 @@ export async function runCommand(command: Command, args: string[], options: RunO
     const store = options.store ?? createStore({ config: readR2Config() });
     const run: FormsRunOptions = { ...options, forms: { ...options.forms, texts: deployment.config.forms } };
     if (command === "baseline") return await (await import("./baseline.ts")).runBaseline(sites, store, run);
-    if (command === "check") return await (await import("./check.ts")).runCheck(sites, store, run);
+    if (command === "check") return await (await import("./check.ts")).runCheck(sites, store, { ...run, helperVersion: deployment.versions.helperVersion });
     if (command === "forms") return await (await import("./forms.ts")).runForms(sites, store, run);
     return await (await import("./approve.ts")).runApprove(sites[0]!, store, { pagePath: parsed.pagePath, log });
   } catch (error) {

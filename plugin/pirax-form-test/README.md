@@ -8,7 +8,7 @@ A WordPress plugin for testing contact forms on a client site without involving 
 
 Submissions without the marker are not changed.
 
-It does not send mail itself. Mail still goes through the site's own `wp_mail()` path and configured transport. It adds no REST endpoint, custom table or JavaScript.
+It does not send mail itself. Mail still goes through the site's own `wp_mail()` path and configured transport. It adds no REST endpoint, custom table or JavaScript. Its one admin-ajax action, the [version answer](#version-answer), is token-gated.
 
 ## Install
 
@@ -63,6 +63,16 @@ The version comes from the plugin header, which must equal the `VERSION` constan
 **Automatic releases.** The re-audit's publish job (`scripts/reaudit/publish.ts`) runs this CLI, including its pre-publication privacy gate, with the signing key in that child's environment only. It runs only after it has committed the audited pins, the next patch version and the regenerated [current-version section](#supported-versions-and-behaviour) to `main` with a normal push. It then verifies the published release independently: it must be the latest full release with exactly the three assets; the manifest must verify against `UPDATE_PUBLIC_KEY` and match the ZIP's SHA-256, the version and the audited pins; the ZIP entries, the embedded pins and the main file's `Version` header and `VERSION` constant must match; and the tag must point at the pushed commit. A run with no vendor change verifies the current version's release the same way. A missing or incomplete release fails that run instead of passing silently.
 
 It never overwrites or deletes a tag and never replaces a release or asset (no `--clobber`). The two steps are not one transaction. A failed command or lost response can leave a tag, a draft or partially uploaded release, or even a completed release. Inspect the remote tag's commit and the release/assets before recovery. Only if no release exists and the tag matches the intended commit should you rerun `gh release create v<version> --verify-tag …` with the verified `dist/` files. Do not delete a tag or overwrite assets blindly; rerunning this CLI refuses an existing tag. Publishing needs an authenticated `gh` with write access, and HEAD must already be on GitHub.
+
+## Version answer
+
+The [weekly check](../../README.md#weekly-check-in-github-actions) asks each site for its installed helper version. The helper answers only one request shape:
+
+- **Request:** an anonymous `GET <site>/wp-admin/admin-ajax.php?action=pirax_form_test_version` with the configured token in the `X-Pirax-Helper-Token` header, compared in constant time.
+- **Answer:** HTTP 200 and exactly `{"version":"<installed version>"}`. admin-ajax sends WordPress's no-cache headers, so the answer is never cached.
+- **Refusal:** no header, a wrong token, the token anywhere but the header (query, path, cookie or body), or no token configured. The helper then registers no handler, and WordPress answers as for any unknown action (`0`, HTTP 400), which is what a site without the helper answers.
+
+The header name and the action have a kept copy in the checker's `src/helper-version.ts`. `test/plugin/version.test.ts` checks that both agree.
 
 ## Marker and mail contract
 
@@ -197,7 +207,7 @@ WP-Cron runs only when the site gets traffic, so one hour is a recovery deadline
 ## Token rotation, disabling and uninstall
 
 - **Rotation:** clear pending tests before changing the token. The sweep finds entries only by the **current** token, so entries holding only the old token are never swept. Already-queued FF test jobs stay marked through their stored id and keep going to the redirect. If the token is cleared, they fail closed instead of reaching clients.
-- **Disabling:** clear the token. New submissions are ordinary and the sweep stops.
+- **Disabling:** clear the token. New submissions are ordinary, the sweep stops and the version answer refuses every request.
 - **Deactivation** removes the scheduled event and keeps the options.
 - **Deleting** the plugin in wp-admin runs `uninstall.php`, which removes both options and the event.
 

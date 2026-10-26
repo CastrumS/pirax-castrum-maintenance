@@ -5,6 +5,9 @@
  *
  * Both render and save require manage_options; saving also requires the nonce. The token is never
  * printed back. A blank token field keeps the stored token; "clear" disables all test behaviour.
+ *
+ * The token also gates the version answer: admin-ajax.php?action=pirax_form_test_version returns only the
+ * installed VERSION, and only to an anonymous request whose X-Pirax-Helper-Token header equals the token.
  */
 
 namespace Pirax\FormTest;
@@ -15,11 +18,32 @@ const OPTION_TOKEN    = 'pirax_form_test_token';
 const OPTION_REDIRECT = 'pirax_form_test_redirect';
 const PAGE            = 'pirax-form-test';
 const SAVE_ACTION     = 'pirax_form_test_save';
+/** The version answer's action and the $_SERVER key of its header: a kept copy of src/helper-version.ts, whose agreement test is test/plugin/version.test.ts. */
+const VERSION_ACTION = 'pirax_form_test_version';
+const VERSION_HEADER = 'HTTP_X_PIRAX_HELPER_TOKEN';
 
 /** Configured marker token; '' when test behaviour is disabled. */
 function token() {
 	$token = get_option( OPTION_TOKEN, '' );
 	return is_string( $token ) ? $token : '';
+}
+
+/**
+ * Registers the version answer only when the header equals the configured token. Any other request finds no handler,
+ * so admin-ajax.php answers as for an unknown action ("0", HTTP 400), the same as a site without this plugin. It runs
+ * on admin_init, after admin-ajax.php has sent nocache_headers(), so the answer is never cacheable.
+ */
+function register_version_answer() {
+	$token = token();
+	$sent  = isset( $_SERVER[ VERSION_HEADER ] ) ? wp_unslash( $_SERVER[ VERSION_HEADER ] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- compared in constant time, never stored or printed.
+	if ( '' !== $token && hash_equals( $token, $sent ) ) {
+		add_action( 'wp_ajax_nopriv_' . VERSION_ACTION, __NAMESPACE__ . '\answer_version' );
+	}
+}
+
+/** HTTP 200 with exactly {"version":"<VERSION>"}. */
+function answer_version() {
+	wp_send_json( array( 'version' => VERSION ) );
 }
 
 /** Configured redirect mailbox, unvalidated; see redirect_is_valid(). */
@@ -56,6 +80,7 @@ add_action(
 	}
 );
 add_action( 'admin_post_' . SAVE_ACTION, __NAMESPACE__ . '\save_settings' );
+add_action( 'admin_init', __NAMESPACE__ . '\register_version_answer' );
 
 function render_settings() {
 	if ( ! current_user_can( 'manage_options' ) ) {
